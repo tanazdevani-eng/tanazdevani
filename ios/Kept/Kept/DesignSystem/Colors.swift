@@ -30,6 +30,24 @@ extension Color {
     }
 }
 
+/// Mirrors every color above onto `ShapeStyle` so `.keptInk`-style dot-syntax also resolves
+/// in APIs typed as `some ShapeStyle` (`.foregroundStyle(.keptInk)`, `.strokeBorder(.keptLine)`,
+/// etc.) — a plain `extension Color` only satisfies call sites that ask for `Color` itself.
+extension ShapeStyle where Self == Color {
+    static var keptBackground: Color { .keptBackground }
+    static var keptInk: Color { .keptInk }
+    static var keptInkSoft: Color { .keptInkSoft }
+    static var keptLine: Color { .keptLine }
+    static var keptOrange: Color { .keptOrange }
+    static var keptOrangeDeep: Color { .keptOrangeDeep }
+    static var keptOrangeSoft: Color { .keptOrangeSoft }
+    static var keptPurple: Color { .keptPurple }
+    static var keptPurpleDeep: Color { .keptPurpleDeep }
+    static var keptPurpleSoft: Color { .keptPurpleSoft }
+    static var keptSuccess: Color { .keptSuccess }
+    static var keptSuccessSoft: Color { .keptSuccessSoft }
+}
+
 extension HabitVisibility {
     var accent: Color {
         switch self {
