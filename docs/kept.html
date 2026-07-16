@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kept · App Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FBF6F0;
+    --ink: #211C24;
+    --ink-soft: #6B6470;
+    --orange: #FF6A2C;
+    --orange-deep: #E6551A;
+    --orange-soft: #FFE3D0;
+    --purple: #3E1969;
+    --purple-soft: #E7DEF0;
+    --purple-deep: #2A1150;
+    --gold: #F5A623;
+    --white: #FFFFFF;
+    --line: #ECE4DA;
+    --shadow: 0 20px 40px -18px rgba(33,28,36,0.28);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, #FFF1E6 0%, transparent 45%),
+      radial-gradient(circle at 85% 90%, #EFE6F5 0%, transparent 45%),
+      var(--bg);
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:32px 16px;
+  }
+  .stage{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .stage-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--ink-soft); text-align:center; max-width:340px;
+  }
+  .phone{
+    width:375px; height:812px; background:var(--white);
+    border-radius:52px; padding:14px;
+    box-shadow: var(--shadow), 0 0 0 10px #14111a;
+    position:relative;
+  }
+  .screen{
+    width:100%; height:100%; background:var(--bg);
+    border-radius:38px; overflow:hidden; position:relative;
+    display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    width:120px; height:28px; background:#14111a; border-radius:20px; z-index:50;
+  }
+  .statusbar{
+    height:52px; display:flex; align-items:flex-end; justify-content:space-between;
+    padding:0 28px 8px; font-weight:700; font-size:14px; color:var(--ink); flex-shrink:0;
+  }
+  .view{ flex:1; overflow-y:auto; display:none; flex-direction:column; animation: fadeIn .35s ease; padding-bottom:110px; }
+  .view.active{ display:flex; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- HEADER ---------- */
+  .app-header{ padding:4px 22px 14px; flex-shrink:0; }
+  .app-header .row{ display:flex; align-items:center; justify-content:space-between; }
+  .wordmark{
+    font-family:'Fraunces', serif; font-weight:600; font-style:italic;
+    font-size:28px; color:var(--ink); letter-spacing:-0.01em;
+  }
+  .streak-pill{
+    display:flex; align-items:center; gap:5px;
+    background:var(--ink); color:var(--white);
+    padding:6px 12px; border-radius:100px;
+    font-family:'IBM Plex Mono'; font-weight:600; font-size:13px;
+  }
+  .date-line{ font-size:13px; color:var(--ink-soft); margin-top:3px; font-weight:500; }
+  .icon-btn{
+    width:34px; height:34px; border-radius:50%;
+    border:1.5px solid var(--ink); background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--ink); font-size:17px; font-weight:600;
+  }
+
+  /* ---------- HABIT CARDS ---------- */
+  .card-list{ padding:6px 22px 100px; display:flex; flex-direction:column; gap:14px; }
+  .habit-card{
+    border-radius:26px; padding:18px 18px 16px;
+    position:relative; background:var(--white);
+    border:1px solid var(--line);
+    transition: transform .15s ease;
+  }
+  .habit-card:active{ transform: scale(0.98); }
+  .habit-card.open{
+    background: linear-gradient(155deg, #FFFFFF 0%, var(--orange-soft) 130%);
+    border-color: #FFD1B0;
+  }
+  .habit-card.kept{
+    background: linear-gradient(155deg, #FFFFFF 0%, var(--purple-soft) 130%);
+    border-color: #D9C8EB;
+  }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .habit-title{ display:flex; align-items:center; gap:9px; }
+  .habit-name{ font-family:'Fraunces', serif; font-weight:600; font-size:18px; color:var(--ink); }
+  .habit-meta{ font-size:12px; color:var(--ink-soft); font-weight:500; margin-top:2px; }
+  .vis-toggle{
+    display:flex; align-items:center; gap:5px;
+    padding:6px 10px 6px 8px; border-radius:100px;
+    font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:600; letter-spacing:0.03em;
+    cursor:pointer; border:none; flex-shrink:0;
+  }
+  .vis-toggle.open{ background:var(--orange); color:white; }
+  .vis-toggle.kept{ background:var(--purple); color:white; }
+  .card-actions{ display:flex; align-items:center; gap:4px; flex-shrink:0; }
+  .edit-dot{
+    background:none; border:none; color:var(--ink-soft); font-size:17px;
+    cursor:pointer; padding:4px 6px; line-height:1; letter-spacing:1px;
+  }
+  .edit-dot:hover{ color:var(--ink); }
+
+  .progress-row{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .dots{ display:flex; gap:3.5px; flex:1; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
+  .dot.filled.open{ background:var(--orange); }
+  .dot.filled.kept{ background:var(--purple); }
+  .streak-num{ font-family:'IBM Plex Mono'; font-weight:600; font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+
+  .checkin-row{ margin-top:12px; padding-top:12px; border-top:1px solid rgba(33,28,36,0.08); }
+  .checkin-btn{
+    width:100%; padding:11px; border-radius:14px; border:none;
+    background:var(--ink); color:white; font-weight:700; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;
+  }
+  .checkin-btn .cb-check{
+    width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,0.2);
+    display:flex; align-items:center; justify-content:center; font-size:10px;
+  }
+  .habit-card.done .checkin-btn{ background:#3EA05B; }
+  .habit-card.done .checkin-btn .cb-check{ background:white; color:#3EA05B; }
+
+  /* ---------- CIRCLE ---------- */
+  .circle-sub{ padding:0 22px 12px; font-size:13px; color:var(--ink-soft); font-weight:500; line-height:1.4; }
+  .friend-card{
+    margin:0 22px 14px; background:var(--white);
+    border:1px solid var(--line); border-radius:24px; padding:16px 18px;
+  }
+  .friend-top{ display:flex; align-items:center; gap:10px; }
+  .friend-top > div:nth-child(2){ flex:1; min-width:0; overflow:hidden; }
+  .avatar{
+    width:36px; height:36px; border-radius:50%;
+    background:linear-gradient(140deg, var(--orange), var(--purple));
+    display:flex; align-items:center; justify-content:center;
+    color:white; font-family:'Fraunces'; font-weight:600; font-size:14px; flex-shrink:0;
+    position:relative; overflow:hidden; border:1.5px solid white;
+    box-shadow:0 2px 8px -2px rgba(33,28,36,0.35);
+  }
+  .avatar.a1{ background:
+    radial-gradient(circle at 28% 30%, #FF8A52 0%, transparent 55%),
+    radial-gradient(circle at 75% 70%, var(--purple) 0%, transparent 60%),
+    linear-gradient(150deg, var(--orange-deep), var(--purple-deep)); }
+  .avatar.a2{ background:
+    radial-gradient(circle at 70% 25%, #C084F5 0%, transparent 55%),
+    radial-gradient(circle at 25% 75%, var(--orange) 0%, transparent 60%),
+    linear-gradient(160deg, var(--purple), var(--orange-deep)); }
+  .avatar.a3{ background:
+    radial-gradient(circle at 30% 70%, var(--gold) 0%, transparent 50%),
+    radial-gradient(circle at 70% 30%, var(--purple) 0%, transparent 60%),
+    linear-gradient(140deg, var(--purple-deep), var(--orange)); }
+  .avatar.a4{ background:
+    radial-gradient(circle at 65% 65%, #FFA36B 0%, transparent 55%),
+    radial-gradient(circle at 30% 25%, var(--purple-deep) 0%, transparent 55%),
+    linear-gradient(155deg, var(--orange), var(--purple)); }
+  .avatar.me{
+    width:88px; height:88px; font-size:30px; border:3px solid white;
+    background:
+    radial-gradient(circle at 30% 28%, #FF8A52 0%, transparent 55%),
+    radial-gradient(circle at 72% 72%, var(--purple) 0%, transparent 58%),
+    linear-gradient(150deg, var(--orange-deep), var(--purple-deep));
+    box-shadow:0 10px 26px -10px rgba(33,28,36,0.4);
+  }
+  .avatar-edit{
+    position:absolute; bottom:-2px; right:-2px;
+    width:28px; height:28px; border-radius:50%;
+    background:var(--ink); color:white; border:3px solid var(--bg);
+    display:flex; align-items:center; justify-content:center; font-size:13px; cursor:pointer;
+  }
+  .friend-name{ font-weight:700; font-size:14px; color:var(--ink); }
+  .friend-time{ font-size:11.5px; color:var(--ink-soft); font-weight:500; }
+  .friend-flame{
+    margin-left:auto; font-family:'IBM Plex Mono'; font-weight:600; font-size:12.5px;
+    color:var(--ink); display:flex; align-items:center; gap:3px; flex-shrink:0;
+  }
+  .friend-quote{
+    font-family:'Fraunces', serif; font-style:italic; font-size:15.5px;
+    color:var(--ink); margin:12px 0 12px; line-height:1.35;
+  }
+  .friend-actions{ display:flex; gap:8px; }
+  .react-btn{
+    flex:1; padding:9px; border-radius:14px; background:#F7F1E9;
+    border:none; font-size:13px; font-weight:600; color:var(--ink);
+    cursor:pointer; text-align:center;
+  }
+  .react-btn.nudge{ background:var(--orange-soft); color:var(--orange-deep); }
+  .post-remove{
+    background:none; border:none; color:var(--ink-soft); font-size:13px;
+    margin-left:6px; cursor:pointer; padding:4px; line-height:1;
+  }
+  .post-remove:hover{ color:var(--ink); }
+  .reaction-picker{ display:flex; align-items:center; gap:10px; justify-content:center; width:100%; }
+  .reaction-picker span{ font-size:17px; cursor:pointer; transition: transform .12s ease; }
+  .reaction-picker span:hover{ transform: scale(1.3); }
+
+  .locked-note{
+    margin:2px 22px 18px; padding:14px 16px; background:var(--purple-soft);
+    border-radius:18px; display:flex; gap:10px; align-items:center;
+  }
+  .locked-note .ic{ font-size:16px; }
+  .locked-note p{ font-size:12px; color:var(--purple-deep); font-weight:600; line-height:1.4; }
+
+  /* ---------- INVITE SENT ---------- */
+  .sent-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 30px; text-align:center; }
+  .sent-check{
+    width:72px; height:72px; border-radius:50%; background:var(--orange-soft);
+    color:var(--orange-deep); display:flex; align-items:center; justify-content:center;
+    font-size:32px; margin-bottom:20px;
+  }
+  .sent-title{ font-family:'Fraunces'; font-weight:600; font-size:21px; color:var(--ink); }
+  .sent-sub{ font-size:12.5px; color:var(--ink-soft); font-weight:500; margin-top:8px; line-height:1.4; max-width:250px; }
+  .sent-preview{
+    margin-top:22px; padding:14px 16px; background:var(--white); border:1px solid var(--line);
+    border-radius:16px; font-size:12.5px; color:var(--ink); font-style:italic; font-family:'Fraunces';
+    text-align:left; line-height:1.45;
+  }
+
+  /* ---------- MANAGE CIRCLE ---------- */
+  .member-row{
+    margin:0 22px 10px; padding:12px 14px; background:var(--white);
+    border:1px solid var(--line); border-radius:18px; display:flex; align-items:center; gap:12px;
+  }
+  .member-row > div:nth-child(2){ flex:1; min-width:0; overflow:hidden; }
+  .member-sub{ font-size:11px; color:var(--ink-soft); font-weight:500; }
+  .member-remove{
+    margin-left:auto; font-size:11.5px; font-weight:700; color:var(--ink-soft);
+    cursor:pointer; padding:6px 10px; flex-shrink:0; white-space:nowrap;
+  }
+  .member-remove:hover{ color:var(--orange-deep); }
+
+  /* ---------- CHECK-IN ---------- */
+  .checkin-hero{ padding:6px 22px 4px; display:flex; align-items:center; gap:12px; }
+  .checkin-hero .ci-name{ font-family:'Fraunces'; font-weight:600; font-size:21px; color:var(--ink); }
+  .checkin-hero .ci-sub{ font-size:12px; color:var(--ink-soft); font-weight:500; margin-top:2px; }
+
+  .checkin-circle-wrap{ display:flex; flex-direction:column; align-items:center; padding:26px 22px 10px; }
+  .checkin-circle{
+    width:130px; height:130px; border-radius:50%;
+    border:3px solid var(--line); background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    font-size:44px; color:var(--line); cursor:pointer;
+    transition: all .2s ease;
+  }
+  .checkin-circle.done{
+    border-color:#3EA05B; background:#EAF6EE; color:#3EA05B;
+  }
+  .checkin-circle-label{ margin-top:14px; font-family:'IBM Plex Mono'; font-size:12px; font-weight:600; color:var(--ink-soft); }
+
+  .note-box{
+    margin:18px 22px 0; padding:14px 16px; background:var(--white);
+    border:1px solid var(--line); border-radius:18px; min-height:64px;
+    font-size:13.5px; color:var(--ink-soft); font-weight:500; line-height:1.4;
+  }
+  .note-box.filled{ color:var(--ink); font-style:italic; font-family:'Fraunces'; }
+
+  .vis-reminder{
+    margin:14px 22px 0; padding:11px 14px; border-radius:14px;
+    font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:8px;
+  }
+  .vis-reminder.open{ background:var(--orange-soft); color:var(--orange-deep); }
+  .vis-reminder.kept{ background:var(--purple-soft); color:var(--purple-deep); }
+
+  .duration-picker{ display:flex; flex-wrap:wrap; gap:8px; margin:0 22px; }
+  .duration-chip{
+    padding:9px 14px; border-radius:100px; border:1.5px solid var(--line);
+    background:var(--white); font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  }
+  .duration-chip.selected{ border-color:var(--orange); background:var(--orange-soft); color:var(--orange-deep); }
+
+  /* ---------- ADD FLOW ---------- */
+  .field-label{
+    padding:0 22px 8px; font-family:'IBM Plex Mono'; font-size:11px;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft);
+    font-weight:600; margin-top:16px;
+  }
+  .input-mock{
+    margin:0 22px; padding:15px 16px; background:var(--white);
+    border:1px solid var(--line); border-radius:16px; font-size:15px; color:var(--ink); font-weight:500;
+    width:calc(100% - 44px); font-family:'Inter'; outline:none;
+  }
+  .input-mock:focus{ border-color:var(--ink); }
+  .input-mock::placeholder{ color:var(--ink-soft); font-weight:500; }
+  .search-mock{
+    margin:0 22px; padding:13px 16px; background:var(--white);
+    border:1px solid var(--line); border-radius:100px; font-size:14px; color:var(--ink-soft); font-weight:500;
+    width:calc(100% - 44px); font-family:'Inter'; outline:none;
+  }
+  .search-mock:focus{ border-color:var(--ink); color:var(--ink); }
+  .visibility-picker{ margin:10px 22px 0; display:flex; gap:10px; }
+  .vis-option{
+    flex:1; padding:16px 14px; border-radius:18px;
+    border:2px solid var(--line); background:var(--white); cursor:pointer;
+    transition: all .15s ease;
+  }
+  .vis-option.selected.open{ border-color:var(--orange); background:var(--orange-soft); }
+  .vis-option.selected.kept{ border-color:var(--purple); background:var(--purple-soft); }
+  .vis-option .vo-icon{ font-size:20px; margin-bottom:8px; }
+  .vis-option .vo-title{ font-family:'Fraunces'; font-weight:600; font-size:14.5px; color:var(--ink); }
+  .vis-option .vo-desc{ font-size:11.5px; color:var(--ink-soft); font-weight:500; margin-top:3px; line-height:1.35;}
+
+  .lock-badge{
+    margin:16px 22px 0; padding:10px 14px; background:var(--purple-soft);
+    border-radius:14px; display:flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:600; color:var(--purple-deep);
+  }
+
+  .primary-btn{
+    margin:26px 22px 0; padding:17px; background:var(--ink); color:white;
+    text-align:center; border-radius:100px; font-weight:700; font-size:15px;
+    cursor:pointer; border:none;
+  }
+
+  /* ---------- INVITE ---------- */
+  .invite-link-card{
+    margin:0 22px 20px; padding:16px 17px; border-radius:22px;
+    background:var(--purple-deep); color:white;
+  }
+  .invite-link-card .il-label{
+    font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:#C6B4DC; margin-bottom:8px;
+  }
+  .invite-link-row{ display:flex; align-items:center; gap:10px; }
+  .invite-link-row .link-text{
+    flex:1; font-family:'IBM Plex Mono'; font-size:12.5px; color:white; font-weight:500;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .copy-btn{
+    background:var(--orange); color:white; border:none;
+    padding:8px 14px; border-radius:100px; font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+  .contact-row{
+    margin:0 22px 10px; padding:12px 14px; background:var(--white);
+    border:1px solid var(--line); border-radius:18px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .contact-row > div:nth-child(2){ flex:1; min-width:0; overflow:hidden; }
+  .contact-row .avatar{ width:34px; height:34px; font-size:13px; }
+  .contact-name{ font-weight:700; font-size:13.5px; color:var(--ink); }
+  .contact-sub{ font-size:11px; color:var(--ink-soft); font-weight:500; }
+  .invite-btn{
+    margin-left:auto; padding:7px 14px; border-radius:100px;
+    border:1.5px solid var(--ink); background:transparent; color:var(--ink);
+    font-size:11.5px; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap;
+  }
+  .invite-btn.pending{ border-color:var(--line); color:var(--ink-soft); background:var(--bg); }
+
+  /* ---------- PAYWALL ---------- */
+  .paywall-hero{ padding:20px 22px 6px; text-align:center; }
+  .paywall-badge{
+    display:inline-block; font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:700;
+    letter-spacing:0.1em; color:white; background:var(--purple-deep);
+    padding:5px 12px; border-radius:100px; margin-bottom:14px;
+  }
+  .paywall-title{ font-family:'Fraunces', serif; font-weight:600; font-size:30px; color:var(--ink); line-height:1.08; }
+  .paywall-sub{ font-size:13.5px; color:var(--ink-soft); font-weight:500; margin-top:8px; padding:0 8px; line-height:1.4; }
+  .paywall-status{
+    margin:16px 22px 0; padding:12px 16px; background:var(--purple-soft); color:var(--purple-deep);
+    border-radius:16px; font-size:12px; font-weight:600; line-height:1.4;
+  }
+  .plans{ display:flex; gap:10px; padding:20px 22px 0; }
+  .plan{ flex:1; border-radius:22px; padding:16px 14px; border:2px solid var(--line); background:var(--white); }
+  .plan.featured{ border-color:var(--purple-deep); background:var(--purple-deep); position:relative; }
+  .plan.selected{ box-shadow: 0 0 0 2.5px var(--orange); }
+  .plan.featured .plan-name, .plan.featured .plan-price, .plan.featured .plan-price span{ color:white; }
+  .plan.featured .plan-feat div{ color:#CBB9DF; }
+  .plan.featured .plan-feat b{ color:white; }
+  .plan-tag{
+    position:absolute; top:-11px; left:14px; background:var(--orange); color:white;
+    font-family:'IBM Plex Mono'; font-size:9.5px; font-weight:700; padding:4px 9px;
+    border-radius:100px; letter-spacing:0.04em;
+  }
+  .plan-name{ font-family:'Fraunces'; font-weight:600; font-size:15px; color:var(--ink); }
+  .plan-price{ font-family:'IBM Plex Mono'; font-weight:600; font-size:18px; color:var(--ink); margin-top:6px; }
+  .plan-price span{ font-size:11px; color:var(--ink-soft); font-weight:500; }
+  .plan-feat{ margin-top:12px; display:flex; flex-direction:column; gap:7px; }
+  .plan-feat div{ font-size:11.5px; color:var(--ink-soft); font-weight:500; display:flex; gap:6px; align-items:flex-start; line-height:1.35; }
+  .plan-feat b{ color:var(--ink); font-weight:600; }
+
+  .paywall-cta{
+    margin:24px 22px 8px; padding:17px; background:var(--orange); color:white;
+    text-align:center; border-radius:100px; font-weight:700; font-size:15px;
+    box-shadow: 0 14px 24px -10px rgba(255,106,44,0.5); cursor:pointer;
+  }
+  .paywall-footnote{ text-align:center; font-size:11px; color:var(--ink-soft); padding:8px 30px 20px; font-weight:500; line-height:1.4; }
+
+  /* ---------- PROFILE ---------- */
+  .profile-hero{ padding:10px 22px 6px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .avatar-wrap{ position:relative; margin-bottom:14px; }
+  .profile-name{ font-family:'Fraunces', serif; font-weight:600; font-size:21px; color:var(--ink); }
+  .profile-handle{ font-size:12.5px; color:var(--ink-soft); font-weight:500; margin-top:2px; }
+  .profile-bio{ font-size:12.5px; color:var(--ink-soft); font-weight:500; margin-top:8px; max-width:250px; line-height:1.4; }
+  .kept-plus-chip{
+    margin-top:12px; display:inline-flex; align-items:center; gap:5px;
+    background:var(--purple-deep); color:white; padding:5px 12px; border-radius:100px;
+    font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:700;
+  }
+  .stat-row{
+    display:flex; margin:20px 22px 6px; background:var(--white);
+    border:1px solid var(--line); border-radius:20px;
+  }
+  .stat-block{ flex:1; text-align:center; padding:14px 6px; }
+  .stat-block + .stat-block{ border-left:1px solid var(--line); }
+  .stat-num{ font-family:'IBM Plex Mono'; font-weight:600; font-size:18px; color:var(--ink); }
+  .stat-label{ font-size:10px; color:var(--ink-soft); font-weight:600; margin-top:2px; text-transform:uppercase; letter-spacing:0.03em; }
+  .settings-group{ margin:18px 22px 0; background:var(--white); border:1px solid var(--line); border-radius:20px; }
+  .settings-row{
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    border-bottom:1px solid var(--line); cursor:pointer;
+  }
+  .settings-row:last-child{ border-bottom:none; }
+  .settings-row .si{ font-size:16px; width:20px; text-align:center; }
+  .settings-row .st{ font-size:13.5px; font-weight:600; color:var(--ink); flex:1; }
+  .settings-row .sc{ color:var(--ink-soft); font-size:13px; }
+  .settings-row.danger .st{ color:var(--orange-deep); }
+  .settings-group-label{ padding:0 22px 8px; margin-top:20px; font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; }
+
+  /* ---------- TOGGLES / CHIPS / TOAST ---------- */
+  .switch{
+    width:42px; height:24px; border-radius:100px; background:var(--line);
+    position:relative; cursor:pointer; flex-shrink:0; transition: background .18s ease;
+  }
+  .switch.on{ background:var(--orange); }
+  .switch .knob{
+    width:18px; height:18px; border-radius:50%; background:white;
+    position:absolute; top:3px; left:3px; transition: transform .18s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,0.25);
+  }
+  .switch.on .knob{ transform:translateX(18px); }
+  .time-chip{
+    padding:6px 12px; border-radius:100px; background:var(--bg); border:1px solid var(--line);
+    font-family:'IBM Plex Mono'; font-size:11.5px; font-weight:600; color:var(--ink); cursor:pointer;
+    white-space:nowrap;
+  }
+  .notif-row{
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .notif-row:last-child{ border-bottom:none; }
+  .notif-row .nr-info{ flex:1; }
+  .notif-row .nr-title{ font-size:13.5px; font-weight:700; color:var(--ink); }
+  .notif-row .nr-sub{ font-size:11px; color:var(--ink-soft); font-weight:500; margin-top:1px; }
+  .notif-habit-row{
+    display:flex; align-items:center; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .notif-habit-row:last-child{ border-bottom:none; }
+  .notif-habit-row .nh-name{ font-size:13px; font-weight:600; color:var(--ink); flex:1; }
+  #perHabitList.collapsed{ display:none; }
+  .notif-section-note{ padding:0 22px 4px; font-size:11.5px; color:var(--ink-soft); font-weight:500; line-height:1.4; }
+
+  .toast{
+    position:absolute; bottom:100px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--ink); color:white; padding:11px 18px; border-radius:100px;
+    font-size:12.5px; font-weight:600; white-space:nowrap; z-index:80;
+    opacity:0; pointer-events:none; transition: all .25s ease;
+    box-shadow:0 10px 24px -8px rgba(0,0,0,0.4);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .confirm-overlay{
+    position:absolute; inset:0; background:rgba(28,23,18,0.45);
+    display:none; align-items:flex-end; z-index:90; border-radius:38px;
+  }
+  .confirm-overlay.show{ display:flex; }
+  .confirm-sheet{
+    width:100%; background:var(--white); border-radius:26px 26px 0 0; padding:22px;
+  }
+  .confirm-sheet h4{ font-family:'Fraunces'; font-size:18px; color:var(--ink); margin-bottom:6px; }
+  .confirm-sheet p{ font-size:12.5px; color:var(--ink-soft); font-weight:500; margin-bottom:18px; line-height:1.4; }
+  .confirm-btn{ padding:14px; border-radius:100px; text-align:center; font-weight:700; font-size:14px; cursor:pointer; }
+  .confirm-btn.danger{ background:var(--orange-deep); color:white; margin-bottom:8px; }
+  .confirm-btn.cancel{ background:var(--bg); color:var(--ink); border:1px solid var(--line); }
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{
+    position:absolute; bottom:14px; left:14px; right:14px; height:74px;
+    background:rgba(255,255,255,0.88); backdrop-filter: blur(14px);
+    border-radius:26px; display:flex; align-items:center; justify-content:space-around;
+    box-shadow: 0 10px 30px -12px rgba(33,28,36,0.25);
+    border:1px solid rgba(255,255,255,0.6); z-index:40;
+  }
+  .tab{
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+    color:#B7ADC0; font-size:9.5px; font-weight:700; letter-spacing:0.02em; width:56px;
+  }
+  .tab.active{ color:var(--ink); }
+  .tab .ic{ font-size:19px; }
+  .tab.plus .ic{
+    width:38px; height:38px; background:var(--ink); color:white; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:1px;
+  }
+
+  .legend{
+    display:flex; gap:16px; flex-wrap:wrap; justify-content:center;
+    font-family:'IBM Plex Mono'; font-size:11px; color:var(--ink-soft);
+    max-width:375px; text-align:center;
+  }
+  .legend b{ color:var(--ink); }
+  .dotkey{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-label">Kept · tap the tab bar to explore · tap a lock/globe pill to reassign visibility · + icon on Circle adds people · tap your avatar for Profile</div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+
+      <!-- ============ HOME ============ -->
+      <div class="view active" id="view-home">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header">
+          <div class="row">
+            <div class="wordmark">Kept</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="streak-pill">🔥 12</div>
+              <div class="avatar a1" style="width:34px;height:34px;font-size:13px;cursor:pointer;" onclick="go('profile')">T</div>
+            </div>
+          </div>
+          <div class="date-line">Wednesday, July 15</div>
+        </div>
+
+        <div class="card-list">
+
+          <div class="habit-card open done" id="card-run" data-emoji="🌅" data-name="Morning Run">
+            <div class="card-top">
+              <div class="habit-title">
+                <div>
+                  <div class="habit-name">Morning Run</div>
+                  <div class="habit-meta">checked in today</div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="vis-toggle open" onclick="toggleVis(this)">🌐 Open</button>
+                <button class="edit-dot" onclick="openEditHabit('run')">⋯</button>
+              </div>
+            </div>
+            <div class="progress-row">
+              <div class="dots" id="dots1"></div>
+              <div class="streak-num">13/16</div>
+            </div>
+            <div class="checkin-row">
+              <button class="checkin-btn" onclick="handleCheckinTap('run')"><span class="cb-check">✓</span> Checked in</button>
+            </div>
+          </div>
+
+          <div class="habit-card kept" id="card-water" data-emoji="💧" data-name="Drink Water">
+            <div class="card-top">
+              <div class="habit-title">
+                <div>
+                  <div class="habit-name">Drink Water</div>
+                  <div class="habit-meta" style="display:none;"></div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="vis-toggle kept" onclick="toggleVis(this)">🔒 Kept</button>
+                <button class="edit-dot" onclick="openEditHabit('water')">⋯</button>
+              </div>
+            </div>
+            <div class="progress-row">
+              <div class="dots" id="dots2"></div>
+              <div class="streak-num">24 days</div>
+            </div>
+            <div class="checkin-row">
+              <button class="checkin-btn" onclick="handleCheckinTap('water')"><span class="cb-check">✓</span> Check in today</button>
+            </div>
+          </div>
+
+          <div class="habit-card kept" id="card-journal" data-emoji="📓" data-name="Journal 5 Min">
+            <div class="card-top">
+              <div class="habit-title">
+                <div>
+                  <div class="habit-name">Journal 5 Min</div>
+                  <div class="habit-meta" style="display:none;"></div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="vis-toggle kept" onclick="toggleVis(this)">🔒 Kept</button>
+                <button class="edit-dot" onclick="openEditHabit('journal')">⋯</button>
+              </div>
+            </div>
+            <div class="progress-row">
+              <div class="dots" id="dots3"></div>
+              <div class="streak-num">6 days</div>
+            </div>
+            <div class="checkin-row">
+              <button class="checkin-btn" onclick="handleCheckinTap('journal')"><span class="cb-check">✓</span> Check in today</button>
+            </div>
+          </div>
+
+          <div class="habit-card open" id="card-gym" data-emoji="🏋️" data-name="Gym Before Work">
+            <div class="card-top">
+              <div class="habit-title">
+                <div>
+                  <div class="habit-name">Gym Before Work</div>
+                  <div class="habit-meta" style="display:none;"></div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="vis-toggle open" onclick="toggleVis(this)">🌐 Open</button>
+                <button class="edit-dot" onclick="openEditHabit('gym')">⋯</button>
+              </div>
+            </div>
+            <div class="progress-row">
+              <div class="dots" id="dots4"></div>
+              <div class="streak-num">30 days</div>
+            </div>
+            <div class="checkin-row">
+              <button class="checkin-btn" onclick="handleCheckinTap('gym')"><span class="cb-check">✓</span> Check in today</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ CIRCLE ============ -->
+      <div class="view" id="view-circle">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header">
+          <div class="row">
+            <div class="wordmark">Circle</div>
+            <div class="icon-btn" onclick="go('invite')">+</div>
+          </div>
+        </div>
+        <div class="circle-sub">The habits your friends have chosen to open up. Everything else stays theirs.</div>
+
+        <div class="friend-card" data-habit="run" style="border-color:var(--orange);">
+          <div class="friend-top">
+            <div class="avatar me" style="width:36px;height:36px;font-size:14px;">T</div>
+            <div>
+              <div class="friend-name">You</div>
+              <div class="friend-time">6:12 AM</div>
+            </div>
+            <div class="friend-flame">🔥 13</div>
+            <button class="post-remove" onclick="handleCheckinTap('run')" title="Remove check-in">✕</button>
+          </div>
+          <div class="friend-quote">"5k done before the sun's even up."</div>
+        </div>
+
+        <div class="friend-card">
+          <div class="friend-top">
+            <div class="avatar a1">B</div>
+            <div>
+              <div class="friend-name">Bobby</div>
+              <div class="friend-time">checked in 2h ago</div>
+            </div>
+            <div class="friend-flame">🔥 8</div>
+          </div>
+          <div class="friend-quote">"Gym before 7am. Legs day, barely made it."</div>
+          <div class="friend-actions">
+            <button class="react-btn" id="reactBtnBobby" onclick="openReactionPicker(this)" data-count="3">❤️ 3</button>
+          </div>
+        </div>
+
+        <div class="friend-card">
+          <div class="friend-top">
+            <div class="avatar a2">G</div>
+            <div>
+              <div class="friend-name">Gigi</div>
+              <div class="friend-time">hasn't checked in yet today</div>
+            </div>
+            <div class="friend-flame">🔥 21</div>
+          </div>
+          <div class="friend-quote">"Walked 10k steps on the beginner plan. Day 21 straight."</div>
+          <div class="friend-actions">
+            <button class="react-btn" id="reactBtnGigi" onclick="openReactionPicker(this)" data-count="5">🙌 5</button>
+            <button class="react-btn nudge" onclick="nudgeFriend(this,'Gigi')">👊 Nudge</button>
+          </div>
+        </div>
+
+        <div class="locked-note">
+          <div class="ic">🔒</div>
+          <p>Your circle can't see anything marked "Kept." Not the streak, not the name. Nothing.</p>
+        </div>
+      </div>
+
+      <!-- ============ CHECK IN ============ -->
+      <div class="view" id="view-checkin">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header" style="padding-bottom:0;">
+          <div class="row">
+            <div class="icon-btn" onclick="go('home')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:19px;">Check in</div>
+            <div style="width:34px;"></div>
+          </div>
+        </div>
+
+        <div class="checkin-hero">
+          <div>
+            <div class="ci-name" id="ciName">Morning Run</div>
+            <div class="ci-sub" id="ciSub">Day 13 · tap the circle when it's done</div>
+          </div>
+        </div>
+
+        <div class="checkin-circle-wrap">
+          <div class="checkin-circle done" id="checkinCircle" onclick="toggleDone()">✓</div>
+          <div class="checkin-circle-label" id="checkinLabel">CHECKED IN · tap to undo</div>
+        </div>
+
+        <div class="field-label">Add a note <span style="text-transform:none; font-weight:500;">(optional)</span></div>
+        <div class="note-box" id="noteBox" contenteditable="true" data-placeholder="Say something about today...">Say something about today...</div>
+
+        <div class="vis-reminder open" id="visReminder">🌐 This will post to your Circle, note and all.</div>
+
+        <div class="primary-btn" onclick="saveCheckin()">Save check-in</div>
+      </div>
+
+      <!-- ============ ADD ============ -->
+      <div class="view" id="view-add">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header" style="padding-bottom:2px;">
+          <div class="row"><div class="wordmark" style="font-size:22px;">New habit</div></div>
+        </div>
+
+        <div class="field-label">What are you keeping?</div>
+        <input class="input-mock" id="newHabitInput" type="text" placeholder="e.g. Read 20 pages">
+
+        <div class="field-label">Who sees it?</div>
+        <div class="visibility-picker">
+          <div class="vis-option selected open" id="visOptOpen" onclick="pickVis(this,'open')">
+            <div class="vo-icon">🌐</div>
+            <div class="vo-title">Open</div>
+            <div class="vo-desc">Shows up in Circle. Friends can nudge and react.</div>
+          </div>
+          <div class="vis-option kept" id="visOptKept" onclick="pickVis(this,'kept')">
+            <div class="vo-icon">🔒</div>
+            <div class="vo-title">Kept</div>
+            <div class="vo-desc">Just for you. Invisible to everyone.</div>
+          </div>
+        </div>
+
+        <div class="field-label">How long?</div>
+        <div class="duration-picker" id="durationPicker">
+          <div class="duration-chip selected" data-val="ongoing" onclick="pickDuration(this)">Ongoing</div>
+          <div class="duration-chip" data-val="7" onclick="pickDuration(this)">7 days</div>
+          <div class="duration-chip" data-val="21" onclick="pickDuration(this)">21 days</div>
+          <div class="duration-chip" data-val="30" onclick="pickDuration(this)">30 days</div>
+          <div class="duration-chip" data-val="90" onclick="pickDuration(this)">90 days</div>
+          <div class="duration-chip" data-val="custom" onclick="pickDuration(this)">Custom</div>
+        </div>
+        <div class="custom-duration-wrap" id="customDurationWrap" style="display:none; margin:10px 22px 0;">
+          <input type="number" min="1" class="input-mock" id="customDurationInput" placeholder="Number of days" style="width:calc(100% - 44px);" oninput="updateCustomDuration()">
+        </div>
+        <div class="notif-section-note" id="durationNote" style="margin-top:8px;">This habit stays on your list indefinitely. No end date.</div>
+
+        <div class="lock-badge" id="lockBadge" style="display:none;">
+          <span>✨</span><span>You've used 1 of 1 free locks. Upgrade for unlimited.</span>
+        </div>
+
+        <div class="primary-btn" onclick="saveNewHabit()">Save habit</div>
+      </div>
+
+      <!-- ============ EDIT HABIT ============ -->
+      <div class="view" id="view-edithabit">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header" style="padding-bottom:2px;">
+          <div class="row">
+            <div class="icon-btn" onclick="go('home')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:20px;">Edit habit</div>
+            <div style="width:34px;"></div>
+          </div>
+        </div>
+
+        <div class="field-label">Habit name</div>
+        <input class="input-mock" id="editHabitInput" type="text">
+
+        <div class="field-label">Who sees it?</div>
+        <div class="visibility-picker">
+          <div class="vis-option open" id="editVisOpen" onclick="pickVisEdit(this,'open')">
+            <div class="vo-icon">🌐</div>
+            <div class="vo-title">Open</div>
+            <div class="vo-desc">Shows up in Circle. Friends can nudge and react.</div>
+          </div>
+          <div class="vis-option kept" id="editVisKept" onclick="pickVisEdit(this,'kept')">
+            <div class="vo-icon">🔒</div>
+            <div class="vo-title">Kept</div>
+            <div class="vo-desc">Just for you. Invisible to everyone.</div>
+          </div>
+        </div>
+
+        <div class="field-label">How long?</div>
+        <div class="duration-picker" id="editDurationPicker">
+          <div class="duration-chip" data-val="ongoing" onclick="pickDurationEdit(this)">Ongoing</div>
+          <div class="duration-chip" data-val="7" onclick="pickDurationEdit(this)">7 days</div>
+          <div class="duration-chip" data-val="21" onclick="pickDurationEdit(this)">21 days</div>
+          <div class="duration-chip" data-val="30" onclick="pickDurationEdit(this)">30 days</div>
+          <div class="duration-chip" data-val="90" onclick="pickDurationEdit(this)">90 days</div>
+          <div class="duration-chip" data-val="custom" onclick="pickDurationEdit(this)">Custom</div>
+        </div>
+        <div class="custom-duration-wrap" id="customDurationWrapEdit" style="display:none; margin:10px 22px 0;">
+          <input type="number" min="1" class="input-mock" id="customDurationInputEdit" placeholder="Number of days" style="width:calc(100% - 44px);" oninput="updateCustomDurationEdit()">
+        </div>
+        <div class="notif-section-note" id="editDurationNote" style="margin-top:8px;"></div>
+
+        <div class="lock-badge" id="lockBadgeEdit" style="display:none;">
+          <span>✨</span><span>Kept habits are limited on Free. Upgrade for unlimited locks.</span>
+        </div>
+
+        <div class="primary-btn" onclick="saveEditHabit()">Save changes</div>
+        <div style="text-align:center; margin:16px 22px 8px; color:var(--orange-deep); font-weight:700; font-size:13px; cursor:pointer;" onclick="requestDeleteHabit()">Delete this habit</div>
+      </div>
+
+      <!-- ============ INVITE / ADD TO CIRCLE ============ -->
+      <div class="view" id="view-invite">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header">
+          <div class="row">
+            <div class="icon-btn" onclick="go('circle')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:21px;">Add to Circle</div>
+            <div style="width:34px;"></div>
+          </div>
+        </div>
+
+        <div class="field-label" style="margin-top:2px;">Share your link</div>
+        <div class="invite-link-card">
+          <div class="il-label">Your invite link</div>
+          <div class="invite-link-row">
+            <div class="link-text">kept.app/invite/tanaz93</div>
+            <button class="copy-btn" id="copyBtn" onclick="copyLink()">Copy</button>
+          </div>
+        </div>
+
+        <div class="field-label">Find people</div>
+        <input class="search-mock" type="text" placeholder="🔍  Search by username or number">
+
+        <div class="field-label">From your contacts</div>
+        <div class="contact-row">
+          <div class="avatar a3">S</div>
+          <div>
+            <div class="contact-name">Simi Gill</div>
+            <div class="contact-sub" id="simiSub">Not on Kept yet</div>
+          </div>
+          <button class="invite-btn" id="simiBtn" onclick="inviteContact(this,'simiSub','Simi Gill')">Invite</button>
+        </div>
+        <div class="contact-row">
+          <div class="avatar a4">M</div>
+          <div>
+            <div class="contact-name">Marcus T.</div>
+            <div class="contact-sub" id="marcusSub">Not on Kept yet</div>
+          </div>
+          <button class="invite-btn" id="marcusBtn" onclick="inviteContact(this,'marcusSub','Marcus T.')">Invite</button>
+        </div>
+        <div class="contact-row">
+          <div class="avatar a1">R</div>
+          <div>
+            <div class="contact-name">Rae Whitfield</div>
+            <div class="contact-sub">Invited 2 days ago</div>
+          </div>
+          <button class="invite-btn pending" onclick="showToast('Already invited. Nudge instead?')">Pending</button>
+        </div>
+      </div>
+
+      <!-- ============ EDIT PROFILE ============ -->
+      <div class="view" id="view-editprofile">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header" style="padding-bottom:2px;">
+          <div class="row">
+            <div class="icon-btn" onclick="go('profile')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:20px;">Edit profile</div>
+            <div style="width:34px;"></div>
+          </div>
+        </div>
+
+        <div class="profile-hero" style="padding-top:6px;">
+          <div class="avatar-wrap">
+            <div class="avatar me" style="cursor:pointer;" title="Tap to add a photo" onclick="showToast('Opens photo picker (not available in this prototype)')">T</div>
+          </div>
+          <div style="font-size:12px; color:var(--ink-soft); font-weight:600; text-decoration:underline; cursor:pointer; margin-top:10px;" onclick="showToast('Opens photo picker (not available in this prototype)')">Change photo</div>
+        </div>
+
+        <div class="field-label" style="margin-top:20px;">Name</div>
+        <input class="input-mock" id="editProfileName" type="text">
+
+        <div class="field-label">Username</div>
+        <input class="input-mock" id="editProfileHandle" type="text">
+
+        <div class="field-label">Bio</div>
+        <div class="note-box" id="editProfileBio" contenteditable="true" style="min-height:70px;"></div>
+
+        <div class="primary-btn" onclick="saveProfileEdit()">Save changes</div>
+      </div>
+
+      <!-- ============ PROFILE ============ -->
+      <div class="view" id="view-profile">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+
+        <div class="profile-hero">
+          <div class="avatar-wrap">
+            <div class="avatar me" id="profileAvatar" style="cursor:pointer;" title="Tap to add a photo" onclick="openEditProfile(); go('editprofile');">T</div>
+          </div>
+          <div class="profile-name" id="profileNameDisplay">Tanaz D.</div>
+          <div class="profile-handle" id="profileHandleDisplay">@tanaz93</div>
+          <div class="profile-bio" id="profileBioDisplay">Personal trainer · NYC 🌆 Keeping some habits open, some to myself.</div>
+          <div class="kept-plus-chip" id="keptChip" style="display:none;">✨ Kept+ member</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-block">
+            <div class="stat-num">12</div>
+            <div class="stat-label">Day streak</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-num" id="statHabitsKept">4</div>
+            <div class="stat-label">Habits kept</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-num" id="statCircleCount">18</div>
+            <div class="stat-label">In circle</div>
+          </div>
+        </div>
+
+        <div class="settings-group-label">Account</div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="openEditProfile(); go('editprofile');"><span class="si">👤</span><span class="st">Edit profile</span><span class="sc">›</span></div>
+          <div class="settings-row" onclick="go('notifications')"><span class="si">🔔</span><span class="st">Notifications</span><span class="sc">›</span></div>
+          <div class="settings-row" onclick="toggleDefaultPrivacy()"><span class="si">🔒</span><span class="st">Default habit privacy</span><span class="sc" id="defaultPrivacyLabel">Open</span></div>
+        </div>
+
+        <div class="settings-group-label">Circle</div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="go('invite')"><span class="si">➕</span><span class="st">Invite friends</span><span class="sc">›</span></div>
+          <div class="settings-row" onclick="go('managecircle')"><span class="si">◎</span><span class="st">Manage circle</span><span class="sc" id="circleCountTag">18</span></div>
+        </div>
+
+        <div class="settings-group-label">Billing</div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="go('paywall')"><span class="si">✨</span><span class="st">Manage subscription</span><span class="sc" id="planLabel">Free</span></div>
+          <div class="settings-row danger" onclick="requestLogout()"><span class="si">↪</span><span class="st">Log out</span><span class="sc"></span></div>
+        </div>
+
+        <div class="settings-group-label">Account</div>
+        <div class="settings-group">
+          <div class="settings-row danger" onclick="requestDeleteAccount()"><span class="si">⚠</span><span class="st">Delete account</span><span class="sc">›</span></div>
+        </div>
+      </div>
+
+      <!-- ============ INVITE SENT ============ -->
+      <div class="view" id="view-invitesent">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="sent-wrap">
+          <div class="sent-check">✓</div>
+          <div class="sent-title" id="sentTitle">Invite sent to Simi Gill</div>
+          <div class="sent-sub">We'll let you know the moment they join. You'll be able to add them to your circle right away.</div>
+          <div class="sent-preview" id="sentPreview">"Hey! I'm using Kept to stay on track with my habits. Join my circle: kept.app/invite/tanaz93"</div>
+        </div>
+        <div class="primary-btn" onclick="go('invite')">Done</div>
+      </div>
+
+      <!-- ============ MANAGE CIRCLE ============ -->
+      <div class="view" id="view-managecircle">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header">
+          <div class="row">
+            <div class="icon-btn" onclick="go('profile')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:20px;">Manage Circle</div>
+            <div class="icon-btn" onclick="go('invite')" style="font-size:18px;">+</div>
+          </div>
+        </div>
+        <div class="circle-sub"><span id="circleCountText">18</span> people can see the habits you've marked Open.</div>
+
+        <div class="settings-group-label">In your circle</div>
+        <div class="member-row">
+          <div class="avatar a1">B</div>
+          <div><div class="contact-name">Bobby</div><div class="member-sub">Sees 2 open habits</div></div>
+          <div class="member-remove" onclick="removeMember(this,'Bobby',true)">Remove</div>
+        </div>
+        <div class="member-row">
+          <div class="avatar a2">G</div>
+          <div><div class="contact-name">Gigi</div><div class="member-sub">Sees 2 open habits</div></div>
+          <div class="member-remove" onclick="removeMember(this,'Gigi',true)">Remove</div>
+        </div>
+        <div class="member-row">
+          <div class="avatar a3">D</div>
+          <div><div class="contact-name">Devon K.</div><div class="member-sub">Sees 2 open habits</div></div>
+          <div class="member-remove" onclick="removeMember(this,'Devon',true)">Remove</div>
+        </div>
+        <div class="member-row">
+          <div class="avatar a4">P</div>
+          <div><div class="contact-name">Priya S.</div><div class="member-sub">Sees 2 open habits</div></div>
+          <div class="member-remove" onclick="removeMember(this,'Priya',true)">Remove</div>
+        </div>
+
+        <div class="settings-group-label">Pending</div>
+        <div id="pendingList">
+          <div class="member-row" data-name="Rae Whitfield">
+            <div class="avatar a1">R</div>
+            <div><div class="contact-name">Rae Whitfield</div><div class="member-sub">Invited 2 days ago</div></div>
+            <div class="member-remove" onclick="removeMember(this,'Rae\'s invite',false)">Cancel</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ NOTIFICATIONS ============ -->
+      <div class="view" id="view-notifications">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="app-header">
+          <div class="row">
+            <div class="icon-btn" onclick="go('profile')" style="font-size:16px;">←</div>
+            <div class="wordmark" style="font-size:20px;">Notifications</div>
+            <div style="width:34px;"></div>
+          </div>
+        </div>
+
+        <div class="settings-group-label" style="margin-top:4px;">Reminders</div>
+        <div class="settings-group">
+          <div class="notif-row">
+            <div class="nr-info">
+              <div class="nr-title">Remind me for all habits</div>
+              <div class="nr-sub">One nudge a day covering everything</div>
+            </div>
+            <div class="switch on" id="switchAll" onclick="toggleSwitchEl(this); syncReminderUI();"><div class="knob"></div></div>
+          </div>
+          <div class="notif-row" id="allTimeRow">
+            <div class="nr-info">
+              <div class="nr-title">Reminder time</div>
+              <div class="nr-sub">Applies to every habit unless customized below</div>
+            </div>
+            <div class="time-chip" onclick="cycleTime(this)">7:00 AM</div>
+          </div>
+          <div class="notif-row">
+            <div class="nr-info">
+              <div class="nr-title">Customize per habit</div>
+              <div class="nr-sub">Different times for different habits</div>
+            </div>
+            <div class="switch" id="switchPerHabit" onclick="toggleSwitchEl(this); syncReminderUI();"><div class="knob"></div></div>
+          </div>
+        </div>
+
+        <div class="notif-section-note" style="margin-top:16px;">When "Customize per habit" is on, each habit gets its own reminder and time instead of the shared one above.</div>
+        <div class="settings-group" id="perHabitList" style="margin:10px 22px 0;">
+          <div class="notif-habit-row" data-habit="run">
+            <span class="nh-name">Morning Run</span>
+            <div class="time-chip" onclick="cycleTime(this)">6:00 AM</div>
+            <div class="switch on" onclick="toggleSwitchEl(this)"><div class="knob"></div></div>
+          </div>
+          <div class="notif-habit-row" data-habit="water">
+            <span class="nh-name">Drink Water</span>
+            <div class="time-chip" onclick="cycleTime(this)">12:00 PM</div>
+            <div class="switch on" onclick="toggleSwitchEl(this)"><div class="knob"></div></div>
+          </div>
+          <div class="notif-habit-row" data-habit="journal">
+            <span class="nh-name">Journal 5 Min</span>
+            <div class="time-chip" onclick="cycleTime(this)">9:00 PM</div>
+            <div class="switch" onclick="toggleSwitchEl(this)"><div class="knob"></div></div>
+          </div>
+          <div class="notif-habit-row" data-habit="gym">
+            <span class="nh-name">Gym Before Work</span>
+            <div class="time-chip" onclick="cycleTime(this)">6:00 AM</div>
+            <div class="switch on" onclick="toggleSwitchEl(this)"><div class="knob"></div></div>
+          </div>
+        </div>
+
+        <div class="settings-group-label">Day reset</div>
+        <div class="settings-group">
+          <div class="notif-row">
+            <div class="nr-info">
+              <div class="nr-title">New day starts at</div>
+              <div class="nr-sub">When streaks roll over and today's check-ins reset</div>
+            </div>
+            <div class="time-chip" onclick="cycleResetTime(this)">12:00 AM</div>
+          </div>
+        </div>
+        <div class="notif-section-note">Night owl or shift worker? Push this later so a late check-in still counts as "today."</div>
+      </div>
+
+      <!-- ============ PAYWALL ============ -->
+      <div class="view" id="view-paywall">
+        <div class="statusbar"><span>9:41</span><span>●●●●  🔋</span></div>
+        <div class="paywall-hero">
+          <div class="paywall-badge">KEPT+</div>
+          <div class="paywall-title">Keep as much<br>as you want.</div>
+          <div class="paywall-sub">Free keeps you honest with a few. Kept+ removes the limits: on habits and on privacy.</div>
+          <div class="paywall-status" id="paywallStatus" style="display:none;"></div>
+        </div>
+
+        <div class="plans">
+          <div class="plan" id="planFree" onclick="selectPlan('free')">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">$0</div>
+            <div class="plan-feat">
+              <div>✓ <span><b>3</b> active habits</span></div>
+              <div>✓ <span><b>1</b> private lock</span></div>
+              <div>✓ Circle access</div>
+              <div style="color:#C9C1B8;">✕ Streak insights</div>
+            </div>
+          </div>
+          <div class="plan featured" id="planPlus" onclick="selectPlan('plus')">
+            <div class="plan-tag">MOST KEPT</div>
+            <div class="plan-name">Kept+</div>
+            <div class="plan-price">$8.99 <span>/mo</span></div>
+            <div class="plan-feat">
+              <div>✓ <span><b>Unlimited</b> habits</span></div>
+              <div>✓ <span><b>Unlimited</b> private locks</span></div>
+              <div>✓ Multiple circles</div>
+              <div>✓ Streak insights</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paywall-cta" id="paywallCta" onclick="confirmPlan()">Continue ($8.99/mo)</div>
+        <div class="paywall-footnote" id="paywallFootnote">Billed through the App Store. Cancel anytime in Settings.</div>
+      </div>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-sheet">
+        <h4 id="confirmTitle">Log out?</h4>
+        <p id="confirmMessage">This is a prototype, so this won't actually sign you out, but here's what the confirmation would look like.</p>
+        <div class="confirm-btn danger" id="confirmDangerBtn" onclick="handleConfirmAction()">Log out</div>
+        <div class="confirm-btn cancel" onclick="closeConfirm()">Cancel</div>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab active" data-tab="home" onclick="go('home')"><div class="ic">⌂</div>Home</div>
+      <div class="tab" data-tab="circle" onclick="go('circle')"><div class="ic">◎</div>Circle</div>
+      <div class="tab plus" data-tab="add" onclick="handleAddHabitClick()"><div class="ic">+</div></div>
+      <div class="tab" data-tab="paywall" onclick="go('paywall')"><div class="ic">✦</div>Kept+</div>
+      <div class="tab" data-tab="profile" onclick="go('profile')"><div class="ic">☺</div>You</div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <span><span class="dotkey" style="background:var(--orange)"></span><b>Orange / Open</b>: visible to your circle</span>
+    <span><span class="dotkey" style="background:var(--purple)"></span><b>Dark Purple / Kept</b>: private, yours only</span>
+  </div>
+</div>
+
+<script>
+function go(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tab = document.querySelector('.tab[data-tab="'+name+'"]');
+  if(tab) tab.classList.add('active');
+}
+
+const habitData = {
+  run:     { name:'Morning Run',    streak:13, day:14 },
+  water:   { name:'Drink Water',    streak:24, day:25 },
+  journal: { name:'Journal 5 Min',  streak:6,  day:7  },
+  gym:     { name:'Gym Before Work',streak:30, day:31 }
+};
+let currentCheckin = null;
+let isDone = false;
+
+function openCheckin(id){
+  currentCheckin = id;
+  isDone = true;
+  const card = document.getElementById('card-'+id);
+  const isOpen = card.classList.contains('open');
+  const h = habitData[id];
+
+  document.getElementById('ciName').textContent = h.name;
+  document.getElementById('ciSub').textContent = 'Day ' + h.day + ' · logged for today';
+
+  const circle = document.getElementById('checkinCircle');
+  circle.classList.add('done');
+  document.getElementById('checkinLabel').textContent = 'CHECKED IN · tap to undo';
+
+  const noteBox = document.getElementById('noteBox');
+  noteBox.textContent = 'Say something about today...';
+  noteBox.classList.remove('filled');
+
+  const reminder = document.getElementById('visReminder');
+  if(isOpen){
+    reminder.className = 'vis-reminder open';
+    reminder.textContent = '🌐 This will post to your Circle, note and all.';
+  } else {
+    reminder.className = 'vis-reminder kept';
+    reminder.textContent = '🔒 This stays private. Nothing here reaches your Circle.';
+  }
+  go('checkin');
+}
+
+function toggleDone(){
+  isDone = !isDone;
+  const circle = document.getElementById('checkinCircle');
+  const label = document.getElementById('checkinLabel');
+  if(isDone){
+    circle.classList.add('done');
+    label.textContent = 'CHECKED IN · tap to undo';
+  } else {
+    circle.classList.remove('done');
+    label.textContent = 'NOT LOGGED · tap to check in';
+  }
+}
+
+function saveCheckin(){
+  if(!currentCheckin) { go('home'); return; }
+  const id = currentCheckin;
+  const card = document.getElementById('card-'+id);
+  const isOpen = card.classList.contains('open');
+  const noteBox = document.getElementById('noteBox');
+  const noteText = (noteBox.textContent.trim() === 'Say something about today...') ? '' : noteBox.textContent.trim();
+
+  if(isDone){
+    const dotsEl = card.querySelector('.dots');
+    const filledCount = dotsEl.querySelectorAll('.dot.filled').length;
+    renderDots(dotsEl, isOpen ? 'open':'kept', Math.min(filledCount+1, 16));
+    checkedInToday[id] = true;
+    setMetaText(card, id);
+
+    const btn = card.querySelector('.checkin-btn');
+    card.classList.add('done');
+    btn.innerHTML = '<span class="cb-check">✓</span> Checked in';
+
+    removeYouPostForHabit(id);
+    if(isOpen){
+      const list = document.querySelector('#view-circle .friend-card');
+      const newCard = document.createElement('div');
+      newCard.className = 'friend-card';
+      newCard.dataset.habit = id;
+      newCard.style.borderColor = 'var(--orange)';
+      const quote = noteText ? '"' + noteText + '"' : '<span style="font-style:normal; color:var(--ink-soft); font-size:13px;">Checked in. No note this time.</span>';
+      newCard.innerHTML = `
+        <div class="friend-top">
+          <div class="avatar me" style="width:36px;height:36px;font-size:14px;">T</div>
+          <div>
+            <div class="friend-name">You</div>
+            <div class="friend-time">just now</div>
+          </div>
+          <div class="friend-flame">🔥 ${habitData[id].streak+1}</div>
+          <button class="post-remove" onclick="handleCheckinTap('${id}')" title="Remove check-in">✕</button>
+        </div>
+        <div class="friend-quote">${quote}</div>`;
+      list.parentNode.insertBefore(newCard, list);
+    }
+  } else {
+    undoCheckinState(id);
+  }
+  currentCheckin = null;
+  go('home');
+}
+
+/* ---------------- QUICK UNDO FROM HOME ---------------- */
+let checkedInToday = { run: true };
+
+function handleCheckinTap(id){
+  if(checkedInToday[id]){
+    undoCheckinState(id);
+    showToast('Check-in undone');
+  } else {
+    openCheckin(id);
+  }
+}
+
+function undoCheckinState(id){
+  const card = document.getElementById('card-'+id);
+  if(!card) return;
+  const isOpen = card.classList.contains('open');
+  const dotsEl = card.querySelector('.dots');
+  const filledCount = dotsEl.querySelectorAll('.dot.filled').length;
+  renderDots(dotsEl, isOpen ? 'open':'kept', Math.max(filledCount-1, 0));
+  checkedInToday[id] = false;
+  setMetaText(card, id);
+  card.classList.remove('done');
+  const btn = card.querySelector('.checkin-btn');
+  btn.innerHTML = '<span class="cb-check">✓</span> Check in today';
+  removeYouPostForHabit(id);
+}
+
+function removeYouPostForHabit(id){
+  const post = document.querySelector('#view-circle .friend-card[data-habit="'+id+'"]');
+  if(post) post.remove();
+}
+
+
+
+document.getElementById('noteBox').addEventListener('focus', function(){
+  if(this.textContent.trim() === 'Say something about today...'){
+    this.textContent = '';
+    this.classList.add('filled');
+  }
+});
+document.getElementById('noteBox').addEventListener('blur', function(){
+  if(this.textContent.trim() === ''){
+    this.textContent = 'Say something about today...';
+    this.classList.remove('filled');
+  }
+});
+
+function toggleVis(btn){
+  const card = btn.closest('.habit-card');
+  const id = card.id.replace('card-', '');
+  const isOpenNow = btn.classList.contains('open');
+
+  if(isOpenNow){
+    btn.classList.remove('open'); btn.classList.add('kept');
+    btn.textContent = '🔒 Kept';
+    card.classList.remove('open'); card.classList.add('kept');
+    removeYouPostForHabit(id);
+    if(checkedInToday[id]) showToast('Made private. Pulled from Circle too');
+  } else {
+    btn.classList.remove('kept'); btn.classList.add('open');
+    btn.textContent = '🌐 Open';
+    card.classList.remove('kept'); card.classList.add('open');
+  }
+  setMetaText(card, id);
+  renderDots(card.querySelector('.dots'), card.classList.contains('open') ? 'open':'kept');
+}
+
+function pickVis(el, type){
+  document.querySelectorAll('.vis-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  const badge = document.getElementById('lockBadge');
+  badge.style.display = (type === 'kept' && !isPremium) ? 'flex' : 'none';
+}
+
+function setMetaText(card, id){
+  const meta = card.querySelector('.habit-meta');
+  const h = habitData[id];
+  const parts = [];
+  if(checkedInToday[id]) parts.push('checked in today');
+  if(h && h.goalDays) parts.push('Day 1 of ' + h.goalDays);
+  const text = parts.join(' · ');
+  meta.textContent = text;
+  meta.style.display = text ? 'block' : 'none';
+}
+
+function renderDots(container, mode, filled){
+  container.innerHTML = '';
+  const total = 16;
+  const fillCount = filled || Math.round(total*0.75);
+  for(let i=0;i<total;i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < fillCount ? ' filled '+mode : '');
+    container.appendChild(d);
+  }
+}
+renderDots(document.getElementById('dots1'),'open',13);
+renderDots(document.getElementById('dots2'),'kept',16);
+renderDots(document.getElementById('dots3'),'kept',6);
+renderDots(document.getElementById('dots4'),'open',16);
+
+/* ---------------- PLAN / PREMIUM STATE ---------------- */
+let isPremium = false;
+let defaultVisibility = 'open';
+let selectedPlan = 'plus';
+let habitCounter = 0;
+
+function updatePlanUI(){
+  const chip = document.getElementById('keptChip');
+  const planLabel = document.getElementById('planLabel');
+  const status = document.getElementById('paywallStatus');
+  const cta = document.getElementById('paywallCta');
+  const footnote = document.getElementById('paywallFootnote');
+
+  if(isPremium){
+    chip.style.display = 'inline-flex';
+    planLabel.textContent = 'Kept+';
+    status.style.display = 'block';
+    status.textContent = "You're currently on Kept+.";
+    cta.textContent = 'Manage in iPhone Settings';
+    cta.onclick = function(){ showToast("Opens iPhone Settings → Kept+ (not available in this prototype)"); };
+    footnote.textContent = 'Subscription changes and cancellations happen through the App Store, not inside Kept.';
+    document.getElementById('planFree').classList.remove('selected');
+    document.getElementById('planPlus').classList.add('selected');
+  } else {
+    chip.style.display = 'none';
+    planLabel.textContent = 'Free';
+    status.style.display = 'none';
+    cta.textContent = selectedPlan === 'plus' ? 'Continue ($8.99/mo)' : 'Continue with Free';
+    cta.onclick = confirmPlan;
+    footnote.textContent = 'Billed through the App Store. Cancel anytime in Settings.';
+    document.getElementById('planFree').classList.toggle('selected', selectedPlan === 'free');
+    document.getElementById('planPlus').classList.toggle('selected', selectedPlan === 'plus');
+  }
+}
+
+function handleAddHabitClick(){
+  resetAddHabitForm();
+  go('add');
+}
+
+let selectedDuration = 'ongoing';
+function pickDuration(el){
+  document.querySelectorAll('#durationPicker .duration-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const val = el.dataset.val;
+  const customWrap = document.getElementById('customDurationWrap');
+  if(val === 'custom'){
+    customWrap.style.display = 'block';
+    document.getElementById('customDurationInput').focus();
+    updateCustomDuration();
+  } else {
+    customWrap.style.display = 'none';
+    selectedDuration = val;
+    updateDurationNote();
+  }
+}
+
+function updateCustomDuration(){
+  const input = document.getElementById('customDurationInput');
+  const n = parseInt(input.value, 10);
+  selectedDuration = (n && n > 0) ? String(n) : 'custom';
+  updateDurationNote();
+}
+
+function updateDurationNote(){
+  const note = document.getElementById('durationNote');
+  if(selectedDuration === 'ongoing'){
+    note.textContent = 'This habit stays on your list indefinitely. No end date.';
+  } else if(selectedDuration === 'custom'){
+    note.textContent = 'Enter how many days this goal should run.';
+  } else {
+    note.textContent = "This habit wraps up after " + selectedDuration + " days, then we'll ask if you want to keep going.";
+  }
+}
+
+function resetAddHabitForm(){
+  document.getElementById('newHabitInput').value = '';
+  const openOpt = document.getElementById('visOptOpen');
+  const keptOpt = document.getElementById('visOptKept');
+  openOpt.classList.remove('selected'); keptOpt.classList.remove('selected');
+  if(defaultVisibility === 'open'){ openOpt.classList.add('selected'); } else { keptOpt.classList.add('selected'); }
+  document.getElementById('lockBadge').style.display = (defaultVisibility === 'kept' && !isPremium) ? 'flex' : 'none';
+  document.querySelectorAll('#durationPicker .duration-chip').forEach(c=>c.classList.remove('selected'));
+  document.querySelector('#durationPicker .duration-chip[data-val="ongoing"]').classList.add('selected');
+  selectedDuration = 'ongoing';
+  document.getElementById('durationNote').textContent = 'This habit stays on your list indefinitely. No end date.';
+  document.getElementById('customDurationWrap').style.display = 'none';
+  document.getElementById('customDurationInput').value = '';
+}
+
+/* ---------------- EDIT PROFILE ---------------- */
+function openEditProfile(){
+  document.getElementById('editProfileName').value = document.getElementById('profileNameDisplay').textContent.trim();
+  document.getElementById('editProfileHandle').value = document.getElementById('profileHandleDisplay').textContent.replace('@','').trim();
+  document.getElementById('editProfileBio').textContent = document.getElementById('profileBioDisplay').textContent.trim();
+}
+
+function saveProfileEdit(){
+  const name = document.getElementById('editProfileName').value.trim() || 'Tanaz D.';
+  let handle = document.getElementById('editProfileHandle').value.trim().replace(/^@/, '') || 'tanaz93';
+  const bio = document.getElementById('editProfileBio').textContent.trim() || 'Keeping some habits open, some to myself.';
+
+  document.getElementById('profileNameDisplay').textContent = name;
+  document.getElementById('profileHandleDisplay').textContent = '@' + handle;
+  document.getElementById('profileBioDisplay').textContent = bio;
+
+  showToast('Profile updated ✓');
+  go('profile');
+}
+
+function toggleDefaultPrivacy(){
+  defaultVisibility = defaultVisibility === 'open' ? 'kept' : 'open';
+  document.getElementById('defaultPrivacyLabel').textContent = defaultVisibility === 'open' ? 'Open' : 'Kept';
+  showToast('New habits default to ' + (defaultVisibility === 'open' ? 'Open' : 'Kept'));
+}
+
+/* ---------------- EDIT / DELETE HABIT ---------------- */
+let currentEditId = null;
+let editSelectedDuration = 'ongoing';
+
+function openEditHabit(id){
+  currentEditId = id;
+  const h = habitData[id];
+  const card = document.getElementById('card-'+id);
+  const isOpen = card.classList.contains('open');
+
+  document.getElementById('editHabitInput').value = h.name;
+  document.getElementById('editVisOpen').classList.toggle('selected', isOpen);
+  document.getElementById('editVisKept').classList.toggle('selected', !isOpen);
+  document.getElementById('lockBadgeEdit').style.display = (!isOpen && !isPremium) ? 'flex' : 'none';
+
+  const presetDays = ['7','21','30','90'];
+  const customWrap = document.getElementById('customDurationWrapEdit');
+  const customInput = document.getElementById('customDurationInputEdit');
+
+  if(!h.goalDays){
+    editSelectedDuration = 'ongoing';
+    customWrap.style.display = 'none';
+    customInput.value = '';
+  } else if(presetDays.includes(String(h.goalDays))){
+    editSelectedDuration = String(h.goalDays);
+    customWrap.style.display = 'none';
+    customInput.value = '';
+  } else {
+    editSelectedDuration = String(h.goalDays);
+    customWrap.style.display = 'block';
+    customInput.value = h.goalDays;
+  }
+
+  document.querySelectorAll('#editDurationPicker .duration-chip').forEach(c=>{
+    const isCustomMatch = (c.dataset.val === 'custom') && customWrap.style.display === 'block';
+    c.classList.toggle('selected', c.dataset.val === editSelectedDuration || isCustomMatch);
+  });
+  updateEditDurationNote();
+  go('edithabit');
+}
+
+function pickVisEdit(el, type){
+  document.getElementById('editVisOpen').classList.remove('selected');
+  document.getElementById('editVisKept').classList.remove('selected');
+  el.classList.add('selected');
+  document.getElementById('lockBadgeEdit').style.display = (type === 'kept' && !isPremium) ? 'flex' : 'none';
+}
+
+function pickDurationEdit(el){
+  document.querySelectorAll('#editDurationPicker .duration-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const val = el.dataset.val;
+  const customWrap = document.getElementById('customDurationWrapEdit');
+  if(val === 'custom'){
+    customWrap.style.display = 'block';
+    document.getElementById('customDurationInputEdit').focus();
+    updateCustomDurationEdit();
+  } else {
+    customWrap.style.display = 'none';
+    editSelectedDuration = val;
+    updateEditDurationNote();
+  }
+}
+
+function updateCustomDurationEdit(){
+  const input = document.getElementById('customDurationInputEdit');
+  const n = parseInt(input.value, 10);
+  editSelectedDuration = (n && n > 0) ? String(n) : 'custom';
+  updateEditDurationNote();
+}
+
+function updateEditDurationNote(){
+  const note = document.getElementById('editDurationNote');
+  if(editSelectedDuration === 'ongoing'){
+    note.textContent = 'This habit stays on your list indefinitely. No end date.';
+  } else if(editSelectedDuration === 'custom'){
+    note.textContent = 'Enter how many days this goal should run.';
+  } else {
+    note.textContent = "This habit wraps up after " + editSelectedDuration + " days, then we'll ask if you want to keep going.";
+  }
+}
+
+function saveEditHabit(){
+  const id = currentEditId;
+  if(!id){ go('home'); return; }
+
+  if(editSelectedDuration === 'custom'){
+    showToast('Enter a number of days first');
+    document.getElementById('customDurationInputEdit').focus();
+    return;
+  }
+
+  const name = document.getElementById('editHabitInput').value.trim() || habitData[id].name;
+  const isOpen = document.getElementById('editVisOpen').classList.contains('selected');
+  const goalDays = editSelectedDuration !== 'ongoing' ? parseInt(editSelectedDuration, 10) : null;
+
+  habitData[id].name = name;
+  habitData[id].goalDays = goalDays;
+
+  const card = document.getElementById('card-'+id);
+  card.classList.remove('open','kept');
+  card.classList.add(isOpen ? 'open' : 'kept');
+  card.querySelector('.habit-name').textContent = name;
+
+  const notifNameEl = document.querySelector('#perHabitList .notif-habit-row[data-habit="'+id+'"] .nh-name');
+  if(notifNameEl) notifNameEl.textContent = name;
+
+  const visBtn = card.querySelector('.vis-toggle');
+  visBtn.className = 'vis-toggle ' + (isOpen ? 'open' : 'kept');
+  visBtn.textContent = isOpen ? '🌐 Open' : '🔒 Kept';
+
+  setMetaText(card, id);
+
+  if(!isOpen){
+    removeYouPostForHabit(id);
+  }
+
+  const dotsEl = card.querySelector('.dots');
+  const filledCount = dotsEl.querySelectorAll('.dot.filled').length;
+  renderDots(dotsEl, isOpen ? 'open' : 'kept', filledCount);
+
+  showToast('Habit updated ✓');
+  currentEditId = null;
+  go('home');
+}
+
+function requestDeleteHabit(){
+  const id = currentEditId;
+  if(!id){ go('home'); return; }
+  const h = habitData[id];
+  openConfirm(
+    'Delete "' + h.name + '"?',
+    "This removes it from Home and Circle for good. Your streak history goes with it.",
+    'Delete habit',
+    function(){ doDeleteHabit(id); }
+  );
+}
+
+function updateHabitsKeptStat(){
+  const count = document.querySelectorAll('#view-home .habit-card').length;
+  const el = document.getElementById('statHabitsKept');
+  if(el) el.textContent = count;
+}
+
+function doDeleteHabit(id){
+  const card = document.getElementById('card-'+id);
+  if(card) card.remove();
+  removeYouPostForHabit(id);
+  removeNotifRow(id);
+  delete habitData[id];
+  delete checkedInToday[id];
+  showToast('Habit deleted');
+  currentEditId = null;
+  updateHabitsKeptStat();
+  go('home');
+}
+
+function saveNewHabit(){
+  const nameInput = document.getElementById('newHabitInput');
+  const name = nameInput.value.trim() || 'Untitled habit';
+  const isOpen = document.getElementById('visOptOpen').classList.contains('selected');
+
+  if(selectedDuration === 'custom'){
+    showToast('Enter a number of days first');
+    document.getElementById('customDurationInput').focus();
+    return;
+  }
+  if(!isPremium){
+    showToast('Upgrade to add more than 3 habits');
+    go('paywall');
+    return;
+  }
+  addHabitCard(name, isOpen, selectedDuration);
+  showToast('"' + name + '" added ✓');
+  go('home');
+}
+
+function addHabitCard(name, isOpen, durationDays){
+  habitCounter++;
+  const id = 'custom' + habitCounter;
+  habitData[id] = { name:name, streak:0, day:1, goalDays: (durationDays && durationDays !== 'ongoing') ? parseInt(durationDays,10) : null };
+
+  const goalDays = habitData[id].goalDays;
+  const metaText = goalDays ? ('Day 1 of ' + goalDays) : '';
+
+  const card = document.createElement('div');
+  card.className = 'habit-card ' + (isOpen ? 'open' : 'kept');
+  card.id = 'card-' + id;
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="habit-title">
+        <div>
+          <div class="habit-name">${name}</div>
+          <div class="habit-meta" style="${metaText ? '' : 'display:none;'}">${metaText}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="vis-toggle ${isOpen?'open':'kept'}" onclick="toggleVis(this)">${isOpen? '🌐 Open':'🔒 Kept'}</button>
+        <button class="edit-dot" onclick="openEditHabit('${id}')">⋯</button>
+      </div>
+    </div>
+    <div class="progress-row">
+      <div class="dots"></div>
+      <div class="streak-num">0 days</div>
+    </div>
+    <div class="checkin-row">
+      <button class="checkin-btn" onclick="handleCheckinTap('${id}')"><span class="cb-check">✓</span> Check in today</button>
+    </div>`;
+
+  const list = document.querySelector('#view-home .card-list');
+  list.appendChild(card);
+  renderDots(card.querySelector('.dots'), isOpen ? 'open':'kept', 0);
+  addNotifRow(id, name);
+  updateHabitsKeptStat();
+}
+
+function addNotifRow(id, name){
+  const row = document.createElement('div');
+  row.className = 'notif-habit-row';
+  row.dataset.habit = id;
+  row.innerHTML = `
+    <span class="nh-name">${name}</span>
+    <div class="time-chip" onclick="cycleTime(this)">7:00 AM</div>
+    <div class="switch on" onclick="toggleSwitchEl(this)"><div class="knob"></div></div>`;
+  document.getElementById('perHabitList').appendChild(row);
+}
+
+function removeNotifRow(id){
+  const row = document.querySelector('#perHabitList .notif-habit-row[data-habit="'+id+'"]');
+  if(row) row.remove();
+}
+
+function selectPlan(which){
+  if(isPremium){
+    showToast("You're already on Kept+. Manage it in iPhone Settings");
+    return;
+  }
+  selectedPlan = which;
+  document.getElementById('planFree').classList.toggle('selected', which === 'free');
+  document.getElementById('planPlus').classList.toggle('selected', which === 'plus');
+  const cta = document.getElementById('paywallCta');
+  cta.textContent = which === 'plus' ? 'Continue ($8.99/mo)' : 'Continue with Free';
+}
+
+function confirmPlan(){
+  if(selectedPlan === 'plus'){
+    isPremium = true;
+    showToast('Welcome to Kept+ ✨');
+  } else {
+    isPremium = false;
+    showToast('Staying on Free for now');
+  }
+  updatePlanUI();
+  document.getElementById('lockBadge').style.display = 'none';
+  document.getElementById('lockBadgeEdit').style.display = 'none';
+  go('home');
+}
+
+/* ---------------- TOAST / CONFIRM ---------------- */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 2000);
+}
+
+let confirmAction = null;
+function openConfirm(title, message, btnLabel, action){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  document.getElementById('confirmDangerBtn').textContent = btnLabel;
+  confirmAction = action;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function handleConfirmAction(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  if(confirmAction) confirmAction();
+  confirmAction = null;
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmAction = null;
+}
+function requestLogout(){
+  openConfirm('Log out?', "This is a prototype, so this won't actually sign you out, but here's what the confirmation would look like.", 'Log out', function(){ showToast('Logged out (prototype only)'); });
+}
+
+function requestDeleteAccount(){
+  openConfirm(
+    'Delete your account permanently?',
+    "This erases your habits, streaks, and Circle history for good. There's no getting it back. You're welcome to sign up again later with the same email.",
+    'Delete forever',
+    function(){ showToast('Account deleted (prototype only)'); }
+  );
+}
+
+/* ---------------- CIRCLE INTERACTIONS ---------------- */
+function openReactionPicker(btn){
+  if(btn.classList.contains('picking')) return;
+  btn.dataset.original = btn.innerHTML;
+  btn.classList.add('picking');
+  const options = ['❤️','🔥','👏','💪','🙌'];
+  btn.innerHTML = '<div class="reaction-picker">' +
+    options.map(e => `<span onclick="event.stopPropagation(); selectReaction(this,'${e}')">${e}</span>`).join('') +
+    '</div>';
+
+  // tapping outside cancels the picker back to its previous state
+  setTimeout(()=>{
+    document.addEventListener('click', function cancelPicker(ev){
+      if(!btn.contains(ev.target)){
+        if(btn.classList.contains('picking')){
+          btn.innerHTML = btn.dataset.original;
+          btn.classList.remove('picking');
+        }
+        document.removeEventListener('click', cancelPicker);
+      }
+    });
+  }, 0);
+}
+
+function selectReaction(span, emoji){
+  const btn = span.closest('.react-btn');
+  const newCount = parseInt(btn.dataset.count || '0', 10) + 1;
+  btn.dataset.count = newCount;
+  btn.innerHTML = emoji + ' ' + newCount;
+  btn.classList.remove('picking');
+  btn.style.background = 'var(--orange-soft)';
+  btn.style.color = 'var(--orange-deep)';
+}
+
+function nudgeFriend(btn, name){
+  btn.textContent = 'Nudged ✓';
+  btn.style.opacity = '0.6';
+  btn.onclick = null;
+  showToast('You nudged ' + name);
+}
+
+function inviteContact(btn, subId, name){
+  btn.textContent = 'Pending';
+  btn.classList.add('pending');
+  document.getElementById(subId).textContent = 'Invited just now';
+  btn.onclick = () => showToast('Already invited. Nudge instead?');
+  document.getElementById('sentTitle').textContent = 'Invite sent to ' + name;
+  document.getElementById('sentPreview').textContent = '"Hey! I\'m using Kept to stay on track with my habits. Join my circle: kept.app/invite/tanaz93"';
+  addPendingRow(name);
+  go('invitesent');
+}
+
+function addPendingRow(name){
+  const existing = document.querySelector('#pendingList .member-row[data-name="'+name+'"]');
+  if(existing) return;
+  const initial = name.trim().charAt(0).toUpperCase();
+  const row = document.createElement('div');
+  row.className = 'member-row';
+  row.dataset.name = name;
+  row.innerHTML = `
+    <div class="avatar a2">${initial}</div>
+    <div><div class="contact-name">${name}</div><div class="member-sub">Invited just now</div></div>
+    <div class="member-remove" onclick="removeMember(this,'${name}\\'s invite',false)">Cancel</div>`;
+  document.getElementById('pendingList').appendChild(row);
+}
+
+let circleCount = 18;
+function updateCircleCount(){
+  document.getElementById('statCircleCount').textContent = circleCount;
+  document.getElementById('circleCountTag').textContent = circleCount;
+  document.getElementById('circleCountText').textContent = circleCount;
+}
+
+function removeMember(el, name, isMember){
+  const row = el.closest('.member-row');
+  row.style.opacity = '0.4';
+  el.textContent = 'Removed';
+  el.onclick = null;
+  if(isMember){
+    circleCount = Math.max(0, circleCount - 1);
+    updateCircleCount();
+  }
+  showToast(name + ' removed');
+}
+
+function copyLink(){
+  const btn = document.getElementById('copyBtn');
+  const text = 'kept.app/invite/tanaz93';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(()=>{});
+  }
+  btn.textContent = 'Copied!';
+  setTimeout(()=>{ btn.textContent = 'Copy'; }, 1500);
+}
+
+/* ---------------- NOTIFICATIONS SCREEN ---------------- */
+function toggleSwitchEl(el){ el.classList.toggle('on'); }
+
+function syncReminderUI(){
+  const allOn = document.getElementById('switchAll').classList.contains('on');
+  const perHabitOn = document.getElementById('switchPerHabit').classList.contains('on');
+  document.getElementById('allTimeRow').style.opacity = allOn ? '1' : '0.4';
+  document.getElementById('perHabitList').classList.toggle('collapsed', !perHabitOn);
+}
+syncReminderUI();
+
+const TIME_OPTIONS = ['6:00 AM','7:00 AM','8:00 AM','9:00 AM','12:00 PM','6:00 PM','8:00 PM','9:00 PM'];
+function cycleTime(el){
+  let idx = TIME_OPTIONS.indexOf(el.textContent.trim());
+  idx = (idx + 1) % TIME_OPTIONS.length;
+  el.textContent = TIME_OPTIONS[idx];
+}
+
+const RESET_OPTIONS = ['12:00 AM','2:00 AM','3:00 AM','5:00 AM'];
+function cycleResetTime(el){
+  let idx = RESET_OPTIONS.indexOf(el.textContent.trim());
+  idx = (idx + 1) % RESET_OPTIONS.length;
+  el.textContent = RESET_OPTIONS[idx];
+  showToast('Day now resets at ' + el.textContent);
+}
+
+updatePlanUI();
+</script>
+
+</body>
+</html>

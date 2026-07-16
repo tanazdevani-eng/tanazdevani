@@ -1,0 +1,6 @@
+Kept.xcodeproj/
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.swiftpm/

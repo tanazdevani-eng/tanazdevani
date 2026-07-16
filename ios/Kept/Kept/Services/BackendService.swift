@@ -1,0 +1,46 @@
+import Foundation
+
+struct AuthSession: Equatable {
+    var userId: UUID
+    var email: String
+}
+
+/// Everything the app needs from a backend. `SupabaseBackendService` is the real
+/// implementation; `MockBackendService` is an in-memory stand-in seeded with the same
+/// demo data as kept.html, used for SwiftUI previews and for running the app before
+/// Supabase credentials are configured.
+protocol BackendService {
+    // Auth
+    func currentSession() async throws -> AuthSession?
+    func signIn(email: String, password: String) async throws -> AuthSession
+    func signUp(email: String, password: String) async throws -> AuthSession
+    func signOut() async throws
+    func deleteAccount(userId: UUID) async throws
+
+    // Profile
+    func fetchProfile(userId: UUID) async throws -> UserProfile
+    func updateProfile(_ profile: UserProfile) async throws
+    func uploadAvatar(userId: UUID, imageData: Data) async throws -> URL
+
+    // Habits
+    func fetchHabits(userId: UUID) async throws -> [Habit]
+    func createHabit(_ habit: Habit, userId: UUID) async throws
+    func updateHabit(_ habit: Habit) async throws
+    func deleteHabit(id: UUID) async throws
+    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool) async throws
+
+    // Circle
+    func fetchCircleMembers(userId: UUID) async throws -> [CircleMember]
+    func fetchPendingInvites(userId: UUID) async throws -> [PendingInvite]
+    func fetchCircleFeed(userId: UUID) async throws -> [CircleFeedItem]
+    func fetchContacts(userId: UUID) async throws -> [Contact]
+    func sendInvite(userId: UUID, contact: Contact) async throws
+    func cancelInvite(id: UUID) async throws
+    func removeMember(id: UUID) async throws
+    func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws
+    func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws
+
+    // Notifications
+    func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings
+    func updateNotificationSettings(_ settings: NotificationSettings, userId: UUID) async throws
+}

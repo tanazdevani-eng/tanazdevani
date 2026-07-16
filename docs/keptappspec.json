@@ -1,0 +1,169 @@
+{
+  "project": {
+    "name": "Kept",
+    "oneLiner": "An iOS habit tracker where every habit has a visibility setting: Open (visible to a small friend Circle who can react and nudge) or Kept (fully private). Hinge for habits, same card-stack editorial aesthetic, visibility toggle instead of a match mechanic.",
+    "tagline": "Some habits you keep. Some you keep to yourself.",
+    "platform": "Native iOS, SwiftUI recommended (single-platform app, standard list/form/tab/modal UI patterns, no cross-platform need)",
+    "buildRequirements": [
+      "A Mac (Xcode is macOS-only)",
+      "Apple Developer Program membership, $99/year, required before device testing or App Store submission",
+      "Xcode installed"
+    ],
+    "referenceMockup": {
+      "file": "kept.html",
+      "note": "Interactive HTML/CSS/JS mockup included in this project. Treat it as source of truth for visual design, copy, and UX interaction states. This JSON and the accompanying CLAUDE.md file are the source of truth for data model and business logic. CLAUDE.md is the file Claude Code actually auto-reads for project context; this JSON is a supplementary structured reference."
+    }
+  },
+  "designSystem": {
+    "colors": {
+      "background": "#FBF6F0",
+      "textPrimary": "#211C24",
+      "textSecondary": "#6B6470",
+      "accentOpen": { "base": "#FF6A2C", "deep": "#E6551A", "soft": "#FFE3D0", "meaning": "habit visible to Circle" },
+      "accentKept": { "base": "#3E1969", "deep": "#2A1150", "soft": "#E7DEF0", "meaning": "habit fully private" },
+      "note": "Only these two accent colors are used anywhere in the app. This restraint is intentional, do not introduce additional accent colors."
+    },
+    "typography": {
+      "display": "Fraunces (serif, italic for wordmark and habit names)",
+      "body": "Inter",
+      "dataMono": "IBM Plex Mono (streak counts, timestamps, short labels)"
+    },
+    "shape": {
+      "buttons": "full-width pills, ~100px border radius",
+      "cards": "large border radius, ~20-26px",
+      "cardFill": "soft gradient wash from white toward the accent tint, not a flat fill"
+    },
+    "icons": "None. No decorative icons or emoji anywhere in the app (Home cards, check-in screen, Notifications). Typography and the two-color system carry all visual meaning. If icons are ever reintroduced later, use a proper searchable icon library modal opened from a single button, not an inline grid picker."
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "description": "List of the user's habit cards.",
+      "cardContents": [
+        "Habit name",
+        "Optional subtitle line, ONLY shown if there is something to say: 'checked in today' and/or a duration goal like 'Day 1 of 30'. Never restates Open/Kept in words since the pill already shows it.",
+        "Open/Kept pill, tap to instantly toggle visibility",
+        "Streak-dot progress row",
+        "Edit trigger (three-dot icon)",
+        "Check in today button"
+      ]
+    },
+    {
+      "name": "Check-in flow",
+      "description": "Tapping 'Check in today' IS the check-in, no separate confirm step. Opens a screen already marked done, with an optional note field and a reminder of consequence ('this will post to your Circle' vs 'this stays private'). Tapping the same button again on Home once already checked in instantly undoes it in place, no extra screen."
+    },
+    {
+      "name": "Circle",
+      "description": "Social feed showing only what friends (and the user) have marked Open.",
+      "rules": [
+        "Each post can get a reaction via a real emoji picker on tap: hearts, fire, clap, flex, raised hands, not a single fixed reaction",
+        "Show a Nudge action ONLY on people who have not checked in today, nudging someone already checked in makes no sense",
+        "User's own posts show a small remove control (X) that pulls the post back AND un-checks the habit on Home",
+        "Persistent note reinforcing Kept habits are fully invisible here, not just hidden behind a lock icon"
+      ]
+    },
+    {
+      "name": "Add Habit / Edit Habit",
+      "fields": ["name", "visibility (Open/Kept)", "duration (Ongoing, 7/21/30/90 days, or Custom with a number input)"],
+      "notes": [
+        "Edit screen also has a Delete option with a confirm step",
+        "Free tier shows a soft nudge about locks when Kept is picked but does not hard-block it",
+        "Only the total habit count is hard-gated on Free tier (3 habits max)"
+      ]
+    },
+    {
+      "name": "Add to Circle",
+      "features": [
+        "Shareable invite link with copy-to-clipboard feedback",
+        "Search field for finding people",
+        "Contacts list with per-person state: Invite -> Pending",
+        "Successful invite navigates to a dedicated Invite Sent confirmation screen (checkmark + message preview), not just a toast"
+      ]
+    },
+    {
+      "name": "Manage Circle",
+      "description": "Separate screen from the Circle feed.",
+      "features": [
+        "Current members list with Remove option",
+        "Pending invites list with Cancel option",
+        "Removing a real member decrements the circle-size count everywhere it is shown (Profile stat, settings row, this screen's header)",
+        "Canceling a pending invite does NOT decrement the count, they were never an actual member"
+      ]
+    },
+    {
+      "name": "Profile",
+      "elements": [
+        "Avatar (tap opens Edit Profile)",
+        "Name, handle, bio",
+        "Kept+ member chip, only shown if subscribed",
+        "Three live stats: day streak, habits kept (live count of habit cards), people in circle"
+      ],
+      "settingsGroups": [
+        { "group": "Account", "items": ["Edit profile", "Notifications", "Default habit privacy toggle"] },
+        { "group": "Circle", "items": ["Invite friends", "Manage circle"] },
+        { "group": "Billing", "items": ["Manage subscription", "Log out"] },
+        { "group": "Account (final)", "items": ["Delete account only, no separate deactivate option, keep it to one clear destructive action. Confirm copy should note the person can sign up again later with the same email."] }
+      ]
+    },
+    {
+      "name": "Edit Profile",
+      "fields": ["Name", "Username", "Bio"],
+      "notes": "Pre-filled from current profile, writes back on save. Photo tap opens native photo library picker in the real app."
+    },
+    {
+      "name": "Notifications",
+      "features": [
+        "Global 'remind me for all habits' toggle plus a time",
+        "'Customize per habit' toggle reveals individual reminder rows per habit, auto-synced: new habits get a row, deleted habits lose theirs, renamed habits update in place",
+        "Separate 'day reset time' setting for when streaks roll over, default midnight, important for night-shift or late-checkin users"
+      ]
+    },
+    {
+      "name": "Paywall (Kept+)",
+      "plans": {
+        "free": { "price": 0, "habitLimit": 3, "lockLimit": 1, "features": ["Circle access"] },
+        "keptPlus": { "price": 8.99, "billingPeriod": "month", "features": ["Unlimited habits", "Unlimited locks", "Multiple circles", "Streak insights"] }
+      },
+      "criticalRule": "If already subscribed, this screen must show 'You're currently on Kept+', disable the acquisition flow, and point to iPhone Settings for managing or canceling. Do NOT build an in-app cancel/downgrade flow, Apple does not allow custom cancellation UI for auto-renewable subscriptions."
+    }
+  ],
+  "dataModel": {
+    "habit": {
+      "id": "string",
+      "name": "string",
+      "visibility": "open | kept",
+      "streakCount": "integer",
+      "daysSinceStart": "integer",
+      "goalDurationDays": "integer or null (null = ongoing)",
+      "checkedInToday": "boolean",
+      "checkInHistory": "array, used for streak calculation and future analytics"
+    },
+    "visibilityChangeRules": [
+      "Switching a habit to Kept must immediately remove any of today's Circle post for it. Never leave a stale public post for something now marked private.",
+      "Switching a habit to Open must NOT retroactively expose past private check-ins. Only future check-ins post to Circle."
+    ]
+  },
+  "monetization": {
+    "requiredFramework": "StoreKit 2, Apple requires this for all digital subscriptions, custom payment forms are not allowed and will fail App Review",
+    "setup": "Subscription product configured in App Store Connect, requires active Apple Developer Program membership",
+    "moneyFlow": "Apple charges the customer's Apple ID payment method -> Apple takes commission (30%, or 15% under the Small Business Program for developers under $1M/year revenue) -> remainder pays out to developer's bank account on file in App Store Connect's Agreements, Tax, and Banking section, roughly monthly",
+    "freeTierLimits": { "habits": 3, "privateLocks": 1 },
+    "inAppCancelUI": "Not allowed, must direct to system Settings"
+  },
+  "backend": {
+    "status": "Supabase (Postgres + Auth + Realtime + Storage)",
+    "requirement": "Real user accounts and a live backend are required, this is fundamentally social (Circle, invites, friend check-ins, reactions), cannot be a local-only app",
+    "reasonableOptions": ["Firebase", "Supabase"]
+  },
+  "knownGapsToSolveDuringBuild": [
+    "Real photo upload (camera roll + crop) for profile photos, plus basic content moderation before photos are shown to others",
+    "Real push notification scheduling/delivery for the reminder system (mockup is UI-only)",
+    "Native iOS share sheet for contact access and invite-link sharing (mockup uses fake contact rows)",
+    "Circle/friend acceptance flow on the invitee's side (mockup only shows the inviter's perspective)",
+    "App Store Review Guideline 1.2 (User-Generated Content) compliance: report/block mechanism and objectionable-content filtering required before this can pass review, since Circle is social with user posts"
+  ],
+  "tone": {
+    "voice": "Warm, confident, a little editorial. Never cutesy or overly gamified.",
+    "copyRules": ["Avoid exclamation points in UI copy", "Avoid hype language", "No em dashes anywhere in copy, use periods, colons, or the middle-dot character instead"]
+  }
+}
