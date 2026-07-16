@@ -52,14 +52,6 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
-    entitlements:
-      path: Kept/Kept.entitlements
-      properties:
-        com.apple.developer.applesignin: []
-    scheme:
-      testTargets: []
-      gatherCoverageData: false
-      storeKitConfiguration: ../StoreKit/Kept.storekit
 
 schemes:
   Kept:
