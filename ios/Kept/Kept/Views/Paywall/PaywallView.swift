@@ -109,7 +109,7 @@ struct PaywallView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if featured {
                     Text("MOST KEPT")
-                        .font(KeptFont.mono(9.5, weight: .bold))
+                        .font(KeptFont.mono(9.5, weight: .semibold))
                         .foregroundStyle(.white)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 9)
