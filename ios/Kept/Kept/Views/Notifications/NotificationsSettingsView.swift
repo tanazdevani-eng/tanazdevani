@@ -35,7 +35,7 @@ struct NotificationsSettingsView: View {
                         )).labelsHidden()
                     }
                 }
-                .background(.white)
+                .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
 
@@ -50,7 +50,7 @@ struct NotificationsSettingsView: View {
                             perHabitRow(reminder)
                         }
                     }
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
                     .padding(.top, 10)
@@ -64,7 +64,7 @@ struct NotificationsSettingsView: View {
                         }
                     }
                 }
-                .background(.white)
+                .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
 

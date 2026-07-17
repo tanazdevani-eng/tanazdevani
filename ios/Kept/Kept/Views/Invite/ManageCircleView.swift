@@ -69,7 +69,7 @@ struct ManageCircleView: View {
                 .foregroundStyle(.keptInkSoft)
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .background(.white)
+        .background(.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }
@@ -87,7 +87,7 @@ struct ManageCircleView: View {
                 .foregroundStyle(.keptInkSoft)
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .background(.white)
+        .background(.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }

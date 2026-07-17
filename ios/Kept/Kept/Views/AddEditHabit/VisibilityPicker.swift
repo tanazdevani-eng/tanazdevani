@@ -22,7 +22,7 @@ struct VisibilityPicker: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(EdgeInsets(top: 16, leading: 14, bottom: 16, trailing: 14))
-                    .background(selection == option ? option.accentSoft : .white)
+                    .background(selection == option ? option.accentSoft : .keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)

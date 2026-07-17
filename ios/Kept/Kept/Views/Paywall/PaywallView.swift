@@ -51,7 +51,7 @@ struct PaywallView: View {
                 .foregroundStyle(.white)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 12)
-                .background(Color.keptPurpleDeep)
+                .background(Color.keptPurpleFill)
                 .clipShape(Capsule())
 
             Text("Keep as much\nas you want.")
@@ -140,7 +140,7 @@ struct PaywallView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(EdgeInsets(top: 16, leading: 14, bottom: 16, trailing: 14))
-            .background(featured ? Color.keptPurpleDeep : .white)
+            .background(featured ? Color.keptPurpleFill : Color.keptSurface)
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)

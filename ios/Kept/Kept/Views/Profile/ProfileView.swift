@@ -90,7 +90,7 @@ struct ProfileView: View {
                     .foregroundStyle(.white)
                     .padding(.vertical, 5)
                     .padding(.horizontal, 12)
-                    .background(Color.keptPurpleDeep)
+                    .background(Color.keptPurpleFill)
                     .clipShape(Capsule())
                     .padding(.top, 6)
             }
@@ -108,7 +108,7 @@ struct ProfileView: View {
             statBlock(value: "\(appModel.circleCount)", label: "In circle")
         }
         .padding(.vertical, 14)
-        .background(.white)
+        .background(.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
         .padding(.top, 20)
@@ -133,7 +133,7 @@ struct ProfileView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             VStack(spacing: 0) { rows() }
-                .background(.white)
+                .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
         }

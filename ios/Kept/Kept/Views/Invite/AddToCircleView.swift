@@ -24,7 +24,7 @@ struct AddToCircleView: View {
                 TextField("🔍  Search by username or number", text: $searchText)
                     .font(KeptFont.body(14))
                     .padding(13)
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(Capsule())
                     .overlay(Capsule().strokeBorder(.keptLine))
 
@@ -76,7 +76,7 @@ struct AddToCircleView: View {
             }
         }
         .padding(17)
-        .background(Color.keptPurpleDeep)
+        .background(Color.keptPurpleFill)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
@@ -99,7 +99,7 @@ struct AddToCircleView: View {
             .overlay(Capsule().strokeBorder(.keptInk, lineWidth: 1.5))
         }
         .padding(14)
-        .background(.white)
+        .background(.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }
@@ -122,7 +122,7 @@ struct AddToCircleView: View {
                 .overlay(Capsule().strokeBorder(.keptLine))
         }
         .padding(14)
-        .background(.white)
+        .background(.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }

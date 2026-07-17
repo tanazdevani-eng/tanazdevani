@@ -21,7 +21,7 @@ struct ConfirmSheetContent: View {
                 .padding(.bottom, 12)
 
             Button(destructiveLabel, action: onConfirm)
-                .buttonStyle(KeptPillButtonStyle(background: .keptOrangeDeep))
+                .buttonStyle(KeptPillButtonStyle(background: .keptOrangeFill))
 
             Button("Cancel", action: onCancel)
                 .buttonStyle(KeptPillButtonStyle(background: .keptBackground, foreground: .keptInk, borderColor: .keptLine))

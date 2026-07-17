@@ -18,7 +18,7 @@ struct HabitFormBody: View {
             TextField("e.g. Read 20 pages", text: $name)
                 .font(KeptFont.body(15))
                 .padding(15)
-                .background(.white)
+                .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
 

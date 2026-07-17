@@ -41,7 +41,7 @@ struct DurationPicker: View {
                     .keyboardType(.numberPad)
                     .font(KeptFont.body(15))
                     .padding(15)
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
                     .onChange(of: customText) { _, newValue in
@@ -64,7 +64,7 @@ struct DurationPicker: View {
                 .foregroundStyle(isSelected ? .keptOrangeDeep : .keptInkSoft)
                 .padding(.vertical, 9)
                 .padding(.horizontal, 14)
-                .background(isSelected ? Color.keptOrangeSoft : .white)
+                .background(isSelected ? Color.keptOrangeSoft : .keptSurface)
                 .clipShape(Capsule())
                 .overlay(Capsule().strokeBorder(isSelected ? Color.keptOrange : Color.keptLine, lineWidth: isSelected ? 1.5 : 1))
         }

@@ -19,13 +19,13 @@ struct CustomTabBar: View {
         .frame(height: 74)
         .padding(.horizontal, 8)
         .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.55))
+        .background(Color.keptSurface.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(.white.opacity(0.6), lineWidth: 1)
+                .strokeBorder(Color.keptSurface.opacity(0.6), lineWidth: 1)
         )
-        .shadow(color: .keptInk.opacity(0.18), radius: 18, y: 10)
+        .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
         .padding(.horizontal, 14)
         .padding(.bottom, 14)
     }
@@ -39,7 +39,7 @@ struct CustomTabBar: View {
                 Text(glyph).font(.system(size: 19))
                 Text(label).font(KeptFont.body(9.5, weight: .bold))
             }
-            .foregroundStyle(isActive ? Color.keptInk : Color(hex: 0xB7ADC0))
+            .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
@@ -51,7 +51,7 @@ struct CustomTabBar: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(Color.keptInk))
+                .background(Circle().fill(Color.keptInkFill))
                 .padding(.bottom, 1)
         }
         .buttonStyle(.plain)

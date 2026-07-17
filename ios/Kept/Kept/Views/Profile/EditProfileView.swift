@@ -36,7 +36,7 @@ struct EditProfileView: View {
                     .font(KeptFont.body(13.5))
                     .lineLimit(3...6)
                     .padding(14)
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
 
@@ -67,7 +67,7 @@ struct EditProfileView: View {
         TextField(placeholder, text: text)
             .font(KeptFont.body(15))
             .padding(15)
-            .background(.white)
+            .background(.keptSurface)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
     }

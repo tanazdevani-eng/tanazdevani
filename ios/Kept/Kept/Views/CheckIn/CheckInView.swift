@@ -34,7 +34,7 @@ struct CheckInView: View {
                     ZStack {
                         Circle()
                             .strokeBorder(isDone ? Color.keptSuccess : Color.keptLine, lineWidth: 3)
-                            .background(Circle().fill(isDone ? Color.keptSuccessSoft : .white))
+                            .background(Circle().fill(isDone ? Color.keptSuccessSoft : Color.keptSurface))
                         if isDone {
                             Text("✓").font(.system(size: 44)).foregroundStyle(.keptSuccess)
                         }
@@ -61,7 +61,7 @@ struct CheckInView: View {
                     .focused($noteFocused)
                     .lineLimit(3...6)
                     .padding(14)
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
             }

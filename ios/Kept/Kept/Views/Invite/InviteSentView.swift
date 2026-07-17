@@ -31,7 +31,7 @@ struct InviteSentView: View {
                     .font(KeptFont.display(12.5, italic: true))
                     .foregroundStyle(.keptInk)
                     .padding(14)
-                    .background(.white)
+                    .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
             }

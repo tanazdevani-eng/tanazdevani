@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Full-width pill button, ~100px radius, matches kept.html's .primary-btn / .checkin-btn / .paywall-cta.
 struct KeptPillButtonStyle: ButtonStyle {
-    var background: Color = .keptInk
+    var background: Color = .keptInkFill
     var foreground: Color = .white
     var borderColor: Color? = nil
 
@@ -35,7 +35,7 @@ struct KeptCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     init(
-        fill: AnyShapeStyle = AnyShapeStyle(Color.white),
+        fill: AnyShapeStyle = AnyShapeStyle(Color.keptSurface),
         borderColor: Color = .keptLine,
         cornerRadius: CGFloat = 24,
         @ViewBuilder content: () -> Content
@@ -102,7 +102,7 @@ struct KeptToast: View {
             .foregroundStyle(.white)
             .padding(.vertical, 11)
             .padding(.horizontal, 18)
-            .background(Color.keptInk)
+            .background(Color.keptInkFill)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
     }

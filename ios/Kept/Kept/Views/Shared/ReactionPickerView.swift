@@ -15,7 +15,7 @@ struct ReactionPickerRow: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
-        .background(Color(hex: 0xF7F1E9))
+        .background(Color.keptChip)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
@@ -51,7 +51,7 @@ struct ReactionSummaryButton: View {
         .font(.system(size: 13))
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
-        .background(Color(hex: 0xF7F1E9))
+        .background(Color.keptChip)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

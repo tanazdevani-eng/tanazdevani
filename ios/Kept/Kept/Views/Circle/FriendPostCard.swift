@@ -113,7 +113,7 @@ struct FriendPostCard: View {
                     .focused($commentFocused)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
-                    .background(Color(hex: 0xF7F1E9))
+                    .background(Color.keptChip)
                     .clipShape(Capsule())
                     .onSubmit { submitComment() }
 

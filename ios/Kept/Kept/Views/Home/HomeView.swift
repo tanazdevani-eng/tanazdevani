@@ -53,7 +53,7 @@ struct HomeView: View {
                     .foregroundStyle(.white)
                     .padding(.vertical, 6)
                     .padding(.horizontal, 12)
-                    .background(Color.keptInk)
+                    .background(Color.keptInkFill)
                     .clipShape(Capsule())
 
                     Button { appModel.selectedTab = .profile } label: {
