@@ -64,7 +64,15 @@ final class AppModel: ObservableObject {
         self.storeKit = storeKit
         self.scheduler = scheduler
         self.profile = UserProfile(name: "", handle: "", bio: "")
-        self.friendFeedItems = [
+        self.friendFeedItems = Self.demoFriendFeed()
+    }
+
+    /// Demo seed for friends' Circle activity, used both at first launch and to reset back
+    /// to a clean slate on sign-out/delete — without this, reactions/comments left on
+    /// Bobby/Gigi's demo posts would otherwise carry over into whatever account gets
+    /// signed into next on the same device.
+    private static func demoFriendFeed() -> [CircleFeedItem] {
+        [
             CircleFeedItem(id: UUID(), authorId: UUID(), authorName: "Bobby", avatarSeed: 1, isMine: false,
                            habitId: nil, note: "Gym before 7am. Legs day, barely made it.",
                            timeLabel: "checked in 2h ago", streakCount: 8, hasCheckedInToday: true,
@@ -189,9 +197,11 @@ final class AppModel: ObservableObject {
         pendingInvites = []
         contacts = []
         notificationSettings = NotificationSettings()
+        defaultVisibility = .open
         todaysNotes = [:]
         todaysComments = [:]
         nudgedAuthorIds = []
+        friendFeedItems = Self.demoFriendFeed()
         selectedTab = .home
     }
 

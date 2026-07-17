@@ -25,6 +25,8 @@ struct AddToCircleView: View {
                     .background(.keptSurface)
                     .clipShape(Capsule())
                     .overlay(Capsule().strokeBorder(.keptLine))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
 
                 fieldLabel("From your contacts").padding(.top, 20)
                 VStack(spacing: 10) {

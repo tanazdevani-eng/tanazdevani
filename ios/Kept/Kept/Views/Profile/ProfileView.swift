@@ -54,7 +54,7 @@ struct ProfileView: View {
         .sheet(isPresented: $showingLogoutConfirm) {
             ConfirmSheetContent(
                 title: "Log out?",
-                message: "You can sign back in any time with the same email.",
+                message: "You can sign back in any time with the same phone number.",
                 destructiveLabel: "Log out",
                 onConfirm: {
                     showingLogoutConfirm = false
@@ -66,7 +66,7 @@ struct ProfileView: View {
         .sheet(isPresented: $showingDeleteConfirm) {
             ConfirmSheetContent(
                 title: "Delete your account permanently?",
-                message: "This erases your habits, streaks, and Circle history for good. There's no getting it back. You're welcome to sign up again later with the same email.",
+                message: "This erases your habits, streaks, and Circle history for good. There's no getting it back. You're welcome to sign up again later with the same phone number.",
                 destructiveLabel: "Delete forever",
                 onConfirm: {
                     showingDeleteConfirm = false
