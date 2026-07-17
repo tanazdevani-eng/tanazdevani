@@ -80,8 +80,15 @@ actor MockBackendService: BackendService {
 
     func updateProfile(_ newProfile: UserProfile) async throws { profile = newProfile }
 
+    /// No real Storage bucket in mock mode, so this writes to the app's own Documents
+    /// folder and hands back a file:// URL instead of a fake https one AsyncImage could
+    /// never actually load — the previous placeholder URL made it look like photo upload
+    /// was silently broken when testing without Supabase configured.
     func uploadAvatar(userId: UUID, imageData: Data) async throws -> URL {
-        URL(string: "https://example.com/avatar.jpg")!
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = directory.appendingPathComponent("avatar-\(userId.uuidString).jpg")
+        try imageData.write(to: fileURL, options: .atomic)
+        return fileURL
     }
 
     func fetchHabits(userId: UUID) async throws -> [Habit] { habits }

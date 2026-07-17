@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Gradient avatar bubble matching kept.html's .avatar / .avatar.a1-a4 / .avatar.me —
 /// a deterministic orange-to-purple gradient keyed by `seed`, with an initial overlaid.
@@ -9,6 +10,11 @@ struct AvatarView: View {
     let seed: Int
     var size: CGFloat = 36
     var imageURL: URL? = nil
+    /// A just-picked (and possibly not-yet-uploaded) photo, shown in place of imageURL
+    /// when present — lets EditProfileView show the real selected/cropped photo
+    /// immediately, without waiting on a network round trip that may not even be
+    /// configured yet (mock mode has no real Storage backend).
+    var previewImage: UIImage? = nil
     /// Shows a Hinge-style small pencil badge + a colored ring instead of the plain white
     /// one, marking the avatar as tappable-to-edit without needing a verification-badge
     /// look-alike.
@@ -29,7 +35,12 @@ struct AvatarView: View {
     var body: some View {
         ZStack {
             Circle().fill(gradient)
-            if let imageURL {
+            if let previewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(Circle())
+            } else if let imageURL {
                 AsyncImage(url: imageURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
@@ -43,6 +54,7 @@ struct AvatarView: View {
             }
         }
         .frame(width: size, height: size)
+        .contentShape(Circle())
         .overlay(Circle().stroke(editable ? Color.keptOrange : .white, lineWidth: editable ? 3 : (size > 60 ? 3 : 1.5)))
         .shadow(color: .black.opacity(0.3), radius: size > 60 ? 10 : 4, y: 3)
         .overlay(alignment: .bottomTrailing) {

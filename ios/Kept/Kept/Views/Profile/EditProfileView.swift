@@ -9,6 +9,8 @@ struct EditProfileView: View {
     @State private var handle: String = ""
     @State private var bio: String = ""
     @State private var pickerItem: PhotosPickerItem?
+    @State private var rawPickedData: Data?
+    @State private var showingCropSheet = false
     @State private var pickedImageData: Data?
 
     var body: some View {
@@ -17,16 +19,21 @@ struct EditProfileView: View {
         // first sidesteps that instead of fighting the closure's isolation.
         let avatarInitial = appModel.profile.initial
         let avatarURL = appModel.profile.avatarURL
+        let previewImage = pickedImageData.flatMap { UIImage(data: $0) }
 
         ScrollView {
             VStack(spacing: 10) {
                 PhotosPicker(selection: $pickerItem, matching: .images) {
-                    AvatarView(initial: avatarInitial, seed: 0, size: 88, imageURL: avatarURL, editable: true)
+                    VStack(spacing: 10) {
+                        AvatarView(initial: avatarInitial, seed: 0, size: 88, imageURL: avatarURL, previewImage: previewImage, editable: true)
+                        Text("Change photo")
+                            .font(KeptFont.body(12, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                            .underline()
+                    }
+                    .contentShape(Rectangle())
                 }
-                Text("Change photo")
-                    .font(KeptFont.body(12, weight: .semibold))
-                    .foregroundStyle(.keptInkSoft)
-                    .underline()
+                .buttonStyle(.plain)
             }
             .padding(.top, 10)
 
@@ -68,7 +75,15 @@ struct EditProfileView: View {
         .onChange(of: pickerItem) { _, newItem in
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    pickedImageData = data
+                    rawPickedData = data
+                    showingCropSheet = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingCropSheet) {
+            if let rawPickedData {
+                AvatarCropView(imageData: rawPickedData) { cropped in
+                    pickedImageData = cropped
                 }
             }
         }
@@ -98,7 +113,13 @@ struct EditProfileView: View {
             bio: bio
         )
         if let pickedImageData {
-            Task { try? await appModel.uploadAvatar(data: pickedImageData) }
+            Task {
+                do {
+                    try await appModel.uploadAvatar(data: pickedImageData)
+                } catch {
+                    appModel.showToast("Couldn't upload photo. Check your connection")
+                }
+            }
         }
         dismiss()
     }
