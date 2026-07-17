@@ -15,12 +15,16 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 header
-                ForEach(appModel.habits) { habit in
-                    HabitCardView(
-                        habit: habit,
-                        onCheckInTapped: { handleCheckInTap(habit) },
-                        onEditTapped: { editHabit = habit }
-                    )
+                if appModel.habits.isEmpty {
+                    emptyState
+                } else {
+                    ForEach(appModel.habits) { habit in
+                        HabitCardView(
+                            habit: habit,
+                            onCheckInTapped: { handleCheckInTap(habit) },
+                            onEditTapped: { editHabit = habit }
+                        )
+                    }
                 }
             }
             .padding(.horizontal, 22)
@@ -63,6 +67,21 @@ struct HomeView: View {
         }
         .padding(.top, 4)
         .padding(.bottom, 10)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text("Nothing kept yet")
+                .font(KeptFont.display(19, weight: .semibold))
+                .foregroundStyle(.keptInk)
+            Text("Tap the + below to add the first thing you want to keep.")
+                .font(KeptFont.body(13, weight: .medium))
+                .foregroundStyle(.keptInkSoft)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 240)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 
     private func handleCheckInTap(_ habit: Habit) {

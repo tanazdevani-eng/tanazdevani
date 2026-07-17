@@ -43,6 +43,13 @@ struct RootTabView: View {
         .sheet(isPresented: $showingAddHabit) {
             NavigationStack { AddHabitView() }
         }
+        .overlay {
+            if !appModel.hasCompletedInitialLoad {
+                LaunchLoadingView()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: appModel.hasCompletedInitialLoad)
     }
 
     @ViewBuilder
@@ -51,5 +58,19 @@ struct RootTabView: View {
             .opacity(appModel.selectedTab == tab ? 1 : 0)
             .allowsHitTesting(appModel.selectedTab == tab)
             .zIndex(appModel.selectedTab == tab ? 1 : 0)
+    }
+}
+
+/// Shown only for the very first bootstrap() — the gap between app launch and the first
+/// habits/profile fetch resolving, so the tab bar and empty content don't flash briefly
+/// before real data arrives.
+private struct LaunchLoadingView: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Text("Kept").keptWordmark(32).foregroundStyle(.keptInk)
+            ProgressView().tint(.keptInk)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.keptBackground)
     }
 }

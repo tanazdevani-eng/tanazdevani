@@ -67,6 +67,7 @@ struct HabitCardView: View {
                     .background(checkedInToday ? Color.keptSuccess : Color.keptInk)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
+                .sensoryFeedback(.success, trigger: checkedInToday) { _, newValue in newValue }
                 .padding(.top, 12)
             }
             .padding(EdgeInsets(top: 18, leading: 18, bottom: 16, trailing: 18))

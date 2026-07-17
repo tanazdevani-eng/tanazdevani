@@ -17,6 +17,9 @@ final class AppModel: ObservableObject {
     @Published var defaultVisibility: HabitVisibility = .open
     @Published var toast: String?
     @Published var isLoading = false
+    /// True once bootstrap() has run at least once — gates the launch loading screen so
+    /// it only ever shows on the very first load, not on any later background refresh.
+    @Published private(set) var hasCompletedInitialLoad = false
     @Published var lastError: String?
     @Published var selectedTab: RootTab = .home
 
@@ -28,6 +31,8 @@ final class AppModel: ObservableObject {
     /// Comments on your own today's check-ins, keyed by habit id (mirrors todaysNotes,
     /// since "mine" Circle feed items are derived rather than stored — see circleFeed).
     @Published var todaysComments: [UUID: [Comment]] = [:]
+    /// Friends nudged this session, so the button can flip to a disabled "Nudged" state.
+    @Published var nudgedAuthorIds: Set<UUID> = []
 
     let storeKit: StoreKitManager
     private let backend: BackendService
@@ -68,7 +73,10 @@ final class AppModel: ObservableObject {
 
     func bootstrap() async {
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasCompletedInitialLoad = true
+        }
         do {
             var currentSession = try await backend.currentSession()
             if currentSession == nil {
@@ -213,8 +221,11 @@ final class AppModel: ObservableObject {
     }
 
     /// Nudge is only ever offered on people who haven't checked in today — the caller
-    /// (CircleView) already filters for that, this just fires the request.
+    /// (CircleView) already filters for that, this just fires the request. Tracks who's
+    /// already been nudged today so the button can flip to a disabled "Nudged" state
+    /// instead of silently allowing repeat taps with no feedback that it registered.
     func nudge(_ item: CircleFeedItem) {
+        nudgedAuthorIds.insert(item.authorId)
         showToast("You nudged \(item.authorName)")
         Task { try? await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
     }

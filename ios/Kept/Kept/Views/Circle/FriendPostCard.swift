@@ -64,17 +64,19 @@ struct FriendPostCard: View {
                                 .buttonStyle(.plain)
 
                                 if !item.hasCheckedInToday {
+                                    let alreadyNudged = appModel.nudgedAuthorIds.contains(item.authorId)
                                     Button {
                                         appModel.nudge(item)
                                     } label: {
-                                        Text("👊 Nudge")
+                                        Text(alreadyNudged ? "Nudged ✓" : "👊 Nudge")
                                             .font(KeptFont.body(13, weight: .semibold))
-                                            .foregroundStyle(.keptOrangeDeep)
+                                            .foregroundStyle(alreadyNudged ? .keptInkSoft : .keptOrangeDeep)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 9)
-                                            .background(Color.keptOrangeSoft)
+                                            .background(alreadyNudged ? Color.keptBackground : Color.keptOrangeSoft)
                                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
+                                    .disabled(alreadyNudged)
                                 }
                             }
                         }
