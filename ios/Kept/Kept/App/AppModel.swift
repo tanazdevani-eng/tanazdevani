@@ -206,9 +206,12 @@ final class AppModel: ObservableObject {
     // MARK: - Habits
 
     @discardableResult
-    func addHabit(name: String, visibility: HabitVisibility, duration: HabitDuration) -> Bool {
+    func addHabit(name: String, visibility: HabitVisibility, duration: HabitDuration, sharedWithMemberIds: Set<UUID> = []) -> Bool {
         guard canAddHabit else { return false }
-        let habit = Habit(name: name, visibility: visibility, goalDurationDays: duration.totalDays)
+        let habit = Habit(
+            name: name, visibility: visibility, goalDurationDays: duration.totalDays,
+            sharedWithMemberIds: visibility == .open ? sharedWithMemberIds : []
+        )
         habits.append(habit)
         notificationSettings.perHabitReminders.append(
             HabitReminder(habitId: habit.id, habitName: name, time: DateComponents(hour: 7, minute: 0), isOn: true)
@@ -219,11 +222,12 @@ final class AppModel: ObservableObject {
         return true
     }
 
-    func updateHabit(_ habit: Habit, name: String, visibility: HabitVisibility, duration: HabitDuration) {
+    func updateHabit(_ habit: Habit, name: String, visibility: HabitVisibility, duration: HabitDuration, sharedWithMemberIds: Set<UUID>) {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].name = name
         habits[index].visibility = visibility
         habits[index].duration = duration
+        habits[index].sharedWithMemberIds = visibility == .open ? sharedWithMemberIds : []
         if visibility == .kept {
             todaysNotes.removeValue(forKey: habit.id)
         }
@@ -252,11 +256,19 @@ final class AppModel: ObservableObject {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].visibility = habits[index].visibility == .open ? .kept : .open
         let becameKept = habits[index].visibility == .kept
+        if becameKept {
+            habits[index].sharedWithMemberIds = []
+        }
         if becameKept && habits[index].isCheckedIn(calendar: dayCalendar) {
             showToast("Made private. Pulled from Circle too")
         }
         performBackendSync { [self] in try await backend.updateHabit(habits[index]) }
     }
+
+    /// Set right when a fixed-duration habit's final day gets checked in, so the UI can
+    /// ask "keep going or let it end" — only fires once, since checking in again the same
+    /// day isn't possible (the button becomes an undo toggle instead).
+    @Published var goalCompletedHabit: Habit?
 
     func checkIn(_ habit: Habit, note: String?) {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
@@ -266,6 +278,28 @@ final class AppModel: ObservableObject {
         }
         let day = dayCalendar.logicalDay(for: Date())
         performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
+
+        if let goal = habits[index].goalDurationDays, habits[index].daysSinceStart(calendar: dayCalendar) >= goal {
+            goalCompletedHabit = habits[index]
+        }
+    }
+
+    /// "Keep going" from the goal-complete prompt: removes the day cap so the habit keeps
+    /// appearing on Home indefinitely, same streak and history intact.
+    func keepHabitGoing(_ habit: Habit) {
+        guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
+        habits[index].goalDurationDays = nil
+        performBackendSync { [self] in try await backend.updateHabit(habits[index]) }
+        showToast("Keeping \"\(habit.name)\" going")
+        goalCompletedHabit = nil
+    }
+
+    /// "I'm done" from the goal-complete prompt: the goal was the point, so this actually
+    /// removes the habit rather than just quietly leaving it on the list with nothing left
+    /// to do — the intent was already confirmed by choosing this over "Keep going."
+    func finishHabitGoal(_ habit: Habit) {
+        deleteHabit(habit)
+        goalCompletedHabit = nil
     }
 
     func undoCheckIn(_ habit: Habit) {

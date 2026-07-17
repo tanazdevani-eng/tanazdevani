@@ -7,6 +7,7 @@ struct AddHabitView: View {
     @State private var name = ""
     @State private var visibility: HabitVisibility = .open
     @State private var duration: HabitDuration = .ongoing
+    @State private var sharedWithMemberIds: Set<UUID> = []
 
     var body: some View {
         ScrollView {
@@ -14,6 +15,7 @@ struct AddHabitView: View {
                 name: $name,
                 visibility: $visibility,
                 duration: $duration,
+                sharedWithMemberIds: $sharedWithMemberIds,
                 saveLabel: "Save habit",
                 onSave: save
             )
@@ -32,7 +34,10 @@ struct AddHabitView: View {
 
     private func save() {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let added = appModel.addHabit(name: name.trimmingCharacters(in: .whitespaces), visibility: visibility, duration: duration)
+        let added = appModel.addHabit(
+            name: name.trimmingCharacters(in: .whitespaces), visibility: visibility, duration: duration,
+            sharedWithMemberIds: sharedWithMemberIds
+        )
         if added {
             dismiss()
         } else {

@@ -21,7 +21,7 @@ struct EditProfileView: View {
         ScrollView {
             VStack(spacing: 10) {
                 PhotosPicker(selection: $pickerItem, matching: .images) {
-                    AvatarView(initial: avatarInitial, seed: 0, size: 88, imageURL: avatarURL)
+                    AvatarView(initial: avatarInitial, seed: 0, size: 88, imageURL: avatarURL, editable: true)
                 }
                 Text("Change photo")
                     .font(KeptFont.body(12, weight: .semibold))
@@ -33,9 +33,12 @@ struct EditProfileView: View {
             VStack(alignment: .leading, spacing: 0) {
                 fieldLabel("Name").padding(.top, 20)
                 textField("", text: $name)
+                    .autocorrectionDisabled()
 
                 fieldLabel("Username").padding(.top, 16)
                 textField("", text: $handle)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
 
                 fieldLabel("Bio").padding(.top, 16)
                 TextField("", text: $bio, axis: .vertical)
@@ -49,6 +52,7 @@ struct EditProfileView: View {
                 Button("Save changes") { save() }
                     .buttonStyle(.keptPrimary)
                     .padding(.top, 26)
+                    .padding(.bottom, 90)
             }
         }
         .padding(.horizontal, 22)

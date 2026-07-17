@@ -1,19 +1,26 @@
 import Foundation
 import StoreKit
 
-/// Owns the Kept+ auto-renewable subscription end to end: loading the product, purchasing,
-/// restoring, and deciding entitlement from `Transaction.currentEntitlements` (Apple's
-/// recommended on-device source of truth — no server round trip needed to know whether
-/// someone is subscribed). Apple requires StoreKit for all digital subscriptions; custom
-/// payment forms are not allowed and will get the app rejected.
+/// Owns the Kept+ auto-renewable subscription end to end: loading both the monthly and
+/// yearly products, purchasing, restoring, and deciding entitlement from
+/// `Transaction.currentEntitlements` (Apple's recommended on-device source of truth — no
+/// server round trip needed to know whether someone is subscribed). Apple requires
+/// StoreKit for all digital subscriptions; custom payment forms are not allowed and will
+/// get the app rejected.
 @MainActor
 final class StoreKitManager: ObservableObject {
-    static let keptPlusProductID = "com.kept.app.keptplus.monthly"
+    static let monthlyProductID = "com.kept.app.keptplus.monthly"
+    static let yearlyProductID = "com.kept.app.keptplus.yearly"
 
-    @Published private(set) var keptPlusProduct: Product?
-    @Published private(set) var isSubscribed = false
+    @Published private(set) var monthlyProduct: Product?
+    @Published private(set) var yearlyProduct: Product?
+    /// Which product ID is actually entitled right now, if any — since monthly and yearly
+    /// share one subscription group, at most one of them is ever active at a time.
+    @Published private(set) var activeProductID: String?
     @Published private(set) var isLoadingProducts = false
     @Published var lastError: String?
+
+    var isSubscribed: Bool { activeProductID != nil }
 
     private var transactionListener: Task<Void, Never>?
 
@@ -33,8 +40,9 @@ final class StoreKitManager: ObservableObject {
         isLoadingProducts = true
         defer { isLoadingProducts = false }
         do {
-            let products = try await Product.products(for: [Self.keptPlusProductID])
-            keptPlusProduct = products.first
+            let products = try await Product.products(for: [Self.monthlyProductID, Self.yearlyProductID])
+            monthlyProduct = products.first { $0.id == Self.monthlyProductID }
+            yearlyProduct = products.first { $0.id == Self.yearlyProductID }
         } catch {
             lastError = error.localizedDescription
         }
@@ -42,11 +50,7 @@ final class StoreKitManager: ObservableObject {
 
     /// Kicks off the native App Store purchase sheet. Never build a custom "Continue"
     /// button that charges a card directly — that's an instant App Review rejection.
-    func purchaseKeptPlus() async {
-        guard let product = keptPlusProduct else {
-            lastError = "Kept+ isn't available right now. Check your connection and try again."
-            return
-        }
+    func purchase(_ product: Product) async {
         do {
             let result = try await product.purchase()
             switch result {
@@ -76,13 +80,14 @@ final class StoreKitManager: ObservableObject {
     }
 
     func refreshEntitlements() async {
-        var subscribed = false
+        var active: String?
         for await result in Transaction.currentEntitlements {
-            if let transaction = try? checkVerified(result), transaction.productID == Self.keptPlusProductID {
-                subscribed = true
+            if let transaction = try? checkVerified(result),
+               transaction.productID == Self.monthlyProductID || transaction.productID == Self.yearlyProductID {
+                active = transaction.productID
             }
         }
-        isSubscribed = subscribed
+        activeProductID = active
     }
 
     private func listenForTransactionUpdates() -> Task<Void, Never> {
@@ -111,7 +116,11 @@ final class StoreKitManager: ObservableObject {
         var errorDescription: String? { "Apple could not verify this transaction." }
     }
 
-    var priceText: String {
-        keptPlusProduct?.displayPrice ?? "$\(Plan.keptPlusMonthlyPrice)"
+    var monthlyPriceText: String {
+        monthlyProduct?.displayPrice ?? "$\(Plan.keptPlusMonthlyPrice)"
+    }
+
+    var yearlyPriceText: String {
+        yearlyProduct?.displayPrice ?? "$\(Plan.keptPlusYearlyPrice)"
     }
 }

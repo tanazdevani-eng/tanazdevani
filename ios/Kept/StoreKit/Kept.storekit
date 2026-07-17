@@ -27,7 +27,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Unlimited habits, unlimited private locks, multiple circles, streak insights.",
+              "description" : "Unlimited habits, unlimited private locks, share with just a few people, streak insights.",
               "displayName" : "Kept+ Monthly",
               "locale" : "en_US"
             }
@@ -35,6 +35,28 @@
           "productID" : "com.kept.app.keptplus.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Kept+ Monthly",
+          "subscriptionGroupID" : "21000001",
+          "type" : "RecurringSubscription",
+          "win_back_offers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "79.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "21000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Everything in Kept+, billed once a year - about $6.67/mo, roughly 26% less than paying monthly.",
+              "displayName" : "Kept+ Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.kept.app.keptplus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Kept+ Yearly",
           "subscriptionGroupID" : "21000001",
           "type" : "RecurringSubscription",
           "win_back_offers" : []

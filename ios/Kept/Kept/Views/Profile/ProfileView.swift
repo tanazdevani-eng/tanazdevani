@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var showingNotifications = false
     @State private var showingManageCircle = false
     @State private var showingInvite = false
+    @State private var showingDefaultPrivacy = false
 
     var body: some View {
         ScrollView {
@@ -18,7 +19,7 @@ struct ProfileView: View {
                     settingsRow("Edit profile") { showingEditProfile = true }
                     settingsRow("Notifications") { showingNotifications = true }
                     settingsRow("Default habit privacy", value: appModel.defaultVisibility.label) {
-                        appModel.toggleDefaultVisibility()
+                        showingDefaultPrivacy = true
                     }
                 }
                 settingsSection(label: "Circle") {
@@ -44,6 +45,7 @@ struct ProfileView: View {
         .navigationDestination(isPresented: $showingNotifications) { NotificationsSettingsView() }
         .navigationDestination(isPresented: $showingManageCircle) { ManageCircleView() }
         .navigationDestination(isPresented: $showingInvite) { AddToCircleView() }
+        .navigationDestination(isPresented: $showingDefaultPrivacy) { DefaultHabitPrivacyView() }
         .sheet(isPresented: $showingLogoutConfirm) {
             ConfirmSheetContent(
                 title: "Log out?",
@@ -73,7 +75,7 @@ struct ProfileView: View {
     private var hero: some View {
         VStack(spacing: 8) {
             Button { showingEditProfile = true } label: {
-                AvatarView(initial: appModel.profile.initial, seed: 0, size: 88, imageURL: appModel.profile.avatarURL)
+                AvatarView(initial: appModel.profile.initial, seed: 0, size: 88, imageURL: appModel.profile.avatarURL, editable: true)
             }
             Text(appModel.profile.name).font(KeptFont.display(21, weight: .semibold)).foregroundStyle(.keptInk)
             Text("@\(appModel.profile.handle)").font(KeptFont.body(12.5, weight: .medium)).foregroundStyle(.keptInkSoft)

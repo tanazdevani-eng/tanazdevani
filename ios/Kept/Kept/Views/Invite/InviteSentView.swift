@@ -6,14 +6,14 @@ struct InviteSentView: View {
     let contact: Contact
 
     var body: some View {
-        VStack {
-            Spacer()
+        ScrollView {
             VStack(spacing: 20) {
                 ZStack {
                     Circle().fill(Color.keptOrangeSoft)
                     Text("✓").font(.system(size: 32)).foregroundStyle(.keptOrangeDeep)
                 }
                 .frame(width: 72, height: 72)
+                .padding(.top, 60)
 
                 VStack(spacing: 8) {
                     Text("Invite sent to \(contact.name)")
@@ -34,13 +34,13 @@ struct InviteSentView: View {
                     .background(.keptSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+
+                Button("Done") { dismiss() }
+                    .buttonStyle(.keptPrimary)
+                    .padding(.top, 20)
             }
             .padding(.horizontal, 30)
-            Spacer()
-            Button("Done") { dismiss() }
-                .buttonStyle(.keptPrimary)
-                .padding(.horizontal, 22)
-                .padding(.bottom, 8)
+            .padding(.bottom, 120)
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)

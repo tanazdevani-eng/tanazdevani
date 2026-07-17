@@ -48,6 +48,12 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
     var goalDurationDays: Int?
     /// Logical check-in days (already normalized via DayCalendar), ascending, unique.
     var checkInHistory: [Date]
+    /// Kept+ only: when non-empty and visibility is .open, restricts who in your Circle
+    /// can actually see this habit's check-ins to just these member ids, instead of
+    /// everyone — e.g. sharing an accountability habit with just Bobby instead of your
+    /// whole Circle. Empty means the normal "everyone in Circle" behavior. Still
+    /// fundamentally "Open," not a third visibility state — no new color, no new meaning.
+    var sharedWithMemberIds: Set<UUID>
 
     init(
         id: UUID = UUID(),
@@ -55,7 +61,8 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
         visibility: HabitVisibility,
         createdAt: Date = Date(),
         goalDurationDays: Int? = nil,
-        checkInHistory: [Date] = []
+        checkInHistory: [Date] = [],
+        sharedWithMemberIds: Set<UUID> = []
     ) {
         self.id = id
         self.name = name
@@ -63,7 +70,10 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
         self.createdAt = createdAt
         self.goalDurationDays = goalDurationDays
         self.checkInHistory = checkInHistory
+        self.sharedWithMemberIds = sharedWithMemberIds
     }
+
+    var hasCustomAudience: Bool { !sharedWithMemberIds.isEmpty }
 
     var duration: HabitDuration {
         get { goalDurationDays.map(HabitDuration.days) ?? .ongoing }
@@ -93,6 +103,9 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
         }
         if let goal = goalDurationDays {
             parts.append("Day \(min(daysSinceStart(now: now, calendar: calendar), goal)) of \(goal)")
+        }
+        if hasCustomAudience {
+            parts.append("shared with \(sharedWithMemberIds.count)")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

@@ -32,28 +32,35 @@ on a Mac with Xcode. Steps are sequential; do them roughly in this order.
    (populated once you've built once from Xcode with that ID). SKU: any internal string,
    e.g. `kept-ios-001`.
 
-## 4. Set up the Kept+ subscription ($8.99/month)
+## 4. Set up the Kept+ subscriptions ($8.99/month, $79.99/year)
 
 1. In your app's page → **Monetization** → **Subscriptions**.
 2. Create a **Subscription Group** named `Kept Membership` (matches
    `ios/Kept/StoreKit/Kept.storekit`'s local group — the names don't have to match but it
-   keeps things easy to reason about).
-3. Add a subscription inside that group:
+   keeps things easy to reason about). Both plans below go in this *same* group — that's
+   what makes them mutually exclusive (a subscriber is on one or the other, never both) and
+   lets someone switch between them from iPhone Settings without double-billing.
+3. Add the monthly subscription:
    - Reference name: `Kept+ Monthly`
-   - Product ID: `com.kept.app.keptplus.monthly` — **must match** `StoreKitManager.keptPlusProductID`
-     in `ios/Kept/Kept/Services/StoreKitManager.swift` exactly, or the app won't find the
-     product.
-   - Subscription duration: 1 month.
-   - Price: **$8.99 USD/month** — pick the price tier closest to $8.99 in the price
-     schedule (Apple's tiers are standardized; $8.99 is a real tier in the US storefront).
-     Apple auto-generates equivalent prices for every other storefront/currency; review
-     and adjust territory pricing if you want manual control instead of the default.
-   - Localization (English, U.S.): display name "Kept+ Monthly", description matching the
-     paywall copy ("Unlimited habits, unlimited private locks, multiple circles, streak
-     insights.").
-   - App Store subscription image: optional but recommended for the system subscription
-     management UI — a simple square graphic with the Kept wordmark works.
-4. Submit the subscription's review information (screenshot of the paywall + review
+   - Product ID: `com.kept.app.keptplus.monthly` — **must match**
+     `StoreKitManager.monthlyProductID` in `ios/Kept/Kept/Services/StoreKitManager.swift`
+     exactly, or the app won't find the product.
+   - Subscription duration: 1 month. Price: **$8.99 USD/month**.
+4. Add the yearly subscription in the same group:
+   - Reference name: `Kept+ Yearly`
+   - Product ID: `com.kept.app.keptplus.yearly` — must match `StoreKitManager.yearlyProductID`.
+   - Subscription duration: 1 year. Price: **$79.99 USD/year** (~$6.67/mo, about 26% off
+     paying monthly — pick the price tier closest to $79.99 in the price schedule).
+   - Give it a **higher rank** than monthly within the group (App Store Connect lets you
+     order subscriptions in a group) so it's treated as the "upgrade" tier — matters for how
+     Apple's own upgrade/downgrade prompts behave if someone switches plans.
+5. For both: Apple auto-generates equivalent prices for every other storefront/currency;
+   review territory pricing if you want manual control instead of the default. Localization
+   (English, U.S.) description should match the paywall copy ("Unlimited habits, unlimited
+   private locks, share with just a few people, streak insights."). App Store subscription
+   image is optional but recommended for the system subscription management UI — a simple
+   square graphic with the Kept wordmark works for both.
+6. Submit both subscriptions' review information (screenshot of the paywall + review
    notes) — subscriptions are reviewed alongside your first app submission, not separately,
    for a brand-new app.
 5. **Do not** build any in-app cancel/downgrade UI — `PaywallView` already only ever shows

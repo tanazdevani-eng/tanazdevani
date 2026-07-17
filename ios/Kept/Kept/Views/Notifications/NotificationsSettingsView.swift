@@ -74,6 +74,7 @@ struct NotificationsSettingsView: View {
                     .padding(.top, 12)
             }
             .padding(22)
+            .padding(.bottom, 90)
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Notifications")

@@ -25,6 +25,7 @@ struct ManageCircleView: View {
                 }
             }
             .padding(22)
+            .padding(.bottom, 90)
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Manage Circle")

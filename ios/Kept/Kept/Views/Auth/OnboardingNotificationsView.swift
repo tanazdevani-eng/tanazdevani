@@ -12,10 +12,11 @@ struct OnboardingNotificationsView: View {
             Spacer()
 
             VStack(spacing: 14) {
-                Text("🔔")
-                    .font(.system(size: 40))
+                Text("REMINDERS")
+                    .font(KeptFont.mono(11, weight: .semibold))
+                    .foregroundStyle(.keptOrangeDeep)
                 Text("Stay on track")
-                    .font(KeptFont.display(22, weight: .semibold))
+                    .font(KeptFont.display(26, weight: .semibold))
                     .foregroundStyle(.keptInk)
                 Text("A quiet nudge at the right time is the difference between keeping a habit and forgetting it existed. We'll only remind you about what you ask us to.")
                     .font(KeptFont.body(13, weight: .medium))

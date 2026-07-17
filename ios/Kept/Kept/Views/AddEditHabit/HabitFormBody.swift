@@ -8,9 +8,12 @@ struct HabitFormBody: View {
     @Binding var name: String
     @Binding var visibility: HabitVisibility
     @Binding var duration: HabitDuration
+    @Binding var sharedWithMemberIds: Set<UUID>
     let saveLabel: String
     let onSave: () -> Void
     var onDelete: (() -> Void)? = nil
+
+    @State private var showingAudiencePicker = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -27,6 +30,10 @@ struct HabitFormBody: View {
 
             if visibility == .kept && appModel.isNearKeptLockLimit {
                 lockBadge.padding(.top, 16)
+            }
+
+            if visibility == .open {
+                audienceRow.padding(.top, 12)
             }
 
             fieldLabel("How long?").padding(.top, 16)
@@ -46,6 +53,45 @@ struct HabitFormBody: View {
                     .padding(.top, 16)
             }
         }
+        .sheet(isPresented: $showingAudiencePicker) {
+            NavigationStack {
+                HabitAudiencePicker(selection: $sharedWithMemberIds)
+            }
+        }
+    }
+
+    private var audienceLabel: String {
+        sharedWithMemberIds.isEmpty ? "Everyone in your Circle" : "\(sharedWithMemberIds.count) person\(sharedWithMemberIds.count == 1 ? "" : "s")"
+    }
+
+    private var audienceRow: some View {
+        Button {
+            if appModel.isSubscribed {
+                showingAudiencePicker = true
+            } else {
+                appModel.showToast("Kept+ lets you share with just a few people")
+                appModel.selectedTab = .paywall
+            }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Who in your Circle?")
+                        .font(KeptFont.body(13, weight: .semibold))
+                        .foregroundStyle(.keptInk)
+                    Text(appModel.isSubscribed ? audienceLabel : "Kept+ · share with just a few people")
+                        .font(KeptFont.body(11.5, weight: .medium))
+                        .foregroundStyle(appModel.isSubscribed ? .keptInkSoft : .keptPurpleDeep)
+                }
+                Spacer()
+                Text("›").foregroundStyle(.keptInkSoft)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .background(.keptSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
+        }
+        .buttonStyle(.plain)
     }
 
     private func fieldLabel(_ text: String) -> some View {

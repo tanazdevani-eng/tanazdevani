@@ -5,8 +5,11 @@ struct PaywallView: View {
     @EnvironmentObject var appModel: AppModel
     @EnvironmentObject var storeKit: StoreKitManager
     @State private var selectedPlan: Plan = .keptPlus
+    @State private var billingPeriod: BillingPeriod = .yearly
     @State private var showingManageSubscriptions = false
     @State private var isPurchasing = false
+
+    private enum BillingPeriod { case monthly, yearly }
 
     var body: some View {
         ScrollView {
@@ -16,6 +19,9 @@ struct PaywallView: View {
                     statusBanner.padding(.top, 16)
                 }
                 plans.padding(.top, 20)
+                if selectedPlan == .keptPlus && !storeKit.isSubscribed {
+                    billingToggle.padding(.top, 14)
+                }
                 cta.padding(.top, 24)
                 footnote.padding(.top, 8)
 
@@ -70,7 +76,7 @@ struct PaywallView: View {
     }
 
     private var statusBanner: some View {
-        Text("You're currently on Kept+.")
+        Text(statusBannerText)
             .font(KeptFont.body(12, weight: .semibold))
             .foregroundStyle(.keptPurpleDeep)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -78,6 +84,13 @@ struct PaywallView: View {
             .padding(.horizontal, 16)
             .background(Color.keptPurpleSoft)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var statusBannerText: String {
+        switch storeKit.activeProductID {
+        case StoreKitManager.yearlyProductID: return "You're currently on Kept+ Yearly."
+        default: return "You're currently on Kept+."
+        }
     }
 
     private var plans: some View {
@@ -92,12 +105,50 @@ struct PaywallView: View {
             planCard(
                 plan: .keptPlus,
                 name: "Kept+",
-                price: storeKit.priceText,
-                priceSuffix: "/mo",
-                features: [("✓", "**Unlimited** habits"), ("✓", "**Unlimited** private locks"), ("✓", "Multiple circles"), ("✓", "Streak insights")],
+                price: billingPeriod == .yearly ? storeKit.yearlyPriceText : storeKit.monthlyPriceText,
+                priceSuffix: billingPeriod == .yearly ? "/yr" : "/mo",
+                features: [("✓", "**Unlimited** habits"), ("✓", "**Unlimited** private locks"), ("✓", "Share with just a few people"), ("✓", "Streak insights")],
                 featured: true
             )
         }
+    }
+
+    /// Only shown pre-purchase, once Kept+ is the selected card — lets you pick monthly
+    /// vs. yearly before the purchase button fires. Defaults to yearly since it's the
+    /// better value; nothing stops picking monthly instead.
+    private var billingToggle: some View {
+        HStack(spacing: 8) {
+            billingOption(.monthly, label: "Monthly", price: "\(storeKit.monthlyPriceText)/mo")
+            billingOption(.yearly, label: "Yearly", price: "\(storeKit.yearlyPriceText)/yr", badge: "SAVE 26%")
+        }
+    }
+
+    private func billingOption(_ period: BillingPeriod, label: String, price: String, badge: String? = nil) -> some View {
+        let isSelected = billingPeriod == period
+        return Button {
+            billingPeriod = period
+        } label: {
+            VStack(spacing: 4) {
+                if let badge {
+                    Text(badge)
+                        .font(KeptFont.mono(8.5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(Color.keptOrange)
+                        .clipShape(Capsule())
+                }
+                Text(label).font(KeptFont.body(12.5, weight: .semibold))
+                Text(price).font(KeptFont.mono(11, weight: .medium))
+            }
+            .foregroundStyle(isSelected ? .keptOrangeDeep : .keptInkSoft)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.keptOrangeSoft : Color.keptSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(isSelected ? Color.keptOrange : Color.keptLine, lineWidth: isSelected ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func planCard(plan: Plan, name: String, price: String, priceSuffix: String? = nil, features: [(String, String)], featured: Bool) -> some View {
@@ -161,15 +212,18 @@ struct PaywallView: View {
         } else if selectedPlan == .keptPlus {
             Button {
                 Task {
+                    guard let product = billingPeriod == .yearly ? storeKit.yearlyProduct : storeKit.monthlyProduct else { return }
                     isPurchasing = true
-                    await storeKit.purchaseKeptPlus()
+                    await storeKit.purchase(product)
                     isPurchasing = false
                 }
             } label: {
                 if isPurchasing {
                     ProgressView().tint(.white)
                 } else {
-                    Text("Continue (\(storeKit.priceText)/mo)")
+                    Text(billingPeriod == .yearly
+                         ? "Continue (\(storeKit.yearlyPriceText)/yr)"
+                         : "Continue (\(storeKit.monthlyPriceText)/mo)")
                 }
             }
             .buttonStyle(KeptPillButtonStyle(background: .keptOrange))

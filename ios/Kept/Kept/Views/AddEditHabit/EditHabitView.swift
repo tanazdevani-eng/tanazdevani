@@ -8,6 +8,7 @@ struct EditHabitView: View {
     @State private var name: String
     @State private var visibility: HabitVisibility
     @State private var duration: HabitDuration
+    @State private var sharedWithMemberIds: Set<UUID>
     @State private var showingDeleteConfirm = false
 
     init(habit: Habit) {
@@ -15,6 +16,7 @@ struct EditHabitView: View {
         _name = State(initialValue: habit.name)
         _visibility = State(initialValue: habit.visibility)
         _duration = State(initialValue: habit.duration)
+        _sharedWithMemberIds = State(initialValue: habit.sharedWithMemberIds)
     }
 
     var body: some View {
@@ -23,11 +25,13 @@ struct EditHabitView: View {
                 name: $name,
                 visibility: $visibility,
                 duration: $duration,
+                sharedWithMemberIds: $sharedWithMemberIds,
                 saveLabel: "Save changes",
                 onSave: save,
                 onDelete: { showingDeleteConfirm = true }
             )
             .padding(22)
+            .padding(.bottom, 90)
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Edit habit")
@@ -48,7 +52,10 @@ struct EditHabitView: View {
     }
 
     private func save() {
-        appModel.updateHabit(habit, name: name.trimmingCharacters(in: .whitespaces), visibility: visibility, duration: duration)
+        appModel.updateHabit(
+            habit, name: name.trimmingCharacters(in: .whitespaces), visibility: visibility, duration: duration,
+            sharedWithMemberIds: sharedWithMemberIds
+        )
         dismiss()
     }
 }

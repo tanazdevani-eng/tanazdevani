@@ -5,8 +5,13 @@ import SwiftUI
 /// stock TabView — on iOS 26 it draws its own prominent "Liquid Glass" blur bubble behind
 /// the selected item that can't be turned off and doesn't match this design at all.
 struct CustomTabBar: View {
+    @EnvironmentObject var appModel: AppModel
     @Binding var selection: RootTab
     var onAddTapped: () -> Void
+    /// Fires when the *already active* tab is tapped again — RootTabView uses this to
+    /// pop that tab back to its root and clear any in-progress state, matching the usual
+    /// "tap the tab you're already on to reset it" pattern.
+    var onReselect: (RootTab) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -14,7 +19,7 @@ struct CustomTabBar: View {
             tabItem(.circle, glyph: "◎", label: "Circle")
             addButton
             tabItem(.paywall, glyph: "✦", label: "Kept+")
-            tabItem(.profile, glyph: "☺", label: "You")
+            profileTabItem
         }
         .frame(height: 74)
         .padding(.horizontal, 8)
@@ -25,19 +30,48 @@ struct CustomTabBar: View {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .strokeBorder(Color.keptSurface.opacity(0.6), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
+        .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
         .padding(.horizontal, 14)
         .padding(.bottom, 14)
+    }
+
+    private func select(_ tab: RootTab) {
+        if selection == tab {
+            onReselect(tab)
+        } else {
+            selection = tab
+        }
     }
 
     private func tabItem(_ tab: RootTab, glyph: String, label: String) -> some View {
         let isActive = selection == tab
         return Button {
-            selection = tab
+            select(tab)
         } label: {
             VStack(spacing: 4) {
                 Text(glyph).font(.system(size: 19))
                 Text(label).font(KeptFont.body(9.5, weight: .bold))
+            }
+            .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Shows your own avatar instead of a generic glyph — matches how most social apps
+    /// mark the "you" tab, and sidesteps needing a symbol that reads as "person" while
+    /// visually matching the weight of the other three geometric glyphs.
+    private var profileTabItem: some View {
+        let isActive = selection == .profile
+        let initial = appModel.profile.initial
+        let avatarURL = appModel.profile.avatarURL
+        return Button {
+            select(.profile)
+        } label: {
+            VStack(spacing: 4) {
+                AvatarView(initial: initial, seed: 0, size: 19, imageURL: avatarURL)
+                    .opacity(isActive ? 1 : 0.55)
+                Text("You").font(KeptFont.body(9.5, weight: .bold))
             }
             .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
             .frame(maxWidth: .infinity)

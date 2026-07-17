@@ -33,6 +33,7 @@ struct OnboardingProfileView: View {
                 .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                .autocorrectionDisabled()
 
             fieldLabel("Username").padding(.top, 16)
             TextField("", text: $handle)
@@ -41,7 +42,8 @@ struct OnboardingProfileView: View {
                 .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                .autocapitalization(.none)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
 
             Spacer()
 

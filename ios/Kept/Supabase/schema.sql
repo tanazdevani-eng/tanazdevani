@@ -31,6 +31,16 @@ create table public.habits (
   created_at timestamptz not null default now()
 );
 
+-- Kept+ only: restricts an Open habit to a subset of the owner's Circle instead of
+-- everyone (e.g. sharing an accountability habit with just one friend). No rows for a
+-- given habit_id means the default "everyone in Circle" behavior — see the check_ins
+-- policy below, which is where this actually gets enforced.
+create table public.habit_audience (
+  habit_id uuid not null references public.habits(id) on delete cascade,
+  member_id uuid not null references auth.users(id) on delete cascade,
+  primary key (habit_id, member_id)
+);
+
 -- ---------- Check-ins ----------
 create table public.check_ins (
   id uuid primary key default gen_random_uuid(),
@@ -109,6 +119,7 @@ create table public.blocks (
 alter table public.profiles enable row level security;
 alter table public.habits enable row level security;
 alter table public.check_ins enable row level security;
+alter table public.habit_audience enable row level security;
 alter table public.circle_members enable row level security;
 alter table public.invites enable row level security;
 alter table public.reactions enable row level security;
@@ -141,6 +152,22 @@ create policy "habits_owner_all" on public.habits
 create policy "check_ins_owner_all" on public.check_ins
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- Runs with elevated privileges specifically so it can check whether ANY audience
+-- restriction rows exist for a habit without RLS on habit_audience hiding rows the
+-- viewer isn't personally part of — without this, "not exists" would look true (no
+-- restriction) from a restricted-out viewer's perspective, since they can't see the
+-- rows that would prove otherwise. Only ever answers a yes/no, never returns row data.
+create or replace function public.habit_visible_to(p_habit_id uuid, p_viewer uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    not exists (select 1 from public.habit_audience where habit_id = p_habit_id)
+    or exists (select 1 from public.habit_audience where habit_id = p_habit_id and member_id = p_viewer)
+$$;
+
 create policy "check_ins_circle_select_open_today" on public.check_ins
   for select using (
     logical_day = (now() at time zone 'utc')::date
@@ -152,10 +179,21 @@ create policy "check_ins_circle_select_open_today" on public.check_ins
       select 1 from public.circle_members cm
       where cm.owner_id = auth.uid() and cm.member_id = check_ins.user_id
     )
+    and public.habit_visible_to(check_ins.habit_id, auth.uid())
     and not exists (
       select 1 from public.blocks b
       where b.blocker_id = check_ins.user_id and b.blocked_id = auth.uid()
     )
+  );
+
+-- Habit audience: only the habit's owner can read/write their own restriction list — no
+-- one else needs direct table access, they only benefit from habit_visible_to() above.
+create policy "habit_audience_owner_all" on public.habit_audience
+  for all using (
+    exists (select 1 from public.habits h where h.id = habit_audience.habit_id and h.user_id = auth.uid())
+  )
+  with check (
+    exists (select 1 from public.habits h where h.id = habit_audience.habit_id and h.user_id = auth.uid())
   );
 
 create policy "circle_members_owner_select" on public.circle_members

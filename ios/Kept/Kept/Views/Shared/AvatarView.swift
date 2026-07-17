@@ -9,6 +9,10 @@ struct AvatarView: View {
     let seed: Int
     var size: CGFloat = 36
     var imageURL: URL? = nil
+    /// Shows a Hinge-style small pencil badge + a colored ring instead of the plain white
+    /// one, marking the avatar as tappable-to-edit without needing a verification-badge
+    /// look-alike.
+    var editable: Bool = false
 
     private var gradient: LinearGradient {
         let variants: [[Color]] = [
@@ -39,7 +43,17 @@ struct AvatarView: View {
             }
         }
         .frame(width: size, height: size)
-        .overlay(Circle().stroke(.white, lineWidth: size > 60 ? 3 : 1.5))
+        .overlay(Circle().stroke(editable ? Color.keptOrange : .white, lineWidth: editable ? 3 : (size > 60 ? 3 : 1.5)))
         .shadow(color: .black.opacity(0.3), radius: size > 60 ? 10 : 4, y: 3)
+        .overlay(alignment: .bottomTrailing) {
+            if editable {
+                ZStack {
+                    Circle().fill(Color.keptInkFill)
+                    Text("✎").font(.system(size: size * 0.16)).foregroundStyle(.white)
+                }
+                .frame(width: size * 0.32, height: size * 0.32)
+                .overlay(Circle().stroke(.white, lineWidth: 2))
+            }
+        }
     }
 }

@@ -106,6 +106,11 @@ final class SupabaseBackendService: BackendService {
         var note: String?
     }
 
+    private struct HabitAudienceRow: Codable {
+        var habit_id: UUID
+        var member_id: UUID
+    }
+
     func fetchHabits(userId: UUID) async throws -> [Habit] {
         let habitRows: [HabitRow] = try await client.from("habits")
             .select()
@@ -118,16 +123,23 @@ final class SupabaseBackendService: BackendService {
             .eq("user_id", value: userId)
             .execute()
             .value
+        let audienceRows: [HabitAudienceRow] = try await client.from("habit_audience")
+            .select()
+            .in("habit_id", values: habitRows.map(\.id))
+            .execute()
+            .value
 
         return habitRows.map { row in
             let history = checkInRows.filter { $0.habit_id == row.id }.map(\.logical_day)
+            let audience = Set(audienceRows.filter { $0.habit_id == row.id }.map(\.member_id))
             return Habit(
                 id: row.id,
                 name: row.name,
                 visibility: HabitVisibility(rawValue: row.visibility) ?? .open,
                 createdAt: row.created_at,
                 goalDurationDays: row.goal_duration_days,
-                checkInHistory: history
+                checkInHistory: history,
+                sharedWithMemberIds: audience
             )
         }
     }
@@ -137,6 +149,7 @@ final class SupabaseBackendService: BackendService {
                             visibility: habit.visibility.rawValue,
                             goal_duration_days: habit.goalDurationDays, created_at: habit.createdAt)
         try await client.from("habits").insert(row).execute()
+        try await syncAudience(habitId: habit.id, memberIds: habit.sharedWithMemberIds)
     }
 
     func updateHabit(_ habit: Habit) async throws {
@@ -148,6 +161,17 @@ final class SupabaseBackendService: BackendService {
         let patch = Patch(name: habit.name, visibility: habit.visibility.rawValue,
                            goal_duration_days: habit.goalDurationDays)
         try await client.from("habits").update(patch).eq("id", value: habit.id).execute()
+        try await syncAudience(habitId: habit.id, memberIds: habit.sharedWithMemberIds)
+    }
+
+    /// Simplest-correct sync: replace the whole audience list rather than diffing it —
+    /// these lists are small (a handful of Circle members at most), so the extra round
+    /// trip isn't worth the complexity of computing an add/remove diff.
+    private func syncAudience(habitId: UUID, memberIds: Set<UUID>) async throws {
+        try await client.from("habit_audience").delete().eq("habit_id", value: habitId).execute()
+        guard !memberIds.isEmpty else { return }
+        let rows = memberIds.map { HabitAudienceRow(habit_id: habitId, member_id: $0) }
+        try await client.from("habit_audience").insert(rows).execute()
     }
 
     func deleteHabit(id: UUID) async throws {
