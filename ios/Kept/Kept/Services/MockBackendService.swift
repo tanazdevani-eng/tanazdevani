@@ -127,6 +127,8 @@ actor MockBackendService: BackendService {
         members.removeAll { $0.id == id }
     }
 
+    func acceptInvite(inviterId: UUID, accepterId: UUID) async throws {}
+
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws {
         reactionsByCheckIn[feedItemId, default: [:]][emoji, default: 0] += 1
     }

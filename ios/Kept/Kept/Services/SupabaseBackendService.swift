@@ -255,6 +255,22 @@ final class SupabaseBackendService: BackendService {
         try await client.from("circle_members").delete().eq("id", value: id).execute()
     }
 
+    /// Mutual: accepting an invite links both directions, so the two people can see each
+    /// other's Open habits, matching how the rest of Circle assumes membership works.
+    func acceptInvite(inviterId: UUID, accepterId: UUID) async throws {
+        struct MemberInsert: Codable {
+            var owner_id: UUID
+            var member_id: UUID
+        }
+        try await client.from("circle_members")
+            .upsert(
+                [MemberInsert(owner_id: inviterId, member_id: accepterId),
+                 MemberInsert(owner_id: accepterId, member_id: inviterId)],
+                onConflict: "owner_id,member_id"
+            )
+            .execute()
+    }
+
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws {
         struct ReactionUpsert: Codable {
             var check_in_id: UUID

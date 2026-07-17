@@ -36,6 +36,10 @@ final class AppModel: ObservableObject {
     @Published var todaysComments: [UUID: [Comment]] = [:]
     /// Friends nudged this session, so the button can flip to a disabled "Nudged" state.
     @Published var nudgedAuthorIds: Set<UUID> = []
+    /// Set by handleIncomingURL when someone taps a kept://invite link. RootTabView shows
+    /// the Accept/Decline sheet for this the moment it's non-nil (which naturally only
+    /// happens once the recipient is authenticated, since that's the only place it's read).
+    @Published var incomingInvite: IncomingInvite?
 
     let storeKit: StoreKitManager
     private let backend: BackendService
@@ -419,6 +423,60 @@ final class AppModel: ObservableObject {
         contacts.removeAll { $0.id == contact.id }
         pendingInvites.append(PendingInvite(id: contact.id, name: contact.name, avatarSeed: contact.avatarSeed, invitedAt: Date()))
         performBackendSync { [self] in try await backend.sendInvite(userId: requireUserId(), contact: contact) }
+    }
+
+    // MARK: - Invite links (accept side)
+
+    /// A real, taggable deep link — opens the app directly to an Accept/Decline screen for
+    /// whoever taps it (see handleIncomingURL below). Custom URL scheme, not a Universal
+    /// Link: works the moment the recipient has Kept installed, but — unlike an https link
+    /// — can't fall back to the App Store if they don't have it yet. That fallback needs a
+    /// real hosted domain with an apple-app-site-association file, which is a step for
+    /// later once there's a website to host it on.
+    var inviteShareURL: URL {
+        var components = URLComponents()
+        components.scheme = "kept"
+        components.host = "invite"
+        components.queryItems = [
+            URLQueryItem(name: "inviter", value: profile.id.uuidString),
+            URLQueryItem(name: "name", value: profile.name.isEmpty ? "A friend" : profile.name),
+        ]
+        return components.url!
+    }
+
+    var inviteShareMessage: String {
+        "I'm using Kept to stay on track with my habits. Join my circle: \(inviteShareURL.absoluteString)"
+    }
+
+    /// Parses a tapped kept://invite link. Setting incomingInvite here is safe to call
+    /// before the recipient is signed in — RootTabView (where the accept sheet lives)
+    /// only exists once authStage is .authenticated, so the sheet naturally waits until
+    /// after they've signed up or logged in and simply appears once it does.
+    func handleIncomingURL(_ url: URL) {
+        guard url.scheme == "kept", url.host == "invite" else { return }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        guard let inviterIdString = items.first(where: { $0.name == "inviter" })?.value,
+              let inviterId = UUID(uuidString: inviterIdString),
+              inviterId != profile.id else { return }
+        let inviterName = items.first(where: { $0.name == "name" })?.value ?? "A friend"
+        incomingInvite = IncomingInvite(inviterId: inviterId, inviterName: inviterName)
+    }
+
+    /// Mutual: both people end up able to see each other's Open habits, matching how
+    /// Circle already works elsewhere (removing/blocking someone is one-directional, but
+    /// joining a circle together is the whole point of accepting an invite).
+    func acceptIncomingInvite() {
+        guard let invite = incomingInvite else { return }
+        incomingInvite = nil
+        if !circleMembers.contains(where: { $0.id == invite.inviterId }) {
+            circleMembers.append(CircleMember(id: invite.inviterId, name: invite.inviterName, avatarSeed: abs(invite.inviterName.hashValue) % 6, openHabitCount: 0))
+        }
+        showToast("You're circled with \(invite.inviterName)")
+        performBackendSync { [self] in try await backend.acceptInvite(inviterId: invite.inviterId, accepterId: requireUserId()) }
+    }
+
+    func declineIncomingInvite() {
+        incomingInvite = nil
     }
 
     // MARK: - Profile & settings

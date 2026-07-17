@@ -7,8 +7,6 @@ struct AddToCircleView: View {
     @State private var copied = false
     @State private var invitedContact: Contact?
 
-    private var inviteLink: String { "kept.app/invite/\(appModel.profile.handle)" }
-
     private var filteredContacts: [Contact] {
         guard !searchText.isEmpty else { return appModel.contacts }
         return appModel.contacts.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -50,18 +48,19 @@ struct AddToCircleView: View {
     }
 
     private var inviteLinkCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("YOUR INVITE LINK")
-                .font(KeptFont.mono(10, weight: .semibold))
-                .foregroundStyle(Color(hex: 0xC6B4DC))
-            HStack {
-                Text(inviteLink)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("YOUR INVITE LINK")
+                    .font(KeptFont.mono(10, weight: .semibold))
+                    .foregroundStyle(Color(hex: 0xC6B4DC))
+                Text("kept.app/invite/\(appModel.profile.handle)")
                     .font(KeptFont.mono(12.5, weight: .medium))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Spacer()
+            }
+            HStack(spacing: 8) {
                 Button(copied ? "Copied!" : "Copy") {
-                    UIPasteboard.general.string = "https://\(inviteLink)"
+                    UIPasteboard.general.string = appModel.inviteShareURL.absoluteString
                     copied = true
                     Task {
                         try? await Task.sleep(nanoseconds: 1_500_000_000)
@@ -70,10 +69,19 @@ struct AddToCircleView: View {
                 }
                 .font(KeptFont.body(11.5, weight: .bold))
                 .foregroundStyle(.white)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 14)
-                .background(Color.keptOrange)
-                .clipShape(Capsule())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .overlay(Capsule().strokeBorder(.white.opacity(0.5)))
+
+                ShareLink(item: appModel.inviteShareURL, message: Text(appModel.inviteShareMessage)) {
+                    Text("Share")
+                        .font(KeptFont.body(11.5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(Color.keptOrange)
+                        .clipShape(Capsule())
+                }
             }
         }
         .padding(17)

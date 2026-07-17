@@ -20,6 +20,7 @@ struct KeptApp: App {
                 .environmentObject(appModel)
                 .environmentObject(storeKit)
                 .task { await appModel.checkExistingSession() }
+                .onOpenURL { url in appModel.handleIncomingURL(url) }
         }
     }
 }

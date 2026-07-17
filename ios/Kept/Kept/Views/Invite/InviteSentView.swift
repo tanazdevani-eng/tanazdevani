@@ -27,7 +27,7 @@ struct InviteSentView: View {
                         .frame(maxWidth: 250)
                 }
 
-                Text("\u{201C}Hey! I'm using Kept to stay on track with my habits. Join my circle: \(inviteLink)\u{201D}")
+                Text("\u{201C}\(appModel.inviteShareMessage)\u{201D}")
                     .font(KeptFont.display(12.5, italic: true))
                     .foregroundStyle(.keptInk)
                     .padding(14)
@@ -35,9 +35,16 @@ struct InviteSentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
 
+                ShareLink(item: appModel.inviteShareURL, message: Text(appModel.inviteShareMessage)) {
+                    Text("Share the link")
+                        .font(KeptFont.body(13, weight: .bold))
+                        .foregroundStyle(.keptOrangeDeep)
+                }
+                .padding(.top, 4)
+
                 Button("Done") { dismiss() }
                     .buttonStyle(.keptPrimary)
-                    .padding(.top, 20)
+                    .padding(.top, 12)
             }
             .padding(.horizontal, 30)
             .padding(.bottom, 120)
@@ -45,6 +52,4 @@ struct InviteSentView: View {
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
     }
-
-    private var inviteLink: String { "kept.app/invite/\(appModel.profile.handle)" }
 }

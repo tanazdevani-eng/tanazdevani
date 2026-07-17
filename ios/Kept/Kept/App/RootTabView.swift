@@ -55,6 +55,9 @@ struct RootTabView: View {
         .sheet(item: $appModel.goalCompletedHabit) { habit in
             GoalCompleteSheet(habit: habit)
         }
+        .sheet(item: $appModel.incomingInvite) { invite in
+            AcceptInviteView(invite: invite)
+        }
     }
 
     @ViewBuilder

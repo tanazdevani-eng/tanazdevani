@@ -84,7 +84,24 @@ StoreKit Configuration** and select `StoreKit/Kept.storekit`.
 This local product ID is independent from whatever you'll create in App Store Connect —
 see `docs/APP_STORE_GUIDE.md` for wiring up the real one before submission.
 
-## 6. Project layout
+## 6. Test invite links
+
+Invites work via a custom URL scheme (`kept://invite?inviter=...&name=...`), registered in
+`project.yml` and handled by `AppModel.handleIncomingURL`. To test the accept side without a
+second physical device: run the app in two Simulators (or two accounts on one), grab the link
+from Add to Circle → Share/Copy on one, then open a terminal and run:
+
+```
+xcrun simctl openurl booted "kept://invite?inviter=<uuid-from-the-link>&name=Test"
+```
+
+on the other Simulator — that triggers the same `onOpenURL` path a real tap would, and the
+Accept/Decline sheet should appear. Note this is a custom scheme, not a Universal Link: it
+only works once Kept is already installed. Falling back to the App Store for someone who
+doesn't have it yet needs a real hosted domain with an `apple-app-site-association` file —
+worth adding once there's a website to host it on, not required to ship v1.
+
+## 7. Project layout
 
 ```
 Kept/App/              App entry point, AppModel (central state + business logic), tab bar
