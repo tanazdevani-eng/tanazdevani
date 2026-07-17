@@ -85,7 +85,15 @@ struct CustomTabBar: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(Color.keptInkFill))
+                .background(
+                    Circle()
+                        .fill(Color.keptInkFill)
+                        // keptInkFill sits too close in value to the blurred tab bar
+                        // background in dark mode without this — the circle's edge was
+                        // nearly invisible, leaving just the "+" glyph floating on its own.
+                        .overlay(Circle().stroke(.white.opacity(0.14), lineWidth: 1))
+                )
+                .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
                 .padding(.bottom, 1)
         }
         .buttonStyle(.plain)

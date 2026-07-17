@@ -17,9 +17,14 @@ struct CircleView: View {
                     .foregroundStyle(.keptInkSoft)
                     .padding(.horizontal, 22)
 
-                ForEach(appModel.circleFeed) { item in
-                    FriendPostCard(item: item)
+                if appModel.circleFeed.isEmpty {
+                    emptyState
                         .padding(.horizontal, 22)
+                } else {
+                    ForEach(appModel.circleFeed) { item in
+                        FriendPostCard(item: item)
+                            .padding(.horizontal, 22)
+                    }
                 }
 
                 if !hasSeenPrivacyNote {
@@ -52,6 +57,25 @@ struct CircleView: View {
         }
         .padding(.horizontal, 22)
         .padding(.top, 4)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text("Quiet in here")
+                .font(KeptFont.display(19, weight: .semibold))
+                .foregroundStyle(.keptInk)
+            Text("Add people to your circle, then check in on an Open habit and it'll show up here.")
+                .font(KeptFont.body(13, weight: .medium))
+                .foregroundStyle(.keptInkSoft)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 260)
+            Button("Add to your circle") { showingAddToCircle = true }
+                .buttonStyle(.keptPrimary)
+                .padding(.horizontal, 40)
+                .padding(.top, 12)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 
     private var lockedNote: some View {

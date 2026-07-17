@@ -83,7 +83,11 @@ struct FriendPostCard: View {
                                             .foregroundStyle(alreadyNudged ? .keptInkSoft : .keptOrangeDeep)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 9)
-                                            .background(alreadyNudged ? Color.keptBackground : Color.keptOrangeSoft)
+                                            // Matches the reaction button's neutral chip
+                                            // background instead of orange-on-orange — the
+                                            // color now lives only in the text, not doubled
+                                            // up in the fill too.
+                                            .background(Color.keptChip)
                                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
                                     .disabled(alreadyNudged)
