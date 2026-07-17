@@ -134,6 +134,8 @@ actor MockBackendService: BackendService {
     func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws {}
 
     func addComment(feedItemId: UUID, userId: UUID, text: String) async throws {}
+    func reportCheckIn(checkInId: UUID, reporterId: UUID, reportedUserId: UUID, reason: String) async throws {}
+    func blockUser(blockerId: UUID, blockedId: UUID) async throws {}
 
     func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings { notificationSettings }
 

@@ -6,6 +6,9 @@ struct FriendPostCard: View {
     @State private var isPickingReaction = false
     @State private var commentText = ""
     @FocusState private var commentFocused: Bool
+    @State private var showingMoreActions = false
+    @State private var showingReportReasons = false
+    @State private var showingBlockConfirm = false
 
     var body: some View {
         KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: 24) {
@@ -34,6 +37,16 @@ struct FriendPostCard: View {
                             Text("✕").font(.system(size: 13)).foregroundStyle(.keptInkSoft)
                         }
                         .padding(4)
+                    } else if !item.isMine {
+                        Button {
+                            showingMoreActions = true
+                        } label: {
+                            Text("⋯")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.keptInkSoft)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                        }
                     }
                 }
 
@@ -87,6 +100,27 @@ struct FriendPostCard: View {
                 commentsSection
             }
             .padding(16)
+        }
+        .confirmationDialog("\(item.authorName)", isPresented: $showingMoreActions, titleVisibility: .visible) {
+            Button("Report post") { showingReportReasons = true }
+            Button("Block \(item.authorName)", role: .destructive) { showingBlockConfirm = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog("Why are you reporting this?", isPresented: $showingReportReasons, titleVisibility: .visible) {
+            ForEach(["Spam", "Inappropriate content", "Harassment", "Something else"], id: \.self) { reason in
+                Button(reason) { appModel.reportPost(item, reason: reason) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Block \(item.authorName)?",
+            isPresented: $showingBlockConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Block", role: .destructive) { appModel.blockUser(item) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("They won't be able to see your Open habits or check-ins anymore.")
         }
     }
 

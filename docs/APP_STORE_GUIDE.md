@@ -113,14 +113,13 @@ collects once Supabase is wired up:
 ## 8. Guideline 1.2 (User-Generated Content) — required before this can pass review
 
 Circle is social with user-authored posts (check-in notes, photos), which puts Kept
-squarely under Guideline 1.2. Apple will reject without these, so build them before
-submitting, not after a rejection:
+squarely under Guideline 1.2. These are now built:
 
-- **Report** control on every Circle post (the `reports` table in `Supabase/schema.sql`
-  is ready for this — add a "Report" action to `FriendPostCard` that inserts a row there).
-- **Block** control per-user (the `blocks` table + the RLS policy on `check_ins` already
-  excludes a blocker's posts from a blocked user's feed — add a "Block" action that
-  inserts into `blocks`).
+- **Report** control on every Circle post — tap "⋯" on a friend's post in
+  `FriendPostCard`, pick a reason, and it inserts a row into the `reports` table.
+- **Block** control per-user — same "⋯" menu, "Block" inserts into the `blocks` table;
+  the RLS policy on `check_ins` already excludes a blocker's posts from a blocked user's
+  feed going forward.
 - A way to **contact you** about objectionable content (the support URL from step 6
   satisfies this if it's monitored).
 - State in your App Review notes (step 10) that reporting/blocking exists and where a

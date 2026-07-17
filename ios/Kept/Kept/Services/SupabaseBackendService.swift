@@ -288,6 +288,28 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
+    func reportCheckIn(checkInId: UUID, reporterId: UUID, reportedUserId: UUID, reason: String) async throws {
+        struct ReportInsert: Codable {
+            var reporter_id: UUID
+            var reported_user_id: UUID
+            var check_in_id: UUID
+            var reason: String
+        }
+        try await client.from("reports")
+            .insert(ReportInsert(reporter_id: reporterId, reported_user_id: reportedUserId, check_in_id: checkInId, reason: reason))
+            .execute()
+    }
+
+    func blockUser(blockerId: UUID, blockedId: UUID) async throws {
+        struct BlockInsert: Codable {
+            var blocker_id: UUID
+            var blocked_id: UUID
+        }
+        try await client.from("blocks")
+            .insert(BlockInsert(blocker_id: blockerId, blocked_id: blockedId))
+            .execute()
+    }
+
     // MARK: - Notifications
 
     func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings {

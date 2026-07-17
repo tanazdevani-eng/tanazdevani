@@ -378,6 +378,29 @@ final class AppModel: ObservableObject {
         performBackendSync { [self] in try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
     }
 
+    /// Guideline 1.2 (UGC): lets someone flag a Circle post for review. Pulls it from the
+    /// local feed immediately so the reporter doesn't keep seeing what they just reported,
+    /// even though the real moderation decision happens on our end afterward.
+    func reportPost(_ item: CircleFeedItem, reason: String) {
+        friendFeedItems.removeAll { $0.id == item.id }
+        showToast("Reported. Thanks for flagging it.")
+        performBackendSync { [self] in
+            try await backend.reportCheckIn(checkInId: item.id, reporterId: requireUserId(), reportedUserId: item.authorId, reason: reason)
+        }
+    }
+
+    /// Blocking hides everything from that person going forward — the
+    /// check_ins_circle_select_open_today RLS policy already excludes a blocker's posts
+    /// from a blocked user's feed server-side, this just prunes today's already-fetched
+    /// items locally for instant feedback.
+    func blockUser(_ item: CircleFeedItem) {
+        let authorId = item.authorId
+        let authorName = item.authorName
+        friendFeedItems.removeAll { $0.authorId == authorId }
+        showToast("\(authorName) blocked")
+        performBackendSync { [self] in try await backend.blockUser(blockerId: requireUserId(), blockedId: authorId) }
+    }
+
     // MARK: - Circle management
 
     func removeMember(_ member: CircleMember) {
