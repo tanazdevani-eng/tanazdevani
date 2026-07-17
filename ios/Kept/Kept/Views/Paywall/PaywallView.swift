@@ -131,7 +131,7 @@ struct PaywallView: View {
             VStack(spacing: 4) {
                 if let badge {
                     Text(badge)
-                        .font(KeptFont.mono(8.5, weight: .bold))
+                        .font(KeptFont.mono(8.5, weight: .semibold))
                         .foregroundStyle(.white)
                         .padding(.vertical, 2)
                         .padding(.horizontal, 6)
