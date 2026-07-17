@@ -173,8 +173,18 @@ struct PaywallView: View {
     private func planCard(plan: Plan, name: String, price: String, priceSuffix: String? = nil, features: [(String, String)], featured: Bool) -> some View {
         let isSelected = selectedPlan == plan
         return Button {
-            guard !storeKit.isSubscribed else { return }
-            selectedPlan = plan
+            guard storeKit.isSubscribed else {
+                selectedPlan = plan
+                return
+            }
+            // Already subscribed: tapping Free isn't just inert here — it's the one place
+            // someone looking to downgrade would tap, so it should actually do something,
+            // even though the only real "something" is pointing at iPhone Settings (Apple
+            // doesn't allow an in-app cancel flow).
+            if plan == .free {
+                appModel.showToast("To move to Free, cancel Kept+ in iPhone Settings")
+                showingManageSubscriptions = true
+            }
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 if featured {
