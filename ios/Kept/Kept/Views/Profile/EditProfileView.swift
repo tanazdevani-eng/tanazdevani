@@ -33,6 +33,7 @@ struct EditProfileView: View {
             VStack(alignment: .leading, spacing: 0) {
                 fieldLabel("Name").padding(.top, 20)
                 textField("", text: $name)
+                    .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
 
                 fieldLabel("Username").padding(.top, 16)

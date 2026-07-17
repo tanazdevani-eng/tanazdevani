@@ -33,6 +33,7 @@ struct OnboardingProfileView: View {
                 .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
 
             fieldLabel("Username").padding(.top, 16)

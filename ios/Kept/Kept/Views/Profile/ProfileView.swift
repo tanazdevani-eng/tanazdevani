@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var showingManageCircle = false
     @State private var showingInvite = false
     @State private var showingDefaultPrivacy = false
+    @State private var showingStreakInsights = false
 
     var body: some View {
         ScrollView {
@@ -30,6 +31,9 @@ struct ProfileView: View {
                     settingsRow("Manage subscription", value: appModel.isSubscribed ? "Kept+" : "Free") {
                         appModel.selectedTab = .paywall
                     }
+                    settingsRow("Streak insights", value: appModel.isSubscribed ? nil : "Kept+") {
+                        showingStreakInsights = true
+                    }
                     settingsRow("Log out", isDanger: true) { showingLogoutConfirm = true }
                 }
                 settingsSection(label: "Account") {
@@ -46,6 +50,7 @@ struct ProfileView: View {
         .navigationDestination(isPresented: $showingManageCircle) { ManageCircleView() }
         .navigationDestination(isPresented: $showingInvite) { AddToCircleView() }
         .navigationDestination(isPresented: $showingDefaultPrivacy) { DefaultHabitPrivacyView() }
+        .navigationDestination(isPresented: $showingStreakInsights) { StreakInsightsView() }
         .sheet(isPresented: $showingLogoutConfirm) {
             ConfirmSheetContent(
                 title: "Log out?",

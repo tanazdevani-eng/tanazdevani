@@ -95,6 +95,22 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
         calendar.consecutiveStreak(through: checkInHistory, now: now)
     }
 
+    /// The longest run of consecutive days anywhere in this habit's history, not just the
+    /// one ending today — for Streak Insights, where "your best 21-day run in March" is
+    /// the interesting number, not just the current live streak.
+    func longestStreak(calendar: DayCalendar = DayCalendar()) -> Int {
+        let days = Set(checkInHistory.map { calendar.logicalDay(for: $0) }).sorted()
+        guard !days.isEmpty else { return 0 }
+        var longest = 1
+        var current = 1
+        for i in 1..<days.count {
+            let gap = Calendar.current.dateComponents([.day], from: days[i - 1], to: days[i]).day ?? 0
+            current = gap == 1 ? current + 1 : 1
+            longest = max(longest, current)
+        }
+        return longest
+    }
+
     /// Subtitle line: only present when there's something to say, never restates Open/Kept.
     func subtitle(now: Date = Date(), calendar: DayCalendar = DayCalendar()) -> String? {
         var parts: [String] = []
