@@ -202,10 +202,36 @@ final class SupabaseBackendService: BackendService {
     // MARK: - Circle
 
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember] {
-        // Real implementation joins circle_members -> profiles -> count of that friend's
-        // open habits. Left as a Postgres view (`circle_members_with_counts`) you create
-        // alongside schema.sql once you're ready to wire this up against real users.
-        []
+        // Two plain queries joined client-side rather than one PostgREST relational-embed
+        // query — circle_members.member_id and profiles.id are both FKs to auth.users
+        // rather than one being a direct FK to the other, which is the case PostgREST's
+        // automatic relationship detection doesn't reliably handle.
+        struct MemberRow: Codable { var id: UUID; var member_id: UUID }
+        let memberRows: [MemberRow] = try await client.from("circle_members")
+            .select("id, member_id")
+            .eq("owner_id", value: userId)
+            .execute()
+            .value
+        guard !memberRows.isEmpty else { return [] }
+
+        struct ProfileRow: Codable { var id: UUID; var name: String }
+        let profiles: [ProfileRow] = try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: memberRows.map(\.member_id))
+            .execute()
+            .value
+
+        struct CountRow: Codable { var member_id: UUID; var open_habit_count: Int }
+        let counts: [CountRow] = try await client
+            .rpc("circle_open_habit_counts", params: ["p_owner": userId])
+            .execute()
+            .value
+
+        return memberRows.enumerated().compactMap { index, row in
+            guard let profile = profiles.first(where: { $0.id == row.member_id }) else { return nil }
+            let count = counts.first(where: { $0.member_id == row.member_id })?.open_habit_count ?? 0
+            return CircleMember(id: row.id, name: profile.name, avatarSeed: index, openHabitCount: count)
+        }
     }
 
     func fetchPendingInvites(userId: UUID) async throws -> [PendingInvite] {
@@ -225,11 +251,117 @@ final class SupabaseBackendService: BackendService {
         }
     }
 
+    /// Covers everyone who *has* checked in today — friends who haven't yet (the ones
+    /// Nudge targets) aren't included here yet. That's a genuinely different query shape
+    /// (circle members minus who's already checked in, per open habit) with real product
+    /// ambiguity around what happens when someone has multiple Open habits, so it's left
+    /// as a deliberate follow-up rather than guessed at here.
     func fetchCircleFeed(userId: UUID) async throws -> [CircleFeedItem] {
-        // The check_ins_circle_select_open_today RLS policy already restricts this query
-        // to exactly what should be visible; grouping into CircleFeedItem + reaction
-        // counts happens client-side (or in a Postgres view once traffic justifies it).
-        []
+        // check_ins_circle_select_open_today already restricts what's visible to exactly
+        // today's Open, audience-visible, non-blocked check-ins from circle members — the
+        // owner_all policy would also return the caller's own full history, so excluding
+        // user_id = userId here is what keeps this to *friends'* posts only ("mine" is
+        // built separately in AppModel.circleFeed, from local habit state).
+        struct FeedCheckInRow: Codable {
+            var id: UUID
+            var user_id: UUID
+            var habit_id: UUID
+            var note: String?
+            var created_at: Date
+        }
+        let rows: [FeedCheckInRow] = try await client.from("check_ins")
+            .select("id, user_id, habit_id, note, created_at")
+            .neq("user_id", value: userId)
+            .execute()
+            .value
+        guard !rows.isEmpty else { return [] }
+
+        let checkInIds = rows.map(\.id)
+        struct ProfileRow: Codable { var id: UUID; var name: String }
+        let authorProfiles: [ProfileRow] = try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: Array(Set(rows.map(\.user_id))))
+            .execute()
+            .value
+
+        struct ReactionRow: Codable { var check_in_id: UUID; var user_id: UUID; var emoji: String }
+        let reactionRows: [ReactionRow] = try await client.from("reactions")
+            .select("check_in_id, user_id, emoji")
+            .in("check_in_id", values: checkInIds)
+            .execute()
+            .value
+
+        struct CommentRow: Codable { var id: UUID; var check_in_id: UUID; var user_id: UUID; var text: String; var created_at: Date }
+        let commentRows: [CommentRow] = try await client.from("comments")
+            .select("id, check_in_id, user_id, text, created_at")
+            .in("check_in_id", values: checkInIds)
+            .execute()
+            .value
+        let commentAuthorIds = Array(Set(commentRows.map(\.user_id)))
+        let commentAuthorProfiles: [ProfileRow] = commentAuthorIds.isEmpty ? [] : try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: commentAuthorIds)
+            .execute()
+            .value
+
+        var items: [CircleFeedItem] = []
+        for (index, row) in rows.enumerated() {
+            let authorName = authorProfiles.first(where: { $0.id == row.user_id })?.name ?? "Someone"
+            let myReaction = reactionRows.first { $0.check_in_id == row.id && $0.user_id == userId }?.emoji
+
+            var counts: [String: Int] = [:]
+            for reaction in reactionRows where reaction.check_in_id == row.id {
+                counts[reaction.emoji, default: 0] += 1
+            }
+            let reactions = counts.map { ReactionSummary(emoji: $0.key, count: $0.value) }
+
+            let comments = commentRows
+                .filter { $0.check_in_id == row.id }
+                .sorted { $0.created_at < $1.created_at }
+                .map { comment in
+                    Comment(
+                        id: comment.id,
+                        authorName: commentAuthorProfiles.first(where: { $0.id == comment.user_id })?.name ?? "Someone",
+                        text: comment.text,
+                        postedAt: comment.created_at
+                    )
+                }
+
+            // Falls back to 1 (this check-in alone) rather than propagating the error —
+            // a friend's post showing a slightly-off streak number is a much smaller
+            // problem than the whole feed failing to load because one RPC call hiccuped.
+            let streakValue: Int? = try? await client
+                .rpc("habit_streak_count", params: ["p_habit_id": row.habit_id])
+                .execute()
+                .value
+            let streak = streakValue ?? 1
+
+            items.append(CircleFeedItem(
+                id: row.id,
+                authorId: row.user_id,
+                authorName: authorName,
+                avatarSeed: index,
+                isMine: false,
+                habitId: row.habit_id,
+                note: row.note,
+                timeLabel: relativeTimeLabel(row.created_at),
+                streakCount: streak,
+                hasCheckedInToday: true,
+                reactions: reactions,
+                myReactionEmoji: myReaction,
+                comments: comments
+            ))
+        }
+        return items
+    }
+
+    private func relativeTimeLabel(_ date: Date) -> String {
+        let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
+        if minutes < 1 { return "just now" }
+        if minutes < 60 { return "checked in \(minutes)m ago" }
+        let hours = minutes / 60
+        if hours < 24 { return "checked in \(hours)h ago" }
+        return "checked in today"
     }
 
     func fetchContacts(userId: UUID) async throws -> [Contact] {

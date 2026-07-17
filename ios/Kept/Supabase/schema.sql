@@ -181,6 +181,36 @@ as $$
     or exists (select 1 from public.habit_audience where habit_id = p_habit_id and member_id = p_viewer)
 $$;
 
+-- Same reasoning as habit_visible_to(): a circle member's own view of check_ins is
+-- deliberately restricted to *today* only (see the policy below), so the client can never
+-- compute a friend's streak from raw rows the way it computes its own. This answers just
+-- the aggregate number, mirroring the Swift DayCalendar.consecutiveStreak logic (counts
+-- back from today, or yesterday if today isn't checked in yet, so a streak doesn't
+-- visually zero out before the day's actual cutoff has passed).
+create or replace function public.habit_streak_count(p_habit_id uuid)
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  streak int := 0;
+  cursor_day date := (now() at time zone 'utc')::date;
+begin
+  if not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day) then
+    cursor_day := cursor_day - 1;
+  end if;
+
+  loop
+    exit when not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day);
+    streak := streak + 1;
+    cursor_day := cursor_day - 1;
+  end loop;
+
+  return streak;
+end;
+$$;
+
 create policy "check_ins_circle_select_open_today" on public.check_ins
   for select using (
     logical_day = (now() at time zone 'utc')::date
@@ -208,6 +238,27 @@ create policy "habit_audience_owner_all" on public.habit_audience
   with check (
     exists (select 1 from public.habits h where h.id = habit_audience.habit_id and h.user_id = auth.uid())
   );
+
+-- Circle Manage screen shows how many of each friend's habits are visible to you — the
+-- habits table is owner-only (habits_owner_all), so this is the only way to get that
+-- count without letting a circle member query someone else's habits table directly,
+-- which would leak Kept habit names/existence.
+create or replace function public.circle_open_habit_counts(p_owner uuid)
+returns table (member_id uuid, open_habit_count bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select cm.member_id, count(h.id)
+  from public.circle_members cm
+  join public.habits h on h.user_id = cm.member_id and h.visibility = 'open'
+  where cm.owner_id = p_owner
+    and public.habit_visible_to(h.id, p_owner)
+    and not exists (
+      select 1 from public.blocks b where b.blocker_id = h.user_id and b.blocked_id = p_owner
+    )
+  group by cm.member_id
+$$;
 
 create policy "circle_members_owner_select" on public.circle_members
   for select using (owner_id = auth.uid());
