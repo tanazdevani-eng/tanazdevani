@@ -12,10 +12,16 @@ struct EditProfileView: View {
     @State private var pickedImageData: Data?
 
     var body: some View {
+        // PhotosPicker's label closure is @Sendable, which can't read an actor-isolated
+        // property like appModel.profile directly - copying the values to plain locals
+        // first sidesteps that instead of fighting the closure's isolation.
+        let avatarInitial = appModel.profile.initial
+        let avatarURL = appModel.profile.avatarURL
+
         ScrollView {
             VStack(spacing: 10) {
                 PhotosPicker(selection: $pickerItem, matching: .images) {
-                    AvatarView(initial: appModel.profile.initial, seed: 0, size: 88, imageURL: appModel.profile.avatarURL)
+                    AvatarView(initial: avatarInitial, seed: 0, size: 88, imageURL: avatarURL)
                 }
                 Text("Change photo")
                     .font(KeptFont.body(12, weight: .semibold))
