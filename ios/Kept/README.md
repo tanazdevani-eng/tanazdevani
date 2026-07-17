@@ -67,6 +67,13 @@ newly added font silently falls back to the system font.
    its own account; there's no way around a paid SMS provider for real phone verification.
    Until this is set up, real devices won't receive codes — keep testing against
    `MockBackendService`'s fixed code instead.
+7. **Sending SMS outside the US**: the app itself now accepts a phone number from any
+   country (see `CountryCode.swift`), but Twilio delivering to some countries needs extra
+   one-time setup on Twilio's side — India, Brazil, and several EU countries require
+   registering a sender ID or completing local carrier compliance (Twilio's dashboard
+   walks you through it when you add a number there) before codes reliably arrive. US/CA/UK
+   work out of the box. Check Twilio's country coverage page for your specific target
+   markets before assuming a fresh account can text everywhere on day one.
 
 Once `SupabaseConfig.isConfigured` is true, `KeptApp` automatically switches from
 `MockBackendService` to `SupabaseBackendService` — no other code changes needed.

@@ -37,6 +37,12 @@ on a Mac with Xcode. Steps are sequential; do them roughly in this order.
 3. Primary language: English (U.S.). Bundle ID: pick `com.kept.app` from the dropdown
    (populated once you've built once from Xcode with that ID). SKU: any internal string,
    e.g. `kept-ios-001`.
+4. **Availability** (App Store Connect → your app → **App Availability**, or **Pricing and
+   Availability** on older layouts): defaults to all 175+ countries/regions Apple
+   supports, so you don't need to do anything here to be globally available — just double
+   check nothing got narrowed to "United States only" if you ever edit this screen. Kept+
+   pricing auto-converts to local currency in every territory; you don't set per-country
+   prices unless you want to override the default conversion for specific ones.
 
 ## 4. Set up the Kept+ subscriptions ($8.99/month, $79.99/year)
 
