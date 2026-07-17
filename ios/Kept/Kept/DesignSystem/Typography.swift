@@ -5,7 +5,7 @@ import SwiftUI
 /// See ios/Kept/README.md for where to download them.
 enum KeptFont {
     static func display(_ size: CGFloat, weight: FrauncesWeight = .semibold, italic: Bool = false) -> Font {
-        .custom(italic ? "Fraunces-Italic" : weight.fontName, size: size)
+        .custom(italic ? "Fraunces-MediumItalic" : weight.fontName, size: size)
     }
 
     static func body(_ size: CGFloat, weight: InterWeight = .regular) -> Font {

@@ -28,28 +28,15 @@ Pick the **Kept** scheme and Run. On first launch the app talks to `MockBackendS
 in-memory backend seeded with the same demo data as `docs/kept.html`, so it's fully
 click-through-able before you've set up Supabase.
 
-## 3. Add the type faces
+## 3. Type faces
 
-Fraunces, Inter, and IBM Plex Mono are all open-source (SIL Open Font License / OFL). Grab
-the static `.ttf` files from Google Fonts:
-
-- https://fonts.google.com/specimen/Fraunces (Regular, Medium, SemiBold, Italic)
-- https://fonts.google.com/specimen/Inter (Regular, Medium, SemiBold, Bold)
-- https://fonts.google.com/specimen/IBM+Plex+Mono (Medium, SemiBold)
-
-Drop them into `Kept/Resources/Fonts/` using exactly these file names (already wired into
-`project.yml`'s `UIAppFonts` list, so nothing else to configure):
-
-```
-Fraunces-Regular.ttf   Fraunces-Medium.ttf   Fraunces-SemiBold.ttf   Fraunces-Italic.ttf
-Inter-Regular.ttf   Inter-Medium.ttf   Inter-SemiBold.ttf   Inter-Bold.ttf
-IBMPlexMono-Medium.ttf   IBMPlexMono-SemiBold.ttf
-```
-
-Then re-run `xcodegen generate` (sources are picked up automatically from anything under
-`Kept/`) and rebuild. Until these are in place, text will silently fall back to the system
-font instead of crashing — easy to miss, so check a screen with a habit name (Fraunces
-italic) early.
+Fraunces, Inter, and IBM Plex Mono (all open-source, SIL Open Font License) are already
+checked into `Kept/Resources/Fonts/` and wired into `project.yml`'s `UIAppFonts` list —
+nothing to download. If you ever need to swap a weight, the file's *internal* PostScript
+name is what `Font.custom(_:size:)` looks up, which isn't always the same as its filename
+(e.g. Fraunces' italic file identifies itself as `Fraunces-MediumItalic`, not
+`Fraunces-Italic`) — check with `fc-scan --format "%{postscriptname}\n" SomeFont.ttf` if a
+newly added font silently falls back to the system font.
 
 ## 4. Set up Supabase (backend)
 
