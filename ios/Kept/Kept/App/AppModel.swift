@@ -122,7 +122,7 @@ final class AppModel: ObservableObject {
     func completeProfileOnboarding(name: String, handle: String) {
         profile.name = name.trimmingCharacters(in: .whitespaces)
         profile.handle = handle.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "@", with: "")
-        performBackendSync { try await self.backend.updateProfile(self.profile) }
+        performBackendSync { [self] in try await self.backend.updateProfile(self.profile) }
     }
 
     func requestNotificationPermission() {
@@ -214,7 +214,7 @@ final class AppModel: ObservableObject {
             HabitReminder(habitId: habit.id, habitName: name, time: DateComponents(hour: 7, minute: 0), isOn: true)
         )
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        performBackendSync { try await backend.createHabit(habit, userId: requireUserId()) }
+        performBackendSync { [self] in try await backend.createHabit(habit, userId: requireUserId()) }
         showToast("\"\(name)\" added")
         return true
     }
@@ -231,7 +231,7 @@ final class AppModel: ObservableObject {
             notificationSettings.perHabitReminders[reminderIndex].habitName = name
         }
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        performBackendSync { try await backend.updateHabit(habits[index]) }
+        performBackendSync { [self] in try await backend.updateHabit(habits[index]) }
         showToast("Habit updated")
     }
 
@@ -240,7 +240,7 @@ final class AppModel: ObservableObject {
         todaysNotes.removeValue(forKey: habit.id)
         notificationSettings.perHabitReminders.removeAll { $0.habitId == habit.id }
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        performBackendSync { try await backend.deleteHabit(id: habit.id) }
+        performBackendSync { [self] in try await backend.deleteHabit(id: habit.id) }
         showToast("Habit deleted")
     }
 
@@ -255,7 +255,7 @@ final class AppModel: ObservableObject {
         if becameKept && habits[index].isCheckedIn(calendar: dayCalendar) {
             showToast("Made private. Pulled from Circle too")
         }
-        performBackendSync { try await backend.updateHabit(habits[index]) }
+        performBackendSync { [self] in try await backend.updateHabit(habits[index]) }
     }
 
     func checkIn(_ habit: Habit, note: String?) {
@@ -265,7 +265,7 @@ final class AppModel: ObservableObject {
             todaysNotes[habit.id] = note
         }
         let day = dayCalendar.logicalDay(for: Date())
-        performBackendSync { try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
     }
 
     func undoCheckIn(_ habit: Habit) {
@@ -274,7 +274,7 @@ final class AppModel: ObservableObject {
         todaysNotes.removeValue(forKey: habit.id)
         todaysComments.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
-        performBackendSync { try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
         showToast("Check-in undone")
     }
 
@@ -313,7 +313,7 @@ final class AppModel: ObservableObject {
         }
         friendFeedItems[index].reactions = reactions
         friendFeedItems[index].myReactionEmoji = emoji
-        performBackendSync { try await backend.sendReaction(feedItemId: item.id, userId: requireUserId(), emoji: emoji) }
+        performBackendSync { [self] in try await backend.sendReaction(feedItemId: item.id, userId: requireUserId(), emoji: emoji) }
     }
 
     /// Nudge is only ever offered on people who haven't checked in today — the caller
@@ -323,7 +323,7 @@ final class AppModel: ObservableObject {
     func nudge(_ item: CircleFeedItem) {
         nudgedAuthorIds.insert(item.authorId)
         showToast("You nudged \(item.authorName)")
-        performBackendSync { try await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
+        performBackendSync { [self] in try await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
     }
 
     /// Works for both a friend's post (stored on friendFeedItems) and your own (stored in
@@ -341,7 +341,7 @@ final class AppModel: ObservableObject {
         } else {
             return
         }
-        performBackendSync { try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
+        performBackendSync { [self] in try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
     }
 
     // MARK: - Circle management
@@ -349,19 +349,19 @@ final class AppModel: ObservableObject {
     func removeMember(_ member: CircleMember) {
         circleMembers.removeAll { $0.id == member.id }
         showToast("\(member.name) removed")
-        performBackendSync { try await backend.removeMember(id: member.id) }
+        performBackendSync { [self] in try await backend.removeMember(id: member.id) }
     }
 
     func cancelInvite(_ invite: PendingInvite) {
         pendingInvites.removeAll { $0.id == invite.id }
         showToast("Invite canceled")
-        performBackendSync { try await backend.cancelInvite(id: invite.id) }
+        performBackendSync { [self] in try await backend.cancelInvite(id: invite.id) }
     }
 
     func sendInvite(to contact: Contact) {
         contacts.removeAll { $0.id == contact.id }
         pendingInvites.append(PendingInvite(id: contact.id, name: contact.name, avatarSeed: contact.avatarSeed, invitedAt: Date()))
-        performBackendSync { try await backend.sendInvite(userId: requireUserId(), contact: contact) }
+        performBackendSync { [self] in try await backend.sendInvite(userId: requireUserId(), contact: contact) }
     }
 
     // MARK: - Profile & settings
@@ -375,7 +375,7 @@ final class AppModel: ObservableObject {
         profile.name = name
         profile.handle = handle
         profile.bio = bio
-        performBackendSync { try await backend.updateProfile(profile) }
+        performBackendSync { [self] in try await backend.updateProfile(profile) }
         showToast("Profile updated")
     }
 
@@ -391,7 +391,7 @@ final class AppModel: ObservableObject {
     func updateNotificationSettings(_ mutate: (inout NotificationSettings) -> Void) {
         mutate(&notificationSettings)
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        performBackendSync { try await backend.updateNotificationSettings(notificationSettings, userId: requireUserId()) }
+        performBackendSync { [self] in try await backend.updateNotificationSettings(notificationSettings, userId: requireUserId()) }
     }
 
     // MARK: - Helpers
