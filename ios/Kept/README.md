@@ -78,11 +78,23 @@ newly added font silently falls back to the system font.
 Once `SupabaseConfig.isConfigured` is true, `KeptApp` automatically switches from
 `MockBackendService` to `SupabaseBackendService` — no other code changes needed.
 
-`fetchCircleMembers` and `fetchCircleFeed` currently return empty arrays in
-`SupabaseBackendService` — wiring up real multi-user Circle data (friends' profiles +
-today's open check-ins) is the next piece of backend work once you have more than one real
-account to test against; the RLS policy that will drive it (`check_ins_circle_select_open_today`)
-is already in `schema.sql`.
+`fetchCircleMembers` and `fetchCircleFeed` are wired up for real against
+`SupabaseBackendService` — circle members (with real names + open-habit counts), and
+today's feed (with real reactions, comments, and privacy-respecting streak counts via the
+`habit_streak_count`/`circle_open_habit_counts` functions in `schema.sql`). This is the
+one part of the backend that's genuinely hardest to test solo, since it needs at least two
+real accounts that have circled up with each other — create a second test account, accept
+an invite between them, and check in on an Open habit to see the other side actually
+receive it.
+
+Two Circle pieces are still open, deliberately left rather than guessed at:
+- **Nudge candidates** (friends who *haven't* checked in yet today) aren't in the feed
+  yet — that's a different query shape (circle members minus who's already checked in,
+  per Open habit) with real product ambiguity around someone with multiple Open habits.
+- **`fetchContacts`** still returns `[]` — the real invite flow doesn't depend on it
+  (ShareLink already sends a working link through any share target), so this is only
+  about the optional "browse your contacts" convenience list in Add to Circle, which
+  needs the native Contacts framework (permission prompt + CNContactStore) to do for real.
 
 ## 5. Test payments locally (StoreKit)
 
