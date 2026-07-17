@@ -5,7 +5,7 @@ struct PaywallView: View {
     @EnvironmentObject var appModel: AppModel
     @EnvironmentObject var storeKit: StoreKitManager
     @State private var selectedPlan: Plan = .keptPlus
-    @State private var billingPeriod: BillingPeriod = .yearly
+    @State private var billingPeriod: BillingPeriod = .monthly
     @State private var showingManageSubscriptions = false
     @State private var isPurchasing = false
 
