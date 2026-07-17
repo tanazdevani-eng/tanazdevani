@@ -25,6 +25,9 @@ final class AppModel: ObservableObject {
     @Published var friendFeedItems: [CircleFeedItem]
     /// Today's optional check-in note per habit, shown on the Circle card until undone.
     @Published var todaysNotes: [UUID: String] = [:]
+    /// Comments on your own today's check-ins, keyed by habit id (mirrors todaysNotes,
+    /// since "mine" Circle feed items are derived rather than stored — see circleFeed).
+    @Published var todaysComments: [UUID: [Comment]] = [:]
 
     let storeKit: StoreKitManager
     private let backend: BackendService
@@ -162,6 +165,7 @@ final class AppModel: ObservableObject {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].undoCheckIn(calendar: dayCalendar)
         todaysNotes.removeValue(forKey: habit.id)
+        todaysComments.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
         Task { try? await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
         showToast("Check-in undone")
@@ -185,7 +189,8 @@ final class AppModel: ObservableObject {
                     streakCount: habit.streakCount(calendar: dayCalendar),
                     hasCheckedInToday: true,
                     reactions: [],
-                    myReactionEmoji: nil
+                    myReactionEmoji: nil,
+                    comments: todaysComments[habit.id] ?? []
                 )
             }
         return mine + friendFeedItems
@@ -209,6 +214,24 @@ final class AppModel: ObservableObject {
     func nudge(_ item: CircleFeedItem) {
         showToast("You nudged \(item.authorName)")
         Task { try? await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
+    }
+
+    /// Works for both a friend's post (stored on friendFeedItems) and your own (stored in
+    /// todaysComments, keyed by habit id, since "mine" feed items are derived rather than
+    /// stored — see circleFeed above).
+    func addComment(to item: CircleFeedItem, text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let comment = Comment(id: UUID(), authorName: "You", text: trimmed, postedAt: Date())
+
+        if item.isMine, let habitId = item.habitId {
+            todaysComments[habitId, default: []].append(comment)
+        } else if let index = friendFeedItems.firstIndex(where: { $0.id == item.id }) {
+            friendFeedItems[index].comments.append(comment)
+        } else {
+            return
+        }
+        Task { try? await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
     }
 
     // MARK: - Circle management

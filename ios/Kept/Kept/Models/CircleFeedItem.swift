@@ -17,6 +17,7 @@ struct CircleFeedItem: Identifiable, Equatable {
     var hasCheckedInToday: Bool
     var reactions: [ReactionSummary]
     var myReactionEmoji: String?
+    var comments: [Comment] = []
 
     var totalReactionCount: Int { reactions.reduce(0) { $0 + $1.count } }
 }

@@ -39,6 +39,7 @@ protocol BackendService {
     func removeMember(id: UUID) async throws
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws
     func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws
+    func addComment(feedItemId: UUID, userId: UUID, text: String) async throws
 
     // Notifications
     func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings

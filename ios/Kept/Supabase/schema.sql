@@ -79,6 +79,14 @@ create table public.nudges (
   unique (from_user_id, to_user_id, logical_day)
 );
 
+create table public.comments (
+  id uuid primary key default gen_random_uuid(),
+  check_in_id uuid not null references public.check_ins(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
 -- ---------- Content moderation (App Store Guideline 1.2 / UGC) ----------
 create table public.reports (
   id uuid primary key default gen_random_uuid(),
@@ -105,6 +113,7 @@ alter table public.circle_members enable row level security;
 alter table public.invites enable row level security;
 alter table public.reactions enable row level security;
 alter table public.nudges enable row level security;
+alter table public.comments enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
 
@@ -170,6 +179,15 @@ create policy "nudges_sender_all" on public.nudges
   for all using (from_user_id = auth.uid()) with check (from_user_id = auth.uid());
 create policy "nudges_recipient_select" on public.nudges
   for select using (to_user_id = auth.uid());
+
+-- Comments follow the same visibility rule as reactions: anyone who can see the
+-- underlying check-in can comment on it and read others' comments there.
+create policy "comments_select_if_checkin_visible" on public.comments
+  for select using (exists (select 1 from public.check_ins c where c.id = comments.check_in_id));
+create policy "comments_insert_self" on public.comments
+  for insert with check (user_id = auth.uid());
+create policy "comments_owner_delete" on public.comments
+  for delete using (user_id = auth.uid());
 
 -- Reports/blocks: required for App Store Review Guideline 1.2 (user-generated content).
 create policy "reports_insert_self" on public.reports

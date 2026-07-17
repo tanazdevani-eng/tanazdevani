@@ -4,6 +4,8 @@ struct FriendPostCard: View {
     @EnvironmentObject var appModel: AppModel
     let item: CircleFeedItem
     @State private var isPickingReaction = false
+    @State private var commentText = ""
+    @FocusState private var commentFocused: Bool
 
     var body: some View {
         KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: 24) {
@@ -46,38 +48,85 @@ struct FriendPostCard: View {
                 }
 
                 if !item.isMine {
-                    if isPickingReaction {
-                        ReactionPickerRow { emoji in
-                            appModel.reactToFeedItem(item, emoji: emoji)
-                            isPickingReaction = false
-                        }
-                    } else {
-                        HStack(spacing: 8) {
-                            Button {
-                                isPickingReaction = true
-                            } label: {
-                                ReactionSummaryButton(reactions: item.reactions)
+                    Group {
+                        if isPickingReaction {
+                            ReactionPickerRow { emoji in
+                                appModel.reactToFeedItem(item, emoji: emoji)
+                                isPickingReaction = false
                             }
-                            .buttonStyle(.plain)
-
-                            if !item.hasCheckedInToday {
+                        } else {
+                            HStack(spacing: 8) {
                                 Button {
-                                    appModel.nudge(item)
+                                    isPickingReaction = true
                                 } label: {
-                                    Text("👊 Nudge")
-                                        .font(KeptFont.body(13, weight: .semibold))
-                                        .foregroundStyle(.keptOrangeDeep)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 9)
-                                        .background(Color.keptOrangeSoft)
-                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    ReactionSummaryButton(reactions: item.reactions, myReactionEmoji: item.myReactionEmoji)
+                                }
+                                .buttonStyle(.plain)
+
+                                if !item.hasCheckedInToday {
+                                    Button {
+                                        appModel.nudge(item)
+                                    } label: {
+                                        Text("👊 Nudge")
+                                            .font(KeptFont.body(13, weight: .semibold))
+                                            .foregroundStyle(.keptOrangeDeep)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 9)
+                                            .background(Color.keptOrangeSoft)
+                                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    }
                                 }
                             }
                         }
                     }
+                    .animation(.easeInOut(duration: 0.15), value: isPickingReaction)
                 }
+
+                commentsSection
             }
             .padding(16)
         }
+    }
+
+    @ViewBuilder
+    private var commentsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !item.comments.isEmpty {
+                Divider().overlay(Color.keptInk.opacity(0.08))
+                ForEach(item.comments) { comment in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text(comment.authorName)
+                            .font(KeptFont.body(12, weight: .bold))
+                            .foregroundStyle(.keptInk)
+                        Text(comment.text)
+                            .font(KeptFont.body(12, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("Add a comment...", text: $commentText)
+                    .font(KeptFont.body(12.5))
+                    .focused($commentFocused)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color(hex: 0xF7F1E9))
+                    .clipShape(Capsule())
+                    .onSubmit { submitComment() }
+
+                if !commentText.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Button("Post", action: submitComment)
+                        .font(KeptFont.body(12.5, weight: .bold))
+                        .foregroundStyle(.keptOrangeDeep)
+                }
+            }
+        }
+    }
+
+    private func submitComment() {
+        appModel.addComment(to: item, text: commentText)
+        commentText = ""
+        commentFocused = false
     }
 }

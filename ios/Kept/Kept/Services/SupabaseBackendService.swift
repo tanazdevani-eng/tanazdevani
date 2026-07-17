@@ -247,6 +247,17 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
+    func addComment(feedItemId: UUID, userId: UUID, text: String) async throws {
+        struct CommentInsert: Codable {
+            var check_in_id: UUID
+            var user_id: UUID
+            var text: String
+        }
+        try await client.from("comments")
+            .insert(CommentInsert(check_in_id: feedItemId, user_id: userId, text: text))
+            .execute()
+    }
+
     // MARK: - Notifications
 
     func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings {

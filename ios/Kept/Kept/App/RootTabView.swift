@@ -19,6 +19,13 @@ struct RootTabView: View {
             section(.paywall) { NavigationStack { PaywallView() } }
             section(.profile) { NavigationStack { ProfileView() } }
         }
+        // Reserves room above the floating tab bar for every screen at once — including
+        // pushed ones like Invite Sent — so nothing (buttons especially) ever ends up
+        // rendered underneath it, unreachable. Individual screens don't need to know
+        // about the tab bar's height at all.
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 90)
+        }
         .background(Color.keptBackground.ignoresSafeArea())
         .overlay(alignment: .bottom) {
             CustomTabBar(selection: $appModel.selectedTab) {

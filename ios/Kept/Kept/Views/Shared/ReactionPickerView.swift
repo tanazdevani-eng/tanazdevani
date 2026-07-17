@@ -22,9 +22,13 @@ struct ReactionPickerRow: View {
 
 struct ReactionSummaryButton: View {
     let reactions: [ReactionSummary]
+    /// The emoji to actually display always prioritizes what *you* just picked — showing
+    /// whichever emoji has the highest total count instead made it look like your own tap
+    /// hadn't registered whenever someone else's reaction already outnumbered it.
+    let myReactionEmoji: String?
     var body: some View {
-        let top = reactions.max(by: { $0.count < $1.count })
-        Text("\(top?.emoji ?? "❤️") \(reactions.reduce(0) { $0 + $1.count })")
+        let displayEmoji = myReactionEmoji ?? reactions.max(by: { $0.count < $1.count })?.emoji ?? "❤️"
+        Text("\(displayEmoji) \(reactions.reduce(0) { $0 + $1.count })")
             .font(KeptFont.body(13, weight: .semibold))
             .foregroundStyle(.keptInk)
             .frame(maxWidth: .infinity)
