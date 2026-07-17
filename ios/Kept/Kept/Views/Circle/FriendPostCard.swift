@@ -9,6 +9,7 @@ struct FriendPostCard: View {
     @State private var showingMoreActions = false
     @State private var showingReportReasons = false
     @State private var showingBlockConfirm = false
+    @State private var isEditingNote = false
 
     var body: some View {
         KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: 24) {
@@ -51,13 +52,9 @@ struct FriendPostCard: View {
                 }
 
                 if let note = item.note, !note.isEmpty {
-                    Text("\u{201C}\(note)\u{201D}")
-                        .font(KeptFont.display(15.5, italic: true))
-                        .foregroundStyle(.keptInk)
+                    noteText("\u{201C}\(note)\u{201D}", italic: true)
                 } else if item.isMine {
-                    Text("Checked in. No note this time.")
-                        .font(KeptFont.body(13, weight: .medium))
-                        .foregroundStyle(.keptInkSoft)
+                    noteText("Checked in. No note this time.", italic: false)
                 }
 
                 if !item.isMine {
@@ -121,6 +118,28 @@ struct FriendPostCard: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("They won't be able to see your Open habits or check-ins anymore.")
+        }
+        .sheet(isPresented: $isEditingNote) {
+            EditNoteSheet(initialText: item.note ?? "") { newNote in
+                if let habit = appModel.habits.first(where: { $0.id == item.habitId }) {
+                    appModel.updateNote(for: habit, note: newNote)
+                }
+            }
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    /// Tappable-to-edit for your own posts only — friends' notes are just text.
+    @ViewBuilder
+    private func noteText(_ text: String, italic: Bool) -> some View {
+        let content = Text(text)
+            .font(italic ? KeptFont.display(15.5, italic: true) : KeptFont.body(13, weight: .medium))
+            .foregroundStyle(italic ? .keptInk : .keptInkSoft)
+        if item.isMine {
+            Button { isEditingNote = true } label: { content }
+                .buttonStyle(.plain)
+        } else {
+            content
         }
     }
 

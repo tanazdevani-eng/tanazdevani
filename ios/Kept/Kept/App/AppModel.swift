@@ -288,6 +288,22 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Fixes or clears the note on today's check-in without undoing the check-in itself —
+    /// the two are separate concerns (todaysNotes vs. checkInHistory), so this only ever
+    /// touches the note. `note: nil` (or empty) removes it entirely.
+    func updateNote(for habit: Habit, note: String?) {
+        let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty {
+            todaysNotes[habit.id] = trimmed
+        } else {
+            todaysNotes.removeValue(forKey: habit.id)
+        }
+        let day = dayCalendar.logicalDay(for: Date())
+        performBackendSync { [self] in
+            try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: trimmed, checkedIn: true)
+        }
+    }
+
     /// "Keep going" from the goal-complete prompt: removes the day cap so the habit keeps
     /// appearing on Home indefinitely, same streak and history intact.
     func keepHabitGoing(_ habit: Habit) {
