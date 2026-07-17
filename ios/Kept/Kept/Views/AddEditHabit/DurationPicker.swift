@@ -30,6 +30,11 @@ struct DurationPicker: View {
                 }
                 chip(label: "Custom", isSelected: showingCustom) {
                     showingCustom = true
+                    // Without a default, tapping Custom and saving before typing a number
+                    // would silently keep whatever duration was selected before Custom was
+                    // ever tapped — the chip would show Custom highlighted while the saved
+                    // habit quietly got the old value instead.
+                    if customText.isEmpty { customText = "1" }
                     if let n = Int(customText), n > 0 {
                         selection = .days(n)
                     }

@@ -17,7 +17,10 @@ struct PaywallView: View {
         ScrollView {
             VStack(spacing: 0) {
                 hero
-                if storeKit.isSubscribed {
+                // Only shown once there's something the "KEPT+" pill above doesn't already
+                // say — a plain "You're on Kept+" here would just repeat that pill forever.
+                // A pending cancellation is genuinely new information, so that still shows.
+                if storeKit.isSubscribed && !storeKit.willAutoRenew {
                     statusBanner.padding(.top, 16)
                 }
                 plans.padding(.top, 20)

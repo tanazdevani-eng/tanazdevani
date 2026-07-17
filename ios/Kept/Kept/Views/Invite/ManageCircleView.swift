@@ -33,7 +33,7 @@ struct ManageCircleView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showingAddToCircle = true } label: {
-                    Image(systemName: "plus")
+                    Text("+").font(.system(size: 20, weight: .semibold)).foregroundStyle(.keptInk)
                 }
             }
         }
@@ -80,7 +80,7 @@ struct ManageCircleView: View {
             AvatarView(initial: invite.name.prefix(1).uppercased(), seed: invite.avatarSeed, size: 34)
             VStack(alignment: .leading, spacing: 1) {
                 Text(invite.name).font(KeptFont.body(13.5, weight: .bold)).foregroundStyle(.keptInk)
-                Text("Invited 2 days ago").font(KeptFont.body(11, weight: .medium)).foregroundStyle(.keptInkSoft)
+                Text("Invited \(relativeDays(invite.invitedAt))").font(KeptFont.body(11, weight: .medium)).foregroundStyle(.keptInkSoft)
             }
             Spacer()
             Button("Cancel") { appModel.cancelInvite(invite) }
@@ -97,5 +97,12 @@ struct ManageCircleView: View {
         Text(text.uppercased())
             .font(KeptFont.mono(10.5, weight: .semibold))
             .foregroundStyle(.keptInkSoft)
+    }
+
+    private func relativeDays(_ date: Date) -> String {
+        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if days <= 0 { return "just now" }
+        if days == 1 { return "1 day ago" }
+        return "\(days) days ago"
     }
 }
