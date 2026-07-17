@@ -5,10 +5,10 @@ struct HomeView: View {
     @State private var checkInHabit: Habit?
     @State private var editHabit: Habit?
 
+    /// Locale-aware instead of a hardcoded US-style "EEEE, MMMM d" template — weekday/month
+    /// names, and their order, both vary by language and region.
     private var dateLine: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMMM d"
-        return formatter.string(from: Date())
+        Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 
     var body: some View {

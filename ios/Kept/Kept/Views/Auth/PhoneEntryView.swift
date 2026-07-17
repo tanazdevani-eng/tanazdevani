@@ -5,19 +5,26 @@ struct PhoneEntryView: View {
     let intent: AuthIntent
 
     @State private var phoneDigits = ""
+    @State private var selectedCountry = CountryCode.detected()
+    @State private var showingCountryPicker = false
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var verifiedPhone: String?
 
-    /// Minimal E.164 formatting: assumes a US number unless the user typed their own
-    /// country code with a leading "+". A full country picker is a reasonable follow-up
-    /// once this is tested against a real SMS provider outside the US.
+    /// Real E.164 formatting using the picked country's dial code — the old version
+    /// assumed every number was a bare 10-digit US number, which silently mangled any
+    /// number from outside the US instead of actually sending a usable code.
     private var e164Phone: String {
-        let digits = phoneDigits.filter(\.isNumber)
-        return digits.count == 10 ? "+1\(digits)" : "+\(digits)"
+        "\(selectedCountry.dialCode)\(phoneDigits.filter(\.isNumber))"
     }
 
-    private var isValid: Bool { phoneDigits.filter(\.isNumber).count >= 10 }
+    /// Loose on purpose: national number lengths genuinely vary a lot by country (6-14
+    /// digits is roughly the real-world range), and the SMS provider is the actual source
+    /// of truth on whether a number is deliverable, not a client-side digit count.
+    private var isValid: Bool {
+        let count = phoneDigits.filter(\.isNumber).count
+        return count >= 6 && count <= 14
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,13 +38,29 @@ struct PhoneEntryView: View {
                 .padding(.top, 6)
                 .padding(.bottom, 24)
 
-            TextField("(555) 123-4567", text: $phoneDigits)
-                .keyboardType(.phonePad)
-                .font(KeptFont.body(17))
-                .padding(16)
-                .background(.keptSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+            HStack(spacing: 10) {
+                Button {
+                    showingCountryPicker = true
+                } label: {
+                    Text(selectedCountry.dialCode)
+                        .font(KeptFont.body(17, weight: .semibold))
+                        .foregroundStyle(.keptInk)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(.keptSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                }
+                .buttonStyle(.plain)
+
+                TextField("Phone number", text: $phoneDigits)
+                    .keyboardType(.phonePad)
+                    .font(KeptFont.body(17))
+                    .padding(16)
+                    .background(.keptSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+            }
 
             if let errorMessage {
                 Text(errorMessage)
@@ -67,6 +90,9 @@ struct PhoneEntryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $verifiedPhone) { phone in
             VerifyCodeView(phone: phone, intent: intent)
+        }
+        .sheet(isPresented: $showingCountryPicker) {
+            CountryCodePicker(selection: $selectedCountry)
         }
     }
 
