@@ -78,7 +78,7 @@ struct FriendPostCard: View {
                                     Button {
                                         appModel.nudge(item)
                                     } label: {
-                                        Text(alreadyNudged ? "Nudged ✓" : "👊 Nudge")
+                                        Text(alreadyNudged ? "Nudged" : "Nudge")
                                             .font(KeptFont.body(13, weight: .semibold))
                                             .foregroundStyle(alreadyNudged ? .keptInkSoft : .keptOrangeDeep)
                                             .frame(maxWidth: .infinity)

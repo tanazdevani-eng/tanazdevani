@@ -2,13 +2,15 @@ import SwiftUI
 
 struct NotificationsSettingsView: View {
     @EnvironmentObject var appModel: AppModel
+    @State private var editingTarget: TimeEditTarget?
 
-    private let timeOptions: [DateComponents] = [
-        DateComponents(hour: 6, minute: 0), DateComponents(hour: 7, minute: 0), DateComponents(hour: 8, minute: 0),
-        DateComponents(hour: 9, minute: 0), DateComponents(hour: 12, minute: 0), DateComponents(hour: 18, minute: 0),
-        DateComponents(hour: 20, minute: 0), DateComponents(hour: 21, minute: 0),
-    ]
-    private let resetOptions: [Int] = [0, 2, 3, 5]
+    private struct TimeEditTarget: Identifiable {
+        let id: String
+        let title: String
+        let components: DateComponents
+        let showsMinute: Bool
+        let onSave: (DateComponents) -> Void
+    }
 
     var body: some View {
         ScrollView {
@@ -23,8 +25,14 @@ struct NotificationsSettingsView: View {
                     }
                     if appModel.notificationSettings.remindForAllHabits {
                         row(title: "Reminder time", subtitle: "Applies to every habit unless customized below") {
-                            timeChip(components(appModel.notificationSettings.allHabitsTime)) {
-                                appModel.updateNotificationSettings { $0.allHabitsTime = nextTime($0.allHabitsTime) }
+                            timeChip(appModel.notificationSettings.allHabitsTime) {
+                                editingTarget = TimeEditTarget(
+                                    id: "allHabits",
+                                    title: "Reminder time",
+                                    components: appModel.notificationSettings.allHabitsTime,
+                                    showsMinute: true,
+                                    onSave: { newTime in appModel.updateNotificationSettings { $0.allHabitsTime = newTime } }
+                                )
                             }
                         }
                     }
@@ -60,7 +68,13 @@ struct NotificationsSettingsView: View {
                 VStack(spacing: 0) {
                     row(title: "New day starts at", subtitle: "When streaks roll over and today's check-ins reset") {
                         timeChip(DateComponents(hour: appModel.notificationSettings.dayResetHour, minute: 0)) {
-                            appModel.updateNotificationSettings { $0.dayResetHour = nextResetHour($0.dayResetHour) }
+                            editingTarget = TimeEditTarget(
+                                id: "dayReset",
+                                title: "New day starts at",
+                                components: DateComponents(hour: appModel.notificationSettings.dayResetHour, minute: 0),
+                                showsMinute: false,
+                                onSave: { newTime in appModel.updateNotificationSettings { $0.dayResetHour = newTime.hour ?? 0 } }
+                            )
                         }
                     }
                 }
@@ -79,6 +93,9 @@ struct NotificationsSettingsView: View {
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingTarget) { target in
+            TimeEditSheet(title: target.title, initialComponents: target.components, showsMinute: target.showsMinute, onSave: target.onSave)
+        }
     }
 
     private func perHabitRow(_ reminder: HabitReminder) -> some View {
@@ -86,10 +103,18 @@ struct NotificationsSettingsView: View {
             Text(reminder.habitName).font(KeptFont.body(13, weight: .semibold)).foregroundStyle(.keptInk)
             Spacer()
             timeChip(reminder.time) {
-                appModel.updateNotificationSettings { settings in
-                    guard let i = settings.perHabitReminders.firstIndex(where: { $0.habitId == reminder.habitId }) else { return }
-                    settings.perHabitReminders[i].time = nextTime(settings.perHabitReminders[i].time)
-                }
+                editingTarget = TimeEditTarget(
+                    id: "habit-\(reminder.habitId)",
+                    title: reminder.habitName,
+                    components: reminder.time,
+                    showsMinute: true,
+                    onSave: { newTime in
+                        appModel.updateNotificationSettings { settings in
+                            guard let i = settings.perHabitReminders.firstIndex(where: { $0.habitId == reminder.habitId }) else { return }
+                            settings.perHabitReminders[i].time = newTime
+                        }
+                    }
+                )
             }
             Toggle("", isOn: Binding(
                 get: { reminder.isOn },
@@ -133,8 +158,6 @@ struct NotificationsSettingsView: View {
         }
     }
 
-    private func components(_ dc: DateComponents) -> DateComponents { dc }
-
     private func formatted(_ components: DateComponents) -> String {
         let hour = components.hour ?? 0
         let minute = components.minute ?? 0
@@ -142,18 +165,6 @@ struct NotificationsSettingsView: View {
         var displayHour = hour % 12
         if displayHour == 0 { displayHour = 12 }
         return String(format: "%d:%02d %@", displayHour, minute, period)
-    }
-
-    private func nextTime(_ current: DateComponents) -> DateComponents {
-        guard let index = timeOptions.firstIndex(where: { $0.hour == current.hour && $0.minute == current.minute }) else {
-            return timeOptions[0]
-        }
-        return timeOptions[(index + 1) % timeOptions.count]
-    }
-
-    private func nextResetHour(_ current: Int) -> Int {
-        guard let index = resetOptions.firstIndex(of: current) else { return resetOptions[0] }
-        return resetOptions[(index + 1) % resetOptions.count]
     }
 
     private func sectionLabel(_ text: String) -> some View {
