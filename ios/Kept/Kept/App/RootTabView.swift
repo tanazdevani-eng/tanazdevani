@@ -1,50 +1,29 @@
 import SwiftUI
 
 enum RootTab: Hashable {
-    case home, circle, add, paywall, profile
+    case home, circle, paywall, profile
 }
 
-/// Tab bar matching kept.html's: Home / Circle / a center "+" that opens Add Habit as a
-/// modal instead of becoming its own tab / Kept+ / You. Selecting `.add` is intercepted
-/// below and immediately reverted, so the "+" never actually becomes the active tab.
+/// Root screen switcher using CustomTabBar instead of SwiftUI's stock TabView, to match
+/// kept.html's floating pill tab bar exactly rather than the system's default chrome.
+/// All four sections stay mounted simultaneously (toggled via opacity) so each keeps its
+/// own navigation/scroll state when you switch away and back, instead of resetting.
 struct RootTabView: View {
     @EnvironmentObject var appModel: AppModel
-    @State private var previousTab: RootTab = .home
     @State private var showingAddHabit = false
 
     var body: some View {
-        TabView(selection: $appModel.selectedTab) {
-            NavigationStack { HomeView() }
-                .tabItem { Label("Home", systemImage: "house") }
-                .tag(RootTab.home)
-
-            NavigationStack { CircleView() }
-                .tabItem { Label("Circle", systemImage: "circle.grid.2x2") }
-                .tag(RootTab.circle)
-
-            Color.clear
-                .tabItem { Label("Add", systemImage: "plus.circle.fill") }
-                .tag(RootTab.add)
-
-            NavigationStack { PaywallView() }
-                .tabItem { Label("Kept+", systemImage: "sparkles") }
-                .tag(RootTab.paywall)
-
-            NavigationStack { ProfileView() }
-                .tabItem { Label("You", systemImage: "person.crop.circle") }
-                .tag(RootTab.profile)
+        ZStack {
+            section(.home) { NavigationStack { HomeView() } }
+            section(.circle) { NavigationStack { CircleView() } }
+            section(.paywall) { NavigationStack { PaywallView() } }
+            section(.profile) { NavigationStack { ProfileView() } }
         }
-        .tint(.keptInk)
-        .onChange(of: appModel.selectedTab) { _, newValue in
-            if newValue == .add {
-                appModel.selectedTab = previousTab
+        .background(Color.keptBackground.ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            CustomTabBar(selection: $appModel.selectedTab) {
                 showingAddHabit = true
-            } else {
-                previousTab = newValue
             }
-        }
-        .sheet(isPresented: $showingAddHabit) {
-            NavigationStack { AddHabitView() }
         }
         .overlay(alignment: .bottom) {
             if let toast = appModel.toast {
@@ -54,5 +33,16 @@ struct RootTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: appModel.toast)
+        .sheet(isPresented: $showingAddHabit) {
+            NavigationStack { AddHabitView() }
+        }
+    }
+
+    @ViewBuilder
+    private func section(_ tab: RootTab, @ViewBuilder content: () -> some View) -> some View {
+        content()
+            .opacity(appModel.selectedTab == tab ? 1 : 0)
+            .allowsHitTesting(appModel.selectedTab == tab)
+            .zIndex(appModel.selectedTab == tab ? 1 : 0)
     }
 }
