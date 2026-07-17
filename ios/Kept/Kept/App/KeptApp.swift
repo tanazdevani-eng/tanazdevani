@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct KeptApp: App {
+    @UIApplicationDelegateAdaptor(KeptAppDelegate.self) private var appDelegate
     @StateObject private var storeKit: StoreKitManager
     @StateObject private var appModel: AppModel
 
@@ -21,6 +22,7 @@ struct KeptApp: App {
                 .environmentObject(storeKit)
                 .task { await appModel.checkExistingSession() }
                 .onOpenURL { url in appModel.handleIncomingURL(url) }
+                .onAppear { appDelegate.appModel = appModel }
         }
     }
 }

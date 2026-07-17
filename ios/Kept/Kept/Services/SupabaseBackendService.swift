@@ -271,6 +271,30 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
+    func registerPushToken(userId: UUID, token: String) async throws {
+        struct TokenUpsert: Codable {
+            var user_id: UUID
+            var device_token: String
+        }
+        try await client.from("push_tokens")
+            .upsert(TokenUpsert(user_id: userId, device_token: token), onConflict: "user_id,device_token")
+            .execute()
+    }
+
+    /// Reads the inviter's device token(s) and sends the actual APNs push from a
+    /// service-role Edge Function — the client can't read another user's push_tokens row
+    /// directly (RLS is owner-only), same reasoning as delete-account needing the service
+    /// role for cross-user work.
+    func notifyInviteAccepted(inviterId: UUID, accepterName: String) async throws {
+        struct Payload: Encodable {
+            var inviter_id: String
+            var accepter_name: String
+        }
+        let payload = Payload(inviter_id: inviterId.uuidString, accepter_name: accepterName)
+        let body = try JSONEncoder().encode(payload)
+        _ = try await client.functions.invoke("notify-invite-accepted", options: FunctionInvokeOptions(body: body))
+    }
+
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws {
         struct ReactionUpsert: Codable {
             var check_in_id: UUID

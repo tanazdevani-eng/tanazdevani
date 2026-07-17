@@ -115,6 +115,18 @@ create table public.blocks (
   unique (blocker_id, blocked_id)
 );
 
+-- One row per device that's granted notification permission. A user can have several
+-- (old phone + new phone, etc.) — all get pushed to. Read/write is owner-only from the
+-- client; the notify-invite-accepted Edge Function reads across users with the service
+-- role key, same pattern as delete-account.
+create table public.push_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  device_token text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, device_token)
+);
+
 -- ---------- Row level security ----------
 alter table public.profiles enable row level security;
 alter table public.habits enable row level security;
@@ -127,6 +139,7 @@ alter table public.nudges enable row level security;
 alter table public.comments enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
+alter table public.push_tokens enable row level security;
 
 -- Profiles: readable by yourself and anyone who has you in their circle; writable by owner.
 create policy "profiles_select_self_or_circle" on public.profiles
@@ -235,6 +248,9 @@ create policy "reports_select_self" on public.reports
 
 create policy "blocks_owner_all" on public.blocks
   for all using (blocker_id = auth.uid()) with check (blocker_id = auth.uid());
+
+create policy "push_tokens_owner_all" on public.push_tokens
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ---------- Notes ----------
 -- Account deletion (auth.users row + cascades) requires the service role key, which must

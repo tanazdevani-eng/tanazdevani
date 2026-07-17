@@ -50,11 +50,16 @@ newly added font silently falls back to the system font.
 3. Project Settings → API → copy the Project URL and `anon` public key into
    `Kept/Services/SupabaseConfig.swift`. The anon key is meant to be public/client-side;
    RLS is what actually protects data.
-4. Deploy the account-deletion Edge Function (needs the Supabase CLI:
+4. Deploy the Edge Functions (needs the Supabase CLI:
    `brew install supabase/tap/supabase`):
    ```sh
    supabase functions deploy delete-account --project-ref YOUR-PROJECT-REF
+   supabase functions deploy notify-invite-accepted --project-ref YOUR-PROJECT-REF
    ```
+   `notify-invite-accepted` sends the "so-and-so accepted your invite" push and needs its
+   own APNs secrets set before it can actually deliver — see
+   `docs/APP_STORE_GUIDE.md` section 5. It's safe to deploy now even without those secrets
+   set; it'll just no-op with an error on push until they're configured.
 5. Storage: create a public bucket named `avatars` (Storage → New bucket) for profile
    photos.
 6. Phone auth needs an SMS provider — Authentication → Providers → Phone → enable it and
@@ -100,6 +105,12 @@ Accept/Decline sheet should appear. Note this is a custom scheme, not a Universa
 only works once Kept is already installed. Falling back to the App Store for someone who
 doesn't have it yet needs a real hosted domain with an `apple-app-site-association` file —
 worth adding once there's a website to host it on, not required to ship v1.
+
+The "so-and-so accepted your invite" push notification that fires on accept only works on
+a real device (the Simulator can't register for real APNs tokens), and only once the
+`notify-invite-accepted` function's APNs secrets are set — see section 4 above and
+`docs/APP_STORE_GUIDE.md` section 5. Accepting an invite in the Simulator still works fully
+otherwise (Circles link up); it just won't trigger an actual push.
 
 ## 7. Project layout
 

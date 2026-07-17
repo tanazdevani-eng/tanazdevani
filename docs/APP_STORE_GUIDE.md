@@ -22,6 +22,12 @@ on a Mac with Xcode. Steps are sequential; do them roughly in this order.
    provisioning profile for you the first time you build to a device.
 4. If you want a different bundle ID (e.g. your own reverse-DNS), change
    `PRODUCT_BUNDLE_IDENTIFIER` in `ios/Kept/project.yml`, then re-run `xcodegen generate`.
+5. Kept already declares the Push Notifications entitlement (`project.yml` generates
+   `Kept.entitlements` with `aps-environment: development` in it automatically). With
+   automatic signing, Xcode enables "Push Notifications" on the App ID in the Developer
+   portal the first time you build to a device or Archive — nothing extra to click. Xcode
+   also flips `aps-environment` from `development` to `production` automatically when you
+   Archive for TestFlight/App Store, so you don't need to touch that value yourself.
 
 ## 3. Create the app record in App Store Connect
 
@@ -63,11 +69,38 @@ on a Mac with Xcode. Steps are sequential; do them roughly in this order.
 6. Submit both subscriptions' review information (screenshot of the paywall + review
    notes) — subscriptions are reviewed alongside your first app submission, not separately,
    for a brand-new app.
-5. **Do not** build any in-app cancel/downgrade UI — `PaywallView` already only ever shows
+7. **Do not** build any in-app cancel/downgrade UI — `PaywallView` already only ever shows
    "Manage in iPhone Settings" (via `manageSubscriptionsSheet`) once subscribed. Apple
    requires all cancellation to go through the system, not a custom flow.
 
-## 5. Banking, tax, and agreements
+## 5. Set up push notifications (invite-accepted alerts)
+
+Kept sends one push today: telling you when someone accepts your Circle invite. The app
+side (device token registration, entitlement) is already built; this section is the
+Apple + Supabase setup that makes sending actually work.
+
+1. **Create an APNs key**: Apple Developer → **Certificates, Identifiers & Profiles** →
+   **Keys** → **+** → check "Apple Push Notifications service (APNs)" → Continue → Register.
+   Download the `.p8` file **immediately** — Apple only lets you download it once. Note the
+   **Key ID** shown on the key's page, and your **Team ID** (top-right of the developer
+   portal, or App Store Connect → Membership).
+2. **Deploy the Edge Function**: from `ios/Kept/Supabase`, run
+   `supabase functions deploy notify-invite-accepted`.
+3. **Set secrets** (the function reads these at send-time, they're never in the app or
+   committed to the repo):
+   ```
+   supabase secrets set APNS_KEY="$(cat /path/to/AuthKey_XXXXXXXXXX.p8)"
+   supabase secrets set APNS_KEY_ID=XXXXXXXXXX
+   supabase secrets set APNS_TEAM_ID=YOUR_TEAM_ID
+   supabase secrets set APNS_BUNDLE_ID=com.kept.app
+   ```
+4. That's it — one APNs key covers this and any future push notification you add later
+   (streak reminders delivered server-side, etc.), no need to make a new one per feature.
+5. To test: accept an invite between two TestFlight installs (or two Sandbox accounts) with
+   notification permission granted on the receiving device — the inviter should get a push
+   within a few seconds of the accept.
+
+## 6. Banking, tax, and agreements
 
 1. App Store Connect → **Agreements, Tax, and Banking**.
 2. Accept the **Paid Applications Agreement** (required before any paid product,
@@ -79,7 +112,7 @@ on a Mac with Xcode. Steps are sequential; do them roughly in this order.
    under $1M/year revenue — worth doing before your first sale if you qualify, since it's
    not retroactive within a calendar year in all cases).
 
-## 6. App Store listing content
+## 7. App Store listing content
 
 You'll need, in App Store Connect → your app → **App Store** tab:
 
@@ -96,7 +129,7 @@ You'll need, in App Store Connect → your app → **App Store** tab:
   answer the questions (user-generated content and social features push the effective
   minimum age up slightly on some rating systems — answer honestly, Circle is UGC).
 
-## 7. Privacy details (App Privacy / "nutrition label")
+## 8. Privacy details (App Privacy / "nutrition label")
 
 App Store Connect → your app → **App Privacy**. Answer based on what Kept actually
 collects once Supabase is wired up:
@@ -110,7 +143,7 @@ collects once Supabase is wired up:
   does. A simple hosted markdown-to-page or a one-page site is enough; it must actually
   describe what's in this section.
 
-## 8. Guideline 1.2 (User-Generated Content) — required before this can pass review
+## 9. Guideline 1.2 (User-Generated Content) — required before this can pass review
 
 Circle is social with user-authored posts (check-in notes, photos), which puts Kept
 squarely under Guideline 1.2. These are now built:
@@ -120,12 +153,12 @@ squarely under Guideline 1.2. These are now built:
 - **Block** control per-user — same "⋯" menu, "Block" inserts into the `blocks` table;
   the RLS policy on `check_ins` already excludes a blocker's posts from a blocked user's
   feed going forward.
-- A way to **contact you** about objectionable content (the support URL from step 6
+- A way to **contact you** about objectionable content (the support URL from step 7
   satisfies this if it's monitored).
-- State in your App Review notes (step 10) that reporting/blocking exists and where a
+- State in your App Review notes (step 11) that reporting/blocking exists and where a
   reviewer can find it, since it's easy to miss in a quick review pass.
 
-## 9. TestFlight
+## 10. TestFlight
 
 1. Archive the app in Xcode (**Product → Archive**) once signing is set up, then
    **Distribute App → App Store Connect → Upload**.
@@ -139,12 +172,12 @@ squarely under Guideline 1.2. These are now built:
    into this account in Settings → App Store → Sandbox Account on the test device, not
    your real Apple ID).
 
-## 10. Submit for review
+## 11. Submit for review
 
 1. App Store Connect → your app → create a new version, attach the build from
    TestFlight.
 2. Fill in **App Review Information**: a demo account (Supabase test user + password)
-   since Kept requires sign-in, and notes mentioning the UGC moderation tools from step 8.
+   since Kept requires sign-in, and notes mentioning the UGC moderation tools from step 9.
 3. Submit. First-time review is commonly 24-48 hours, sometimes longer; subsequent
    updates are usually faster.
 4. If rejected, the Resolution Center message tells you the specific guideline — the most

@@ -128,6 +128,8 @@ actor MockBackendService: BackendService {
     }
 
     func acceptInvite(inviterId: UUID, accepterId: UUID) async throws {}
+    func registerPushToken(userId: UUID, token: String) async throws {}
+    func notifyInviteAccepted(inviterId: UUID, accepterName: String) async throws {}
 
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws {
         reactionsByCheckIn[feedItemId, default: [:]][emoji, default: 0] += 1

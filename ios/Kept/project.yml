@@ -30,6 +30,10 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    entitlements:
+      path: Kept/Resources/Kept.entitlements
+      properties:
+        aps-environment: development
     info:
       path: Kept/Resources/Info.plist
       properties:

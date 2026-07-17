@@ -38,6 +38,8 @@ protocol BackendService {
     func cancelInvite(id: UUID) async throws
     func removeMember(id: UUID) async throws
     func acceptInvite(inviterId: UUID, accepterId: UUID) async throws
+    func registerPushToken(userId: UUID, token: String) async throws
+    func notifyInviteAccepted(inviterId: UUID, accepterName: String) async throws
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws
     func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws
     func addComment(feedItemId: UUID, userId: UUID, text: String) async throws

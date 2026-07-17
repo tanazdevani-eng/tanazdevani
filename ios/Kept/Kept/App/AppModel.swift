@@ -133,6 +133,14 @@ final class AppModel: ObservableObject {
         scheduler.requestAuthorizationIfNeeded()
     }
 
+    /// Called by KeptAppDelegate once APNs hands back a device token. Silent no-op failure
+    /// on purpose — a push token that didn't save shouldn't surface as an error toast to
+    /// someone who's just using the app normally.
+    func registerPushToken(_ token: String) async {
+        guard let userId = session?.userId else { return }
+        try? await backend.registerPushToken(userId: userId, token: token)
+    }
+
     func finishOnboarding() {
         authStage = .authenticated
         showToast("Welcome to Kept")
@@ -167,6 +175,10 @@ final class AppModel: ObservableObject {
         notificationSettings = try await settingsFetch
         reconcilePerHabitReminders()
         scheduler.syncReminders(for: habits, settings: notificationSettings)
+        // Re-registers for a remote device token if permission was already granted in an
+        // earlier session — tokens can rotate, so this needs a chance to run every launch,
+        // not just the first time someone taps "Enable notifications" in onboarding.
+        scheduler.requestAuthorizationIfNeeded()
     }
 
     private func resetLocalState() {
@@ -460,8 +472,12 @@ final class AppModel: ObservableObject {
         return components.url!
     }
 
+    /// Deliberately doesn't include the raw URL as visible text — ShareLink already
+    /// attaches inviteShareURL separately and shows its own link preview, so folding the
+    /// (ugly, UUID-and-query-string-bearing) URL into this string would just show up
+    /// twice, once as a rich preview and once as raw text.
     var inviteShareMessage: String {
-        "I'm using Kept to stay on track with my habits. Join my circle: \(inviteShareURL.absoluteString)"
+        "I'm using Kept to stay on track with my habits. Join my circle on Kept."
     }
 
     /// Parses a tapped kept://invite link. Setting incomingInvite here is safe to call
@@ -488,7 +504,13 @@ final class AppModel: ObservableObject {
             circleMembers.append(CircleMember(id: invite.inviterId, name: invite.inviterName, avatarSeed: abs(invite.inviterName.hashValue) % 6, openHabitCount: 0))
         }
         showToast("You're circled with \(invite.inviterName)")
-        performBackendSync { [self] in try await backend.acceptInvite(inviterId: invite.inviterId, accepterId: requireUserId()) }
+        let accepterName = profile.name.isEmpty ? "Someone" : profile.name
+        performBackendSync { [self] in
+            try await backend.acceptInvite(inviterId: invite.inviterId, accepterId: requireUserId())
+            // Best-effort: a push that doesn't land shouldn't surface as a "couldn't save"
+            // toast for what is, from the accepter's side, a fully successful action.
+            try? await backend.notifyInviteAccepted(inviterId: invite.inviterId, accepterName: accepterName)
+        }
     }
 
     func declineIncomingInvite() {

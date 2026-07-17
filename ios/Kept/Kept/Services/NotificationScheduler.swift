@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 
 /// Schedules local reminder notifications. The Notifications screen is just a view over
 /// NotificationSettings; this is what actually turns those settings into
@@ -8,10 +9,23 @@ final class NotificationScheduler {
     private let center = UNUserNotificationCenter.current()
     private let globalIdentifier = "kept.reminder.global"
 
+    /// Requests permission the first time, and re-registers for a remote (APNs) device
+    /// token on every call once permission exists — tokens can rotate, so this needs to
+    /// run again each launch, not just on the very first grant. Safe to call often:
+    /// registerForRemoteNotifications() is a no-op if already registered.
     func requestAuthorizationIfNeeded() {
         center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .notDetermined else { return }
-            self.center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                self.center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                    guard granted else { return }
+                    DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
+                }
+            case .authorized, .provisional:
+                DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
+            default:
+                break
+            }
         }
     }
 
