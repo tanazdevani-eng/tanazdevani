@@ -8,6 +8,8 @@ struct PaywallView: View {
     @State private var billingPeriod: BillingPeriod = .monthly
     @State private var showingManageSubscriptions = false
     @State private var isPurchasing = false
+    @State private var showingTerms = false
+    @State private var showingPrivacy = false
 
     private enum BillingPeriod { case monthly, yearly }
 
@@ -24,6 +26,7 @@ struct PaywallView: View {
                 }
                 cta.padding(.top, 24)
                 footnote.padding(.top, 8)
+                legalLinks.padding(.top, 10)
 
                 if !storeKit.isSubscribed {
                     Button("Restore purchases") {
@@ -239,10 +242,22 @@ struct PaywallView: View {
     private var footnote: some View {
         Text(storeKit.isSubscribed
              ? "Subscription changes and cancellations happen through the App Store, not inside Kept."
-             : "Billed through the App Store. Cancel anytime in Settings.")
+             : "Payment will be charged to your Apple ID account at confirmation of purchase. Your subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period; your account will be charged for renewal within 24 hours before that. Manage or cancel any time in iPhone Settings.")
             .font(KeptFont.body(11, weight: .medium))
             .foregroundStyle(.keptInkSoft)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 20)
+    }
+
+    private var legalLinks: some View {
+        HStack(spacing: 14) {
+            Button("Terms of Use") { showingTerms = true }
+            Text("·").foregroundStyle(.keptInkSoft)
+            Button("Privacy Policy") { showingPrivacy = true }
+        }
+        .font(KeptFont.body(11, weight: .semibold))
+        .foregroundStyle(.keptInkSoft)
+        .navigationDestination(isPresented: $showingTerms) { TermsOfUseView() }
+        .navigationDestination(isPresented: $showingPrivacy) { PrivacyPolicyView() }
     }
 }
