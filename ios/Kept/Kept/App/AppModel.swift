@@ -215,7 +215,7 @@ final class AppModel: ObservableObject {
             }
             reconcilePerHabitReminders()
         } catch {
-            showToast("Couldn't refresh — check your connection")
+            showToast("Couldn't refresh. Check your connection")
         }
     }
 
@@ -576,7 +576,7 @@ final class AppModel: ObservableObject {
             do {
                 try await operation()
             } catch {
-                showToast("Couldn't save — check your connection")
+                showToast("Couldn't save. Check your connection")
             }
         }
     }

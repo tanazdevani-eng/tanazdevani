@@ -20,7 +20,7 @@ struct InviteSentView: View {
                         .font(KeptFont.display(21, weight: .semibold))
                         .foregroundStyle(.keptInk)
                         .multilineTextAlignment(.center)
-                    Text("It won't reach them until you send it — tap below to share it over text, Mail, or however you'd like.")
+                    Text("It won't reach them until you send it. Tap below to share it over text, Mail, or however you'd like.")
                         .font(KeptFont.body(12.5, weight: .medium))
                         .foregroundStyle(.keptInkSoft)
                         .multilineTextAlignment(.center)

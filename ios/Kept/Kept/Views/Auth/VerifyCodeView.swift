@@ -25,7 +25,7 @@ struct VerifyCodeView: View {
                 .padding(.top, 6)
 
             if !SupabaseConfig.isConfigured {
-                Text("Testing locally — Supabase isn't configured yet, so use code \(MockBackendService.testVerificationCode).")
+                Text("Testing locally. Supabase isn't configured yet, so use code \(MockBackendService.testVerificationCode).")
                     .font(KeptFont.body(11.5, weight: .semibold))
                     .foregroundStyle(.keptPurpleDeep)
                     .padding(.top, 10)

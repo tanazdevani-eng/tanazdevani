@@ -18,7 +18,7 @@ struct PrivacyPolicyView: View {
                 )
                 legalSection(
                     title: "What stays private",
-                    body: "Habits marked Kept, and everything about them (name, streak, check-in history, notes), are never visible to anyone but you — not to friends in your Circle, not in any shared view. Only you can see them."
+                    body: "Habits marked Kept, and everything about them (name, streak, check-in history, notes), are never visible to anyone but you: not to friends in your Circle, not in any shared view. Only you can see them."
                 )
                 legalSection(
                     title: "What's shared",

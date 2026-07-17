@@ -15,7 +15,7 @@ struct GoalCompleteSheet: View {
             Text("\u{201C}\(habit.name)\u{201D} wrapped up today.")
                 .font(KeptFont.display(19, weight: .semibold))
                 .foregroundStyle(.keptInk)
-            Text("Keep it going with no end date, or let it end here — either way, your streak and history stay yours.")
+            Text("Keep it going with no end date, or let it end here. Either way, your streak and history stay yours.")
                 .font(KeptFont.body(12.5, weight: .medium))
                 .foregroundStyle(.keptInkSoft)
                 .lineSpacing(2)

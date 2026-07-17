@@ -18,7 +18,7 @@ struct TermsOfUseView: View {
                 )
                 legalSection(
                     title: "Your content",
-                    body: "You own what you post to Kept. Habits marked Kept are private and only ever visible to you. Habits marked Open are visible to the people in your Circle, and you're responsible for what you share there. Don't post anything you don't have the right to share, and don't use Kept to harass, threaten, or impersonate anyone — we can remove content and suspend accounts that violate this."
+                    body: "You own what you post to Kept. Habits marked Kept are private and only ever visible to you. Habits marked Open are visible to the people in your Circle, and you're responsible for what you share there. Don't post anything you don't have the right to share, and don't use Kept to harass, threaten, or impersonate anyone. We can remove content and suspend accounts that violate this."
                 )
                 legalSection(
                     title: "Account",

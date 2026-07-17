@@ -20,7 +20,7 @@ struct OnboardingProfileView: View {
                 .font(KeptFont.display(24, weight: .semibold))
                 .foregroundStyle(.keptInk)
                 .padding(.top, 20)
-            Text("Just enough to get started — you can fill in the rest later.")
+            Text("Just enough to get started. You can fill in the rest later.")
                 .font(KeptFont.body(13, weight: .medium))
                 .foregroundStyle(.keptInkSoft)
                 .padding(.top, 6)
