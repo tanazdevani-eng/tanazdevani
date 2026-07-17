@@ -30,6 +30,7 @@ struct HomeView: View {
             .padding(.horizontal, 22)
             .padding(.bottom, 110)
         }
+        .refreshable { await appModel.refresh() }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarHidden(true)
         .navigationDestination(item: $checkInHabit) { habit in

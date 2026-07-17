@@ -4,11 +4,13 @@ import Supabase
 enum BackendError: LocalizedError {
     case confirmationRequired
     case notSignedIn
+    case invalidCode
 
     var errorDescription: String? {
         switch self {
-        case .confirmationRequired: return "Check your email to confirm your account, then sign in."
+        case .confirmationRequired: return "Check your phone for the code, then try again."
         case .notSignedIn: return "You're not signed in."
+        case .invalidCode: return "That code didn't match. Check it and try again."
         }
     }
 }
@@ -29,15 +31,19 @@ final class SupabaseBackendService: BackendService {
         return AuthSession(userId: session.user.id, email: session.user.email ?? "")
     }
 
-    func signIn(email: String, password: String) async throws -> AuthSession {
-        let session = try await client.auth.signIn(email: email, password: password)
-        return AuthSession(userId: session.user.id, email: session.user.email ?? "")
+    /// Sends the SMS code. Requires an SMS provider (Twilio, MessageBird, ...) configured
+    /// in Supabase → Authentication → Providers → Phone — see docs/APP_STORE_GUIDE.md.
+    func requestOTP(phone: String) async throws {
+        try await client.auth.signInWithOTP(phone: phone)
     }
 
-    func signUp(email: String, password: String) async throws -> AuthSession {
-        let response = try await client.auth.signUp(email: email, password: password)
-        guard let session = response.session else { throw BackendError.confirmationRequired }
-        return AuthSession(userId: session.user.id, email: session.user.email ?? "")
+    /// Verifying auto-creates the auth.users row server-side if this phone number has
+    /// never signed in before — Supabase phone auth doesn't need a separate "sign up"
+    /// call, which is why AppModel decides new-vs-returning from the button tapped on
+    /// Welcome rather than from anything this returns.
+    func verifyOTP(phone: String, code: String) async throws -> AuthSession {
+        let response = try await client.auth.verifyOTP(phone: phone, token: code, type: .sms)
+        return AuthSession(userId: response.user.id, email: response.user.email ?? "")
     }
 
     func signOut() async throws {

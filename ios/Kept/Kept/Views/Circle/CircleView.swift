@@ -24,6 +24,7 @@ struct CircleView: View {
             }
             .padding(.bottom, 110)
         }
+        .refreshable { await appModel.refresh() }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarHidden(true)
         .navigationDestination(isPresented: $showingAddToCircle) {

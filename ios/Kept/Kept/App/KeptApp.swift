@@ -16,10 +16,10 @@ struct KeptApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            AuthGateView()
                 .environmentObject(appModel)
                 .environmentObject(storeKit)
-                .task { await appModel.bootstrap() }
+                .task { await appModel.checkExistingSession() }
         }
     }
 }

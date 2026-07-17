@@ -24,9 +24,12 @@ xcodegen generate
 open Kept.xcodeproj
 ```
 
-Pick the **Kept** scheme and Run. On first launch the app talks to `MockBackendService`, an
-in-memory backend seeded with the same demo data as `docs/kept.html`, so it's fully
-click-through-able before you've set up Supabase.
+Pick the **Kept** scheme and Run. On first launch you'll land on the Welcome screen (real
+phone-based sign up/log in, no passwords). Until Supabase is configured, the app talks to
+`MockBackendService` — tap Sign Up, enter any phone number, and when it asks for the code
+use **`123456`** (shown on-screen too) instead of waiting for a real text. That lands you
+in the one-time onboarding step, then the app, seeded with the same demo data as
+`docs/kept.html` so it's fully click-through-able before Supabase exists.
 
 ## 3. Type faces
 
@@ -54,6 +57,11 @@ newly added font silently falls back to the system font.
    ```
 5. Storage: create a public bucket named `avatars` (Storage → New bucket) for profile
    photos.
+6. Phone auth needs an SMS provider — Authentication → Providers → Phone → enable it and
+   connect Twilio (or MessageBird/Vonage). This costs a small amount per text and requires
+   its own account; there's no way around a paid SMS provider for real phone verification.
+   Until this is set up, real devices won't receive codes — keep testing against
+   `MockBackendService`'s fixed code instead.
 
 Once `SupabaseConfig.isConfigured` is true, `KeptApp` automatically switches from
 `MockBackendService` to `SupabaseBackendService` — no other code changes needed.

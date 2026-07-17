@@ -13,6 +13,10 @@ actor MockBackendService: BackendService {
     private var contacts: [Contact]
     private var notificationSettings = NotificationSettings()
     private var reactionsByCheckIn: [UUID: [String: Int]] = [:]
+    private var isSignedIn = false
+    /// Fixed code accepted in place of a real SMS — there's no Twilio/etc. configured yet
+    /// in mock mode, so this is what VerifyCodeView tells you to type when testing locally.
+    static let testVerificationCode = "123456"
 
     init() {
         let calendar = DayCalendar()
@@ -54,20 +58,23 @@ actor MockBackendService: BackendService {
     }
 
     func currentSession() async throws -> AuthSession? {
-        AuthSession(userId: MockBackendService.demoUserId, email: "tanaz@example.com")
+        isSignedIn ? AuthSession(userId: MockBackendService.demoUserId, email: "") : nil
     }
 
-    func signIn(email: String, password: String) async throws -> AuthSession {
-        AuthSession(userId: MockBackendService.demoUserId, email: email)
+    func requestOTP(phone: String) async throws {
+        // No real SMS provider in mock mode — VerifyCodeView tells the user to type
+        // MockBackendService.testVerificationCode instead of waiting for a text.
     }
 
-    func signUp(email: String, password: String) async throws -> AuthSession {
-        AuthSession(userId: MockBackendService.demoUserId, email: email)
+    func verifyOTP(phone: String, code: String) async throws -> AuthSession {
+        guard code == MockBackendService.testVerificationCode else { throw BackendError.invalidCode }
+        isSignedIn = true
+        return AuthSession(userId: MockBackendService.demoUserId, email: "")
     }
 
-    func signOut() async throws {}
+    func signOut() async throws { isSignedIn = false }
 
-    func deleteAccount(userId: UUID) async throws {}
+    func deleteAccount(userId: UUID) async throws { isSignedIn = false }
 
     func fetchProfile(userId: UUID) async throws -> UserProfile { profile }
 

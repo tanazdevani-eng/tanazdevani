@@ -10,10 +10,10 @@ struct AuthSession: Equatable {
 /// demo data as kept.html, used for SwiftUI previews and for running the app before
 /// Supabase credentials are configured.
 protocol BackendService {
-    // Auth
+    // Auth — phone + SMS code, matching Hinge: no passwords anywhere.
     func currentSession() async throws -> AuthSession?
-    func signIn(email: String, password: String) async throws -> AuthSession
-    func signUp(email: String, password: String) async throws -> AuthSession
+    func requestOTP(phone: String) async throws
+    func verifyOTP(phone: String, code: String) async throws -> AuthSession
     func signOut() async throws
     func deleteAccount(userId: UUID) async throws
 

@@ -17,11 +17,14 @@ final class AppModel: ObservableObject {
     @Published var defaultVisibility: HabitVisibility = .open
     @Published var toast: String?
     @Published var isLoading = false
-    /// True once bootstrap() has run at least once — gates the launch loading screen so
-    /// it only ever shows on the very first load, not on any later background refresh.
-    @Published private(set) var hasCompletedInitialLoad = false
     @Published var lastError: String?
     @Published var selectedTab: RootTab = .home
+
+    /// Drives which top-level screen AuthGateView shows: a launch spinner while checking
+    /// for an existing session, the phone sign-up/log-in flow, the one-time post-signup
+    /// profile step, or the real app.
+    @Published private(set) var authStage: AuthStage = .checkingSession
+    enum AuthStage: Equatable { case checkingSession, needsAuth, needsOnboarding, authenticated }
 
     /// Demo seed for friends' Circle activity until real multi-user Supabase data is
     /// wired up (fetchCircleFeed returns [] against a fresh project with only you in it).
@@ -69,41 +72,134 @@ final class AppModel: ObservableObject {
         ]
     }
 
-    // MARK: - Bootstrap
+    // MARK: - Auth
 
-    func bootstrap() async {
-        isLoading = true
-        defer {
-            isLoading = false
-            hasCompletedInitialLoad = true
-        }
+    /// Runs once at launch: is there already a signed-in session (a returning user who
+    /// never logged out)? If so, skip straight past the Welcome screen into their data.
+    func checkExistingSession() async {
         do {
-            var currentSession = try await backend.currentSession()
-            if currentSession == nil {
-                currentSession = try await backend.signIn(email: "demo@kept.app", password: "demo-password")
+            if let existing = try await backend.currentSession() {
+                session = existing
+                try await loadUserData(userId: existing.userId)
+                authStage = .authenticated
+            } else {
+                authStage = .needsAuth
             }
-            guard let currentSession else { return }
-            session = currentSession
+        } catch {
+            authStage = .needsAuth
+        }
+    }
 
-            async let profileFetch = backend.fetchProfile(userId: currentSession.userId)
-            async let habitsFetch = backend.fetchHabits(userId: currentSession.userId)
-            async let membersFetch = backend.fetchCircleMembers(userId: currentSession.userId)
-            async let invitesFetch = backend.fetchPendingInvites(userId: currentSession.userId)
-            async let contactsFetch = backend.fetchContacts(userId: currentSession.userId)
-            async let settingsFetch = backend.fetchNotificationSettings(userId: currentSession.userId)
+    func requestVerificationCode(phone: String) async throws {
+        try await backend.requestOTP(phone: phone)
+    }
 
-            profile = try await profileFetch
+    /// Signing up and logging in both end at the same OTP verification — phone auth
+    /// auto-creates the account server-side either way — so `intent` (which button was
+    /// tapped on Welcome) is what actually decides whether this lands in the one-time
+    /// onboarding step or straight into existing data.
+    func verifyCode(phone: String, code: String, intent: AuthIntent) async throws {
+        let newSession = try await backend.verifyOTP(phone: phone, code: code)
+        session = newSession
+
+        if intent == .signUp {
+            profile = UserProfile(id: newSession.userId, name: "", handle: "", bio: "")
+            habits = []
+            circleMembers = []
+            pendingInvites = []
+            contacts = (try? await backend.fetchContacts(userId: newSession.userId)) ?? []
+            notificationSettings = NotificationSettings()
+            authStage = .needsOnboarding
+        } else {
+            try await loadUserData(userId: newSession.userId)
+            authStage = .authenticated
+        }
+    }
+
+    /// The one-time step after a fresh sign-up: just name + username, matching Hinge's
+    /// approach of "onboarding is profile setup," not a separate tutorial. Notification
+    /// permission (with a "why we want this" screen first) is the step after this one.
+    func completeProfileOnboarding(name: String, handle: String) {
+        profile.name = name.trimmingCharacters(in: .whitespaces)
+        profile.handle = handle.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "@", with: "")
+        performBackendSync { try await self.backend.updateProfile(self.profile) }
+    }
+
+    func requestNotificationPermission() {
+        scheduler.requestAuthorizationIfNeeded()
+    }
+
+    func finishOnboarding() {
+        authStage = .authenticated
+        showToast("Welcome to Kept")
+    }
+
+    func signOut() async {
+        try? await backend.signOut()
+        resetLocalState()
+        authStage = .needsAuth
+    }
+
+    func deleteAccount() async {
+        guard let userId = session?.userId else { return }
+        try? await backend.deleteAccount(userId: userId)
+        resetLocalState()
+        authStage = .needsAuth
+    }
+
+    private func loadUserData(userId: UUID) async throws {
+        async let profileFetch = backend.fetchProfile(userId: userId)
+        async let habitsFetch = backend.fetchHabits(userId: userId)
+        async let membersFetch = backend.fetchCircleMembers(userId: userId)
+        async let invitesFetch = backend.fetchPendingInvites(userId: userId)
+        async let contactsFetch = backend.fetchContacts(userId: userId)
+        async let settingsFetch = backend.fetchNotificationSettings(userId: userId)
+
+        profile = try await profileFetch
+        habits = try await habitsFetch
+        circleMembers = try await membersFetch
+        pendingInvites = try await invitesFetch
+        contacts = try await contactsFetch
+        notificationSettings = try await settingsFetch
+        reconcilePerHabitReminders()
+        scheduler.syncReminders(for: habits, settings: notificationSettings)
+    }
+
+    private func resetLocalState() {
+        session = nil
+        profile = UserProfile(name: "", handle: "", bio: "")
+        habits = []
+        circleMembers = []
+        pendingInvites = []
+        contacts = []
+        notificationSettings = NotificationSettings()
+        todaysNotes = [:]
+        todaysComments = [:]
+        nudgedAuthorIds = []
+        selectedTab = .home
+    }
+
+    /// Pull-to-refresh: re-fetches everything that can change from outside this device
+    /// (a friend's new post, a reaction, someone accepting an invite) without the launch
+    /// screen or disturbing local state that's mid-edit.
+    func refresh() async {
+        guard let userId = session?.userId else { return }
+        do {
+            async let habitsFetch = backend.fetchHabits(userId: userId)
+            async let membersFetch = backend.fetchCircleMembers(userId: userId)
+            async let invitesFetch = backend.fetchPendingInvites(userId: userId)
+            async let feedFetch = backend.fetchCircleFeed(userId: userId)
+
             habits = try await habitsFetch
             circleMembers = try await membersFetch
             pendingInvites = try await invitesFetch
-            contacts = try await contactsFetch
-            notificationSettings = try await settingsFetch
+            let freshFriendFeed = try await feedFetch
+            if !freshFriendFeed.isEmpty {
+                friendFeedItems = freshFriendFeed
+            }
             reconcilePerHabitReminders()
-
-            scheduler.requestAuthorizationIfNeeded()
-            scheduler.syncReminders(for: habits, settings: notificationSettings)
         } catch {
-            lastError = error.localizedDescription
+            showToast("Couldn't refresh — check your connection")
         }
     }
 
@@ -118,7 +214,7 @@ final class AppModel: ObservableObject {
             HabitReminder(habitId: habit.id, habitName: name, time: DateComponents(hour: 7, minute: 0), isOn: true)
         )
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        Task { try? await backend.createHabit(habit, userId: requireUserId()) }
+        performBackendSync { try await backend.createHabit(habit, userId: requireUserId()) }
         showToast("\"\(name)\" added")
         return true
     }
@@ -135,7 +231,7 @@ final class AppModel: ObservableObject {
             notificationSettings.perHabitReminders[reminderIndex].habitName = name
         }
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        Task { try? await backend.updateHabit(habits[index]) }
+        performBackendSync { try await backend.updateHabit(habits[index]) }
         showToast("Habit updated")
     }
 
@@ -144,7 +240,7 @@ final class AppModel: ObservableObject {
         todaysNotes.removeValue(forKey: habit.id)
         notificationSettings.perHabitReminders.removeAll { $0.habitId == habit.id }
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        Task { try? await backend.deleteHabit(id: habit.id) }
+        performBackendSync { try await backend.deleteHabit(id: habit.id) }
         showToast("Habit deleted")
     }
 
@@ -159,7 +255,7 @@ final class AppModel: ObservableObject {
         if becameKept && habits[index].isCheckedIn(calendar: dayCalendar) {
             showToast("Made private. Pulled from Circle too")
         }
-        Task { try? await backend.updateHabit(habits[index]) }
+        performBackendSync { try await backend.updateHabit(habits[index]) }
     }
 
     func checkIn(_ habit: Habit, note: String?) {
@@ -169,7 +265,7 @@ final class AppModel: ObservableObject {
             todaysNotes[habit.id] = note
         }
         let day = dayCalendar.logicalDay(for: Date())
-        Task { try? await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
+        performBackendSync { try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
     }
 
     func undoCheckIn(_ habit: Habit) {
@@ -178,7 +274,7 @@ final class AppModel: ObservableObject {
         todaysNotes.removeValue(forKey: habit.id)
         todaysComments.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
-        Task { try? await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
+        performBackendSync { try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
         showToast("Check-in undone")
     }
 
@@ -217,7 +313,7 @@ final class AppModel: ObservableObject {
         }
         friendFeedItems[index].reactions = reactions
         friendFeedItems[index].myReactionEmoji = emoji
-        Task { try? await backend.sendReaction(feedItemId: item.id, userId: requireUserId(), emoji: emoji) }
+        performBackendSync { try await backend.sendReaction(feedItemId: item.id, userId: requireUserId(), emoji: emoji) }
     }
 
     /// Nudge is only ever offered on people who haven't checked in today — the caller
@@ -227,7 +323,7 @@ final class AppModel: ObservableObject {
     func nudge(_ item: CircleFeedItem) {
         nudgedAuthorIds.insert(item.authorId)
         showToast("You nudged \(item.authorName)")
-        Task { try? await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
+        performBackendSync { try await backend.sendNudge(userId: requireUserId(), memberId: item.authorId, day: dayCalendar.logicalDay(for: Date())) }
     }
 
     /// Works for both a friend's post (stored on friendFeedItems) and your own (stored in
@@ -245,7 +341,7 @@ final class AppModel: ObservableObject {
         } else {
             return
         }
-        Task { try? await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
+        performBackendSync { try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
     }
 
     // MARK: - Circle management
@@ -253,19 +349,19 @@ final class AppModel: ObservableObject {
     func removeMember(_ member: CircleMember) {
         circleMembers.removeAll { $0.id == member.id }
         showToast("\(member.name) removed")
-        Task { try? await backend.removeMember(id: member.id) }
+        performBackendSync { try await backend.removeMember(id: member.id) }
     }
 
     func cancelInvite(_ invite: PendingInvite) {
         pendingInvites.removeAll { $0.id == invite.id }
         showToast("Invite canceled")
-        Task { try? await backend.cancelInvite(id: invite.id) }
+        performBackendSync { try await backend.cancelInvite(id: invite.id) }
     }
 
     func sendInvite(to contact: Contact) {
         contacts.removeAll { $0.id == contact.id }
         pendingInvites.append(PendingInvite(id: contact.id, name: contact.name, avatarSeed: contact.avatarSeed, invitedAt: Date()))
-        Task { try? await backend.sendInvite(userId: requireUserId(), contact: contact) }
+        performBackendSync { try await backend.sendInvite(userId: requireUserId(), contact: contact) }
     }
 
     // MARK: - Profile & settings
@@ -279,7 +375,7 @@ final class AppModel: ObservableObject {
         profile.name = name
         profile.handle = handle
         profile.bio = bio
-        Task { try? await backend.updateProfile(profile) }
+        performBackendSync { try await backend.updateProfile(profile) }
         showToast("Profile updated")
     }
 
@@ -292,19 +388,10 @@ final class AppModel: ObservableObject {
         try? await backend.updateProfile(profile)
     }
 
-    func signOut() async {
-        try? await backend.signOut()
-    }
-
-    func deleteAccount() async {
-        guard let userId = session?.userId else { return }
-        try? await backend.deleteAccount(userId: userId)
-    }
-
     func updateNotificationSettings(_ mutate: (inout NotificationSettings) -> Void) {
         mutate(&notificationSettings)
         scheduler.syncReminders(for: habits, settings: notificationSettings)
-        Task { try? await backend.updateNotificationSettings(notificationSettings, userId: requireUserId()) }
+        performBackendSync { try await backend.updateNotificationSettings(notificationSettings, userId: requireUserId()) }
     }
 
     // MARK: - Helpers
@@ -325,6 +412,20 @@ final class AppModel: ObservableObject {
 
     private func requireUserId() -> UUID {
         session?.userId ?? MockBackendService.demoUserId
+    }
+
+    /// Local state always updates optimistically first (the UI should never wait on a
+    /// network round trip to feel responsive); this is what actually ships that change to
+    /// the backend, and — unlike a bare `try? await backend.x()` — surfaces a toast if it
+    /// fails instead of silently pretending everything saved when it didn't.
+    private func performBackendSync(_ operation: @escaping () async throws -> Void) {
+        Task {
+            do {
+                try await operation()
+            } catch {
+                showToast("Couldn't save — check your connection")
+            }
+        }
     }
 
     func showToast(_ message: String) {
