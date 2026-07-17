@@ -17,6 +17,12 @@ final class StoreKitManager: ObservableObject {
     /// Which product ID is actually entitled right now, if any — since monthly and yearly
     /// share one subscription group, at most one of them is ever active at a time.
     @Published private(set) var activeProductID: String?
+    /// False once someone cancels via "Manage in iPhone Settings" — canceling stops the
+    /// *next* renewal, it doesn't revoke access immediately (Apple requires this; there's
+    /// no custom cancel flow to "switch back to Free" instantly). Kept+ stays active
+    /// through `renewalDate` either way.
+    @Published private(set) var willAutoRenew = true
+    @Published private(set) var renewalDate: Date?
     @Published private(set) var isLoadingProducts = false
     @Published var lastError: String?
 
@@ -81,13 +87,28 @@ final class StoreKitManager: ObservableObject {
 
     func refreshEntitlements() async {
         var active: String?
+        var expiration: Date?
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result),
                transaction.productID == Self.monthlyProductID || transaction.productID == Self.yearlyProductID {
                 active = transaction.productID
+                expiration = transaction.expirationDate
             }
         }
         activeProductID = active
+        renewalDate = expiration
+
+        guard let active, let product = (active == Self.yearlyProductID ? yearlyProduct : monthlyProduct) else {
+            willAutoRenew = true
+            return
+        }
+        if let statuses = try? await product.subscription?.status,
+           let status = statuses.first,
+           case .verified(let renewalInfo) = status.renewalInfo {
+            willAutoRenew = renewalInfo.willAutoRenew
+        } else {
+            willAutoRenew = true
+        }
     }
 
     private func listenForTransactionUpdates() -> Task<Void, Never> {

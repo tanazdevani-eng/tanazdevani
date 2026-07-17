@@ -43,6 +43,14 @@ struct PaywallView: View {
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarHidden(true)
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
+        .onChange(of: showingManageSubscriptions) { _, isPresented in
+            // Canceling (or any other change) made inside that sheet doesn't push a
+            // Transaction.updates event right away, so re-check renewal status the moment
+            // it closes instead of leaving the banner showing stale info.
+            if !isPresented {
+                Task { await storeKit.refreshEntitlements() }
+            }
+        }
         .alert("Something went wrong", isPresented: Binding(
             get: { storeKit.lastError != nil },
             set: { if !$0 { storeKit.lastError = nil } }
@@ -90,10 +98,18 @@ struct PaywallView: View {
     }
 
     private var statusBannerText: String {
+        let base: String
         switch storeKit.activeProductID {
-        case StoreKitManager.yearlyProductID: return "You're currently on Kept+ Yearly."
-        default: return "You're currently on Kept+."
+        case StoreKitManager.yearlyProductID: base = "You're currently on Kept+ Yearly."
+        default: base = "You're currently on Kept+."
         }
+        // Canceling stops the *next* renewal, it doesn't revoke access right away, so
+        // without this someone who just canceled sees the exact same "You're on Kept+"
+        // banner as before and assumes nothing happened.
+        guard !storeKit.willAutoRenew, let renewalDate = storeKit.renewalDate else { return base }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return "\(base) Won't renew. You'll move to Free on \(formatter.string(from: renewalDate))."
     }
 
     private var plans: some View {
