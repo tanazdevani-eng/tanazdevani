@@ -15,24 +15,24 @@ struct ProfileView: View {
                 hero
                 statRow
                 settingsSection(label: "Account") {
-                    settingsRow("Edit profile", icon: "👤") { showingEditProfile = true }
-                    settingsRow("Notifications", icon: "🔔") { showingNotifications = true }
-                    settingsRow("Default habit privacy", icon: "🔒", value: appModel.defaultVisibility.label) {
+                    settingsRow("Edit profile") { showingEditProfile = true }
+                    settingsRow("Notifications") { showingNotifications = true }
+                    settingsRow("Default habit privacy", value: appModel.defaultVisibility.label) {
                         appModel.toggleDefaultVisibility()
                     }
                 }
                 settingsSection(label: "Circle") {
-                    settingsRow("Invite friends", icon: "➕") { showingInvite = true }
-                    settingsRow("Manage circle", icon: "◎", value: "\(appModel.circleCount)") { showingManageCircle = true }
+                    settingsRow("Invite friends") { showingInvite = true }
+                    settingsRow("Manage circle", value: "\(appModel.circleCount)") { showingManageCircle = true }
                 }
                 settingsSection(label: "Billing") {
-                    settingsRow("Manage subscription", icon: "✨", value: appModel.isSubscribed ? "Kept+" : "Free") {
+                    settingsRow("Manage subscription", value: appModel.isSubscribed ? "Kept+" : "Free") {
                         appModel.selectedTab = .paywall
                     }
-                    settingsRow("Log out", icon: "↪", isDanger: true) { showingLogoutConfirm = true }
+                    settingsRow("Log out", isDanger: true) { showingLogoutConfirm = true }
                 }
                 settingsSection(label: "Account") {
-                    settingsRow("Delete account", icon: "⚠", isDanger: true) { showingDeleteConfirm = true }
+                    settingsRow("Delete account", isDanger: true) { showingDeleteConfirm = true }
                 }
             }
             .padding(.horizontal, 22)
@@ -139,10 +139,9 @@ struct ProfileView: View {
         }
     }
 
-    private func settingsRow(_ title: String, icon: String, value: String? = nil, isDanger: Bool = false, action: @escaping () -> Void) -> some View {
+    private func settingsRow(_ title: String, value: String? = nil, isDanger: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack {
-                Text(icon).font(.system(size: 16)).frame(width: 20)
                 Text(title)
                     .font(KeptFont.body(13.5, weight: .semibold))
                     .foregroundStyle(isDanger ? .keptOrangeDeep : .keptInk)

@@ -42,7 +42,10 @@ final class AppModel: ObservableObject {
     var keptLockCount: Int { habits.filter { $0.visibility == .kept }.count }
     var canAddHabit: Bool { isSubscribed || habits.count < Plan.freeHabitLimit }
     var isNearKeptLockLimit: Bool { !isSubscribed && keptLockCount >= Plan.freeLockLimit }
-    var overallStreak: Int { habits.map { $0.streakCount(calendar: dayCalendar) }.max() ?? 0 }
+    /// App-wide streak: consecutive days you checked in on *anything*, not your single best
+    /// habit's streak — one habit slipping shouldn't erase the rest of your consistency,
+    /// and it keeps this number from ever contradicting what the cards below it show.
+    var overallStreak: Int { dayCalendar.consecutiveStreak(through: habits.flatMap(\.checkInHistory)) }
 
     init(backend: BackendService, storeKit: StoreKitManager, scheduler: NotificationScheduler = NotificationScheduler()) {
         self.backend = backend

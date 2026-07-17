@@ -20,20 +20,38 @@ struct ReactionPickerRow: View {
     }
 }
 
+/// Shows every distinct emoji people reacted with, each with its own count (e.g. "❤️ 1
+/// 😂 2"), not just a single collapsed winner — different people picking different
+/// reactions should all show up, the way it works on basically every social app.
 struct ReactionSummaryButton: View {
     let reactions: [ReactionSummary]
-    /// The emoji to actually display always prioritizes what *you* just picked — showing
-    /// whichever emoji has the highest total count instead made it look like your own tap
-    /// hadn't registered whenever someone else's reaction already outnumbered it.
     let myReactionEmoji: String?
+
+    private var sorted: [ReactionSummary] {
+        reactions.sorted { $0.count > $1.count }
+    }
+
     var body: some View {
-        let displayEmoji = myReactionEmoji ?? reactions.max(by: { $0.count < $1.count })?.emoji ?? "❤️"
-        Text("\(displayEmoji) \(reactions.reduce(0) { $0 + $1.count })")
-            .font(KeptFont.body(13, weight: .semibold))
-            .foregroundStyle(.keptInk)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 9)
-            .background(Color(hex: 0xF7F1E9))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        HStack(spacing: 6) {
+            if reactions.isEmpty {
+                Text("React")
+                    .font(KeptFont.body(13, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
+            } else {
+                ForEach(sorted) { reaction in
+                    HStack(spacing: 3) {
+                        Text(reaction.emoji)
+                        Text("\(reaction.count)")
+                            .font(KeptFont.mono(11.5, weight: .semibold))
+                    }
+                    .foregroundStyle(reaction.emoji == myReactionEmoji ? .keptOrangeDeep : .keptInk)
+                }
+            }
+        }
+        .font(.system(size: 13))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(Color(hex: 0xF7F1E9))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

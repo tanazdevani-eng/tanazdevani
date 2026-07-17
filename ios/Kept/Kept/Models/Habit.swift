@@ -82,23 +82,7 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
     /// Consecutive logical days checked in, counting back from today (or yesterday, if
     /// today hasn't been checked in yet, so the streak doesn't visually zero out mid-day).
     func streakCount(now: Date = Date(), calendar: DayCalendar = DayCalendar()) -> Int {
-        let checkedDays = Set(checkInHistory.map { calendar.logicalDay(for: $0) })
-        guard !checkedDays.isEmpty else { return 0 }
-
-        var cursor = calendar.logicalDay(for: now)
-        if !checkedDays.contains(cursor) {
-            guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: cursor) else { return 0 }
-            cursor = yesterday
-            guard checkedDays.contains(cursor) else { return 0 }
-        }
-
-        var streak = 0
-        while checkedDays.contains(cursor) {
-            streak += 1
-            guard let previous = Calendar.current.date(byAdding: .day, value: -1, to: cursor) else { break }
-            cursor = previous
-        }
-        return streak
+        calendar.consecutiveStreak(through: checkInHistory, now: now)
     }
 
     /// Subtitle line: only present when there's something to say, never restates Open/Kept.
