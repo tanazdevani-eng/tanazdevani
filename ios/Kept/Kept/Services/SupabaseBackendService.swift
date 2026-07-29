@@ -564,6 +564,7 @@ final class SupabaseBackendService: BackendService {
         var goal_amount: Double
         var goal_unit: String
         var goal_period: String
+        var goal_kind: String
         var visibility: String
         var creator_id: UUID
         var invite_token: String
@@ -576,6 +577,7 @@ final class SupabaseBackendService: BackendService {
             latitude: row.latitude, longitude: row.longitude,
             goalAmount: row.goal_amount, goalUnit: row.goal_unit,
             goalPeriod: GroupGoalPeriod(rawValue: row.goal_period) ?? .weekly,
+            goalKind: GroupGoalKind(rawValue: row.goal_kind) ?? .numeric,
             visibility: GroupVisibility(rawValue: row.visibility) ?? .privateGroup,
             creatorId: row.creator_id, createdAt: row.created_at,
             inviteToken: row.invite_token, memberCount: memberCount
@@ -656,6 +658,7 @@ final class SupabaseBackendService: BackendService {
             var goal_amount: Double
             var goal_unit: String
             var goal_period: String
+            var goal_kind: String
             var visibility: String
             var creator_id: UUID
             var invite_token: String
@@ -664,7 +667,7 @@ final class SupabaseBackendService: BackendService {
             id: group.id, name: group.name, location_label: group.locationLabel,
             latitude: group.latitude, longitude: group.longitude,
             goal_amount: group.goalAmount, goal_unit: group.goalUnit,
-            goal_period: group.goalPeriod.rawValue, visibility: group.visibility.rawValue,
+            goal_period: group.goalPeriod.rawValue, goal_kind: group.goalKind.rawValue, visibility: group.visibility.rawValue,
             creator_id: group.creatorId, invite_token: group.inviteToken
         )).execute()
         try await joinGroup(groupId: group.id, userId: group.creatorId)

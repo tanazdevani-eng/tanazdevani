@@ -48,7 +48,7 @@ struct GroupDetailView: View {
                     } else {
                         VStack(spacing: 10) {
                             ForEach(feed) { entry in
-                                GroupFeedRow(entry: entry, unit: group.goalUnit) {
+                                GroupFeedRow(entry: entry, unit: group.goalUnit, goalKind: group.goalKind) {
                                     Task { await load() }
                                 }
                             }
@@ -220,25 +220,27 @@ private struct LogGroupProgressSheet: View {
                     }
                     .padding(.top, 26)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("AMOUNT")
-                            .font(KeptFont.mono(11, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                        HStack(spacing: 8) {
-                            TextField("0", text: $amountText)
-                                .keyboardType(.decimalPad)
-                                .font(KeptFont.body(15))
-                                .padding(15)
-                                .background(.keptSurface)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                            Text(group.goalUnit)
-                                .font(KeptFont.body(14, weight: .medium))
+                    if group.goalKind == .numeric {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("AMOUNT")
+                                .font(KeptFont.mono(11, weight: .semibold))
                                 .foregroundStyle(.keptInkSoft)
+                            HStack(spacing: 8) {
+                                TextField("0", text: $amountText)
+                                    .keyboardType(.decimalPad)
+                                    .font(KeptFont.body(15))
+                                    .padding(15)
+                                    .background(.keptSurface)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                                Text(group.goalUnit)
+                                    .font(KeptFont.body(14, weight: .medium))
+                                    .foregroundStyle(.keptInkSoft)
+                            }
                         }
+                        .padding(.horizontal, 22)
+                        .padding(.top, 18)
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 18)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ADD A NOTE ")
@@ -277,8 +279,8 @@ private struct LogGroupProgressSheet: View {
                         .padding(.horizontal, 22)
                         .padding(.top, 26)
                         .padding(.bottom, 30)
-                        .disabled(Double(amountText) == nil || isSaving)
-                        .opacity(Double(amountText) == nil || isSaving ? 0.5 : 1)
+                        .disabled(effectiveAmount == nil || isSaving)
+                        .opacity(effectiveAmount == nil || isSaving ? 0.5 : 1)
                 }
             }
             .background(Color.keptBackground.ignoresSafeArea())
@@ -324,12 +326,18 @@ private struct LogGroupProgressSheet: View {
         }
     }
 
+    /// Count-kind groups skip manual entry entirely — one check-in is worth 1, same as a
+    /// personal habit — so amountText only matters for numeric-kind groups.
+    private var effectiveAmount: Double? {
+        group.goalKind == .count ? 1 : Double(amountText)
+    }
+
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func save() {
-        guard let amount = Double(amountText) else { return }
+        guard let amount = effectiveAmount else { return }
         isSaving = true
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         Task {

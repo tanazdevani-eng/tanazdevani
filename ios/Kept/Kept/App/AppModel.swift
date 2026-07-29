@@ -553,12 +553,12 @@ final class AppModel: ObservableObject {
     @discardableResult
     func createGroup(
         name: String, locationLabel: String, latitude: Double?, longitude: Double?,
-        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
+        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, goalKind: GroupGoalKind, visibility: GroupVisibility
     ) async -> HabitGroup? {
         guard let userId = session?.userId else { return nil }
         let group = HabitGroup(
             name: name, locationLabel: locationLabel, latitude: latitude, longitude: longitude,
-            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod,
+            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod, goalKind: goalKind,
             visibility: visibility, creatorId: userId
         )
         do {

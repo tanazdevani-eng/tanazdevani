@@ -7,6 +7,7 @@ struct GroupFeedRow: View {
     @EnvironmentObject var appModel: AppModel
     let entry: GroupCheckIn
     let unit: String
+    var goalKind: GroupGoalKind = .numeric
     var onUpdate: () -> Void
 
     @State private var isPickingReaction = false
@@ -22,7 +23,7 @@ struct GroupFeedRow: View {
                     .font(KeptFont.body(13, weight: .bold))
                     .foregroundStyle(.keptInk)
                 Spacer()
-                Text("+\(formattedAmount(entry.amount)) \(unit)")
+                Text(goalKind == .count ? "Checked in" : "+\(formattedAmount(entry.amount)) \(unit)")
                     .font(KeptFont.mono(11.5, weight: .semibold))
                     .foregroundStyle(.keptOrangeDeep)
             }

@@ -11,6 +11,7 @@ struct CreateGroupView: View {
     @State private var goalAmountText = "4"
     @State private var goalUnit = "miles"
     @State private var goalPeriod: GroupGoalPeriod = .weekly
+    @State private var goalKind: GroupGoalKind = .numeric
     @State private var visibility: GroupVisibility = .publicGroup
     @State private var isSaving = false
 
@@ -36,12 +37,15 @@ struct CreateGroupView: View {
                 fieldLabel("Location").padding(.top, 16)
                 LocationField(label: $locationLabel, latitude: $latitude, longitude: $longitude)
 
-                fieldLabel("Shared weekly goal").padding(.top, 16)
+                fieldLabel("How is progress tracked?").padding(.top, 16)
+                goalKindPicker
+
+                fieldLabel("Shared goal").padding(.top, 16)
                 HStack(spacing: 10) {
-                    TextField("Amount", text: $goalAmountText)
+                    TextField(goalKind == .count ? "Target" : "Amount", text: $goalAmountText)
                         .keyboardType(.decimalPad)
                         .frame(width: 80)
-                    TextField("Unit, e.g. miles", text: $goalUnit)
+                    TextField(goalKind.unitPlaceholder, text: $goalUnit)
                     periodMenu
                 }
                 .font(KeptFont.body(14))
@@ -49,7 +53,9 @@ struct CreateGroupView: View {
                 .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                Text("Every member logs their own progress toward this same goal — the group feed shows everyone's numbers side by side.")
+                Text(goalKind == .count
+                     ? "Every member taps to check in — no typing a number, just like a habit."
+                     : "Every member logs their own progress toward this same goal — the group feed shows everyone's numbers side by side.")
                     .font(KeptFont.body(11.5, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .padding(.top, 6)
@@ -84,6 +90,36 @@ struct CreateGroupView: View {
         } label: {
             Text("/ \(goalPeriod.label)")
                 .foregroundStyle(.keptInkSoft)
+        }
+    }
+
+    private var goalKindPicker: some View {
+        HStack(spacing: 10) {
+            ForEach(GroupGoalKind.allCases) { option in
+                Button {
+                    goalKind = option
+                } label: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(option.label)
+                            .font(KeptFont.display(14, weight: .semibold))
+                            .foregroundStyle(.keptInk)
+                        Text(option.pickerDescription)
+                            .font(KeptFont.body(11, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14))
+                    .background(goalKind == option ? Color.keptOrangeSoft : .keptSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(goalKind == option ? Color.keptOrange : Color.keptLine, lineWidth: goalKind == option ? 2 : 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -135,7 +171,7 @@ struct CreateGroupView: View {
                 locationLabel: locationLabel.trimmingCharacters(in: .whitespaces),
                 latitude: latitude, longitude: longitude,
                 goalAmount: amount, goalUnit: goalUnit.trimmingCharacters(in: .whitespaces),
-                goalPeriod: goalPeriod, visibility: visibility
+                goalPeriod: goalPeriod, goalKind: goalKind, visibility: visibility
             )
             isSaving = false
             if created != nil { dismiss() }
