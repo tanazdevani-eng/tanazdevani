@@ -11,6 +11,18 @@ struct HabitCardView: View {
     private var isDownDayToday: Bool { appModel.downDayHabitIds.contains(habit.id) }
     private var streak: Int { habit.streakCount(calendar: calendar) }
 
+    /// The down-day state used to be flat grey with white text — a warm chip fill with
+    /// dark ink text matches the softer "DOWN DAY" tag used in Circle instead.
+    private var checkInButtonBackground: Color {
+        if checkedInToday { return .keptSuccess }
+        if isDownDayToday { return .keptChip }
+        return .keptInkFill
+    }
+
+    private var checkInButtonForeground: Color {
+        isDownDayToday && !checkedInToday ? .keptInk : .white
+    }
+
     var body: some View {
         KeptCard(fill: AnyShapeStyle(habit.visibility.cardGradient), borderColor: habit.visibility.borderColor, cornerRadius: 26) {
             VStack(alignment: .leading, spacing: 0) {
@@ -53,7 +65,7 @@ struct HabitCardView: View {
                 Button(action: onCheckInTapped) {
                     HStack(spacing: 7) {
                         ZStack {
-                            Circle().fill(.white.opacity(0.2))
+                            Circle().fill(checkInButtonForeground.opacity(0.2))
                             if checkedInToday {
                                 Text("✓").font(.system(size: 10))
                             } else if isDownDayToday {
@@ -61,13 +73,13 @@ struct HabitCardView: View {
                             }
                         }
                         .frame(width: 16, height: 16)
-                        Text(checkedInToday ? "Checked in" : (isDownDayToday ? "Down day logged" : "Check in today"))
+                        Text(checkedInToday ? "Checked in" : (isDownDayToday ? "Down day" : "Check in today"))
                     }
                     .font(KeptFont.body(13, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(checkInButtonForeground)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(checkedInToday ? Color.keptSuccess : (isDownDayToday ? Color.keptInkSoft : Color.keptInkFill))
+                    .background(checkInButtonBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .sensoryFeedback(.success, trigger: checkedInToday) { _, newValue in newValue }

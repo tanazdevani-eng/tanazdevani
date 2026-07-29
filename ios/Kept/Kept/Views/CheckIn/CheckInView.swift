@@ -17,10 +17,6 @@ struct CheckInView: View {
     @FocusState private var noteFocused: Bool
 
     @State private var capturedPhotos: [UIImage] = []
-    @State private var showingCamera = false
-    /// Guards the auto-launch below so it fires exactly once per visit to this screen,
-    /// not on every re-render.
-    @State private var hasAutoLaunchedCamera = false
     private let maxPhotos = 2
 
     private var day: Int { habit.daysSinceStart(calendar: appModel.dayCalendar) }
@@ -30,7 +26,7 @@ struct CheckInView: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name).font(KeptFont.display(21, weight: .semibold)).foregroundStyle(.keptInk)
-                    Text("Day \(day) · tap the circle when it's done")
+                    Text("Day \(day) · the circle is a live camera — tap it to capture")
                         .font(KeptFont.body(12, weight: .medium))
                         .foregroundStyle(.keptInkSoft)
                 }
@@ -38,48 +34,74 @@ struct CheckInView: View {
                 .padding(.horizontal, 22)
                 .padding(.top, 6)
 
-                // A fixed gap, not an expanding Spacer — the toggle still sits a bit lower
+                // A fixed gap, not an expanding Spacer — the circle still sits a bit lower
                 // than directly under the header for easier one-handed reach, but an
                 // expanding Spacer here (with nothing below it to balance) ballooned into
                 // a huge empty gap on taller screens instead of a modest offset.
                 Spacer().frame(height: 28)
 
                 VStack(spacing: 14) {
-                    Button {
-                        mode = (mode == .done) ? .notLogged : .done
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .strokeBorder(circleStrokeColor, lineWidth: 3)
-                                .background(Circle().fill(circleFillColor))
-                            if mode == .done {
-                                Text("✓").font(.system(size: 44)).foregroundStyle(.keptSuccess)
-                            } else if mode == .downDay {
-                                Text("···").font(.system(size: 32, weight: .bold)).foregroundStyle(.keptInkSoft)
+                    // The circle itself is the camera in .done/.downDay — tapping it
+                    // captures a photo rather than toggling the mode, since capturing IS
+                    // the check-in moment now. .notLogged has nothing to capture, so it
+                    // falls back to the old plain tappable circle.
+                    if mode == .notLogged {
+                        Button {
+                            mode = .done
+                        } label: {
+                            ZStack {
+                                Circle().strokeBorder(Color.keptLine, lineWidth: 3)
+                                    .background(Circle().fill(Color.keptSurface))
                             }
+                            .frame(width: 130, height: 130)
                         }
-                        .frame(width: 130, height: 130)
+                    } else {
+                        LiveCameraCircle(
+                            ringColor: mode == .done ? .keptSuccess : .keptLine,
+                            isDisabled: capturedPhotos.count >= maxPhotos
+                        ) { image in
+                            capturedPhotos.append(image)
+                        }
                     }
+
                     Text(circleCaption)
                         .font(KeptFont.mono(12, weight: .semibold))
                         .foregroundStyle(.keptInkSoft)
 
-                    if mode != .downDay {
-                        Button("Log a down day instead") { mode = .downDay }
-                            .font(KeptFont.body(12.5, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(Color.keptChip)
-                            .clipShape(Capsule())
-                    } else {
-                        Button("Actually, I did it — check in instead") { mode = .done }
-                            .font(KeptFont.body(12.5, weight: .semibold))
+                    // Quick undo for the shot you just took — pops it so the circle's next
+                    // tap reshoots into the same slot, instead of needing to scroll down to
+                    // the thumbnail strip and tap its "✕" (still there too, for removing an
+                    // earlier photo specifically rather than just the most recent one).
+                    if !capturedPhotos.isEmpty && mode != .notLogged {
+                        Button("Retake last photo") { capturedPhotos.removeLast() }
+                            .font(KeptFont.body(12, weight: .semibold))
                             .foregroundStyle(.keptOrangeDeep)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(Color.keptOrangeSoft)
-                            .clipShape(Capsule())
+                    }
+
+                    if mode != .notLogged {
+                        HStack(spacing: 10) {
+                            if mode == .done {
+                                Button("Log a down day instead") { mode = .downDay }
+                                    .font(KeptFont.body(12.5, weight: .semibold))
+                                    .foregroundStyle(.keptInkSoft)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 14)
+                                    .background(Color.keptChip)
+                                    .clipShape(Capsule())
+                            } else {
+                                Button("Actually, I did it — check in instead") { mode = .done }
+                                    .font(KeptFont.body(12.5, weight: .semibold))
+                                    .foregroundStyle(.keptOrangeDeep)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 14)
+                                    .background(Color.keptOrangeSoft)
+                                    .clipShape(Capsule())
+                            }
+
+                            Button("Don't log this") { mode = .notLogged }
+                                .font(KeptFont.body(12.5, weight: .semibold))
+                                .foregroundStyle(.keptInkSoft)
+                        }
                     }
                 }
                 .padding(.top, 26)
@@ -116,9 +138,11 @@ struct CheckInView: View {
                     .padding(.horizontal, 22)
                     .padding(.top, 18)
 
-                    photoRow
-                        .padding(.horizontal, 22)
-                        .padding(.top, 14)
+                    if !capturedPhotos.isEmpty {
+                        photoStrip
+                            .padding(.horizontal, 22)
+                            .padding(.top, 14)
+                    }
                 }
 
                 visibilityReminder
@@ -135,47 +159,12 @@ struct CheckInView: View {
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Check in")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showingCamera) {
-            CameraCaptureView(
-                onCapture: { image in
-                    capturedPhotos.append(image)
-                    showingCamera = false
-                },
-                onCancel: { showingCamera = false }
-            )
-            .ignoresSafeArea()
-        }
-        .onAppear {
-            // The whole point of checking in is the moment itself — camera opens right
-            // away instead of waiting for a separate tap, same as the founder wanted
-            // "the live capture as soon as you press check in." Canceling out of it just
-            // leaves you on this screen with no photo; nothing is forced.
-            guard !hasAutoLaunchedCamera, UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-            hasAutoLaunchedCamera = true
-            showingCamera = true
-        }
-    }
-
-    private var circleStrokeColor: Color {
-        switch mode {
-        case .done: return .keptSuccess
-        case .downDay: return .keptLine
-        case .notLogged: return .keptLine
-        }
-    }
-
-    private var circleFillColor: Color {
-        switch mode {
-        case .done: return .keptSuccessSoft
-        case .downDay: return .keptChip
-        case .notLogged: return .keptSurface
-        }
     }
 
     private var circleCaption: String {
         switch mode {
-        case .done: return "CHECKED IN · tap to undo"
-        case .downDay: return "DOWN DAY · logged, not done"
+        case .done: return capturedPhotos.isEmpty ? "CHECKED IN · tap to capture" : "CHECKED IN · tap to capture another"
+        case .downDay: return capturedPhotos.isEmpty ? "DOWN DAY · tap to capture" : "DOWN DAY · tap to capture another"
         case .notLogged: return "NOT LOGGED · tap to check in"
         }
     }
@@ -188,24 +177,10 @@ struct CheckInView: View {
         }
     }
 
-    /// Camera only, deliberately no photo-library import — you either take the photo right
-    /// now or you don't. Not a forced simultaneous front/back pair like BeReal either:
-    /// Apple's own stock camera chrome already has a flip-camera control, so someone can
-    /// still attach one from each if they want, just taken separately, one at a time.
-    @ViewBuilder private var photoRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !capturedPhotos.isEmpty {
-                HStack(spacing: 10) {
-                    ForEach(Array(capturedPhotos.enumerated()), id: \.offset) { index, image in
-                        photoThumbnail(image) { capturedPhotos.remove(at: index) }
-                    }
-                }
-            }
-
-            if capturedPhotos.count < maxPhotos && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("Take a photo") { showingCamera = true }
-                    .font(KeptFont.body(12.5, weight: .semibold))
-                    .foregroundStyle(.keptOrangeDeep)
+    private var photoStrip: some View {
+        HStack(spacing: 10) {
+            ForEach(Array(capturedPhotos.enumerated()), id: \.offset) { index, image in
+                photoThumbnail(image) { capturedPhotos.remove(at: index) }
             }
         }
     }

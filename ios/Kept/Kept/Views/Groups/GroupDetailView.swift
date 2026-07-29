@@ -184,7 +184,6 @@ private struct LogGroupProgressSheet: View {
     @State private var note = ""
     @State private var isSaving = false
     @State private var capturedPhotos: [UIImage] = []
-    @State private var showingCamera = false
     private let maxPhotos = 2
 
     var body: some View {
@@ -222,7 +221,30 @@ private struct LogGroupProgressSheet: View {
                             }
                         }
 
-                    photoRow
+                    // Same live embedded camera circle as a habit check-in — one consistent
+                    // capture experience everywhere in the app a photo can be attached,
+                    // whether it's a personal check-in or a group progress log.
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 10) {
+                            LiveCameraCircle(ringColor: .keptOrange, isDisabled: capturedPhotos.count >= maxPhotos) { image in
+                                capturedPhotos.append(image)
+                            }
+                            Text(capturedPhotos.isEmpty ? "Tap to capture" : "Tap to capture another")
+                                .font(KeptFont.mono(11, weight: .semibold))
+                                .foregroundStyle(.keptInkSoft)
+                            if !capturedPhotos.isEmpty {
+                                Button("Retake last photo") { capturedPhotos.removeLast() }
+                                    .font(KeptFont.body(11.5, weight: .semibold))
+                                    .foregroundStyle(.keptOrangeDeep)
+                            }
+                        }
+                        Spacer()
+                    }
+
+                    if !capturedPhotos.isEmpty {
+                        photoRow
+                    }
 
                     Button(isSaving ? "Logging..." : "Log progress") { save() }
                         .buttonStyle(.keptPrimary)
@@ -237,61 +259,39 @@ private struct LogGroupProgressSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .fullScreenCover(isPresented: $showingCamera) {
-                CameraCaptureView(
-                    onCapture: { image in
-                        capturedPhotos.append(image)
-                        showingCamera = false
-                    },
-                    onCancel: { showingCamera = false }
-                )
-                .ignoresSafeArea()
-            }
         }
     }
 
-    /// Camera only, same reasoning as check-in photos (no library import) — live progress
-    /// pics, not a forced simultaneous front/back pair.
-    @ViewBuilder private var photoRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !capturedPhotos.isEmpty {
-                HStack(spacing: 10) {
-                    ForEach(Array(capturedPhotos.enumerated()), id: \.offset) { index, image in
-                        VStack(spacing: 4) {
-                            ZStack(alignment: .topTrailing) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 72, height: 72)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                Button {
-                                    capturedPhotos.remove(at: index)
-                                } label: {
-                                    Text("✕")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .frame(width: 18, height: 18)
-                                        .background(Circle().fill(.black.opacity(0.6)))
-                                }
-                                .padding(4)
-                            }
-                            Button("Save to Photos") {
-                                Task {
-                                    let saved = await PhotoLibrarySaver.save(image)
-                                    appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
-                                }
-                            }
-                            .font(KeptFont.body(9.5, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
+    private var photoRow: some View {
+        HStack(spacing: 10) {
+            ForEach(Array(capturedPhotos.enumerated()), id: \.offset) { index, image in
+                VStack(spacing: 4) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 72, height: 72)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        Button {
+                            capturedPhotos.remove(at: index)
+                        } label: {
+                            Text("✕")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 18, height: 18)
+                                .background(Circle().fill(.black.opacity(0.6)))
+                        }
+                        .padding(4)
+                    }
+                    Button("Save to Photos") {
+                        Task {
+                            let saved = await PhotoLibrarySaver.save(image)
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
                         }
                     }
+                    .font(KeptFont.body(9.5, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
                 }
-            }
-
-            if capturedPhotos.count < maxPhotos && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("Take a photo") { showingCamera = true }
-                    .font(KeptFont.body(12.5, weight: .semibold))
-                    .foregroundStyle(.keptOrangeDeep)
             }
         }
     }
