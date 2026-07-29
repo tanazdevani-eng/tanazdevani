@@ -67,7 +67,6 @@ struct GroupDetailView: View {
             LogGroupProgressSheet(group: group) {
                 Task { await load() }
             }
-            .presentationDetents([.medium])
         }
     }
 
@@ -96,7 +95,7 @@ struct GroupDetailView: View {
     private var actionRow: some View {
         HStack(spacing: 10) {
             if isMember {
-                Button("Log progress") { showingLogSheet = true }
+                Button("Check in") { showingLogSheet = true }
                     .buttonStyle(.keptAccent)
 
                 if group.visibility == .privateGroup {
@@ -186,72 +185,101 @@ private struct LogGroupProgressSheet: View {
     @State private var capturedPhotos: [UIImage] = []
     private let maxPhotos = 2
 
+    // Deliberately mirrors CheckInView's layout order (header, fixed gap, circle up top,
+    // caption, form fields, save button) so a group check-in and a habit check-in feel
+    // like the same screen, not two different flows that happen to share a camera widget.
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Log today's progress")
-                        .font(KeptFont.display(19, weight: .semibold))
-                        .foregroundStyle(.keptInk)
-
-                    HStack(spacing: 8) {
-                        TextField("Amount", text: $amountText)
-                            .keyboardType(.decimalPad)
-                            .font(KeptFont.body(15))
-                            .padding(15)
-                            .background(.keptSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                        Text(group.goalUnit)
-                            .font(KeptFont.body(14, weight: .medium))
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.name).font(KeptFont.display(21, weight: .semibold)).foregroundStyle(.keptInk)
+                        Text("Adds to this \(group.goalPeriod.label)'s total · the circle is a live camera")
+                            .font(KeptFont.body(12, weight: .medium))
                             .foregroundStyle(.keptInkSoft)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 6)
 
-                    TextField("Add a note (optional)", text: $note, axis: .vertical)
-                        .font(KeptFont.body(13.5))
-                        .lineLimit(2...4)
-                        .padding(14)
-                        .background(.keptSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                Spacer()
-                                Button("Done") { hideKeyboard() }
-                            }
-                        }
+                    Spacer().frame(height: 28)
 
-                    // Same live embedded camera circle as a habit check-in — one consistent
-                    // capture experience everywhere in the app a photo can be attached,
-                    // whether it's a personal check-in or a group progress log.
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 10) {
-                            LiveCameraCircle(ringColor: .keptOrange, isDisabled: capturedPhotos.count >= maxPhotos) { image in
-                                capturedPhotos.append(image)
-                            }
-                            Text(capturedPhotos.isEmpty ? "Tap to capture" : "Tap to capture another")
-                                .font(KeptFont.mono(11, weight: .semibold))
-                                .foregroundStyle(.keptInkSoft)
-                            if !capturedPhotos.isEmpty {
-                                Button("Retake last photo") { capturedPhotos.removeLast() }
-                                    .font(KeptFont.body(11.5, weight: .semibold))
-                                    .foregroundStyle(.keptOrangeDeep)
-                            }
+                    VStack(spacing: 14) {
+                        LiveCameraCircle(ringColor: .keptOrange, isDisabled: capturedPhotos.count >= maxPhotos) { image in
+                            capturedPhotos.append(image)
                         }
-                        Spacer()
+                        Text(capturedPhotos.isEmpty ? "TAP TO CAPTURE" : "TAP TO CAPTURE ANOTHER")
+                            .font(KeptFont.mono(12, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+
+                        if !capturedPhotos.isEmpty {
+                            Button("Retake last photo") { capturedPhotos.removeLast() }
+                                .font(KeptFont.body(12, weight: .semibold))
+                                .foregroundStyle(.keptOrangeDeep)
+                        }
                     }
+                    .padding(.top, 26)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("AMOUNT")
+                            .font(KeptFont.mono(11, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                        HStack(spacing: 8) {
+                            TextField("0", text: $amountText)
+                                .keyboardType(.decimalPad)
+                                .font(KeptFont.body(15))
+                                .padding(15)
+                                .background(.keptSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                            Text(group.goalUnit)
+                                .font(KeptFont.body(14, weight: .medium))
+                                .foregroundStyle(.keptInkSoft)
+                        }
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.top, 18)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ADD A NOTE ")
+                            .font(KeptFont.mono(11, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                        + Text("(optional)")
+                            .font(KeptFont.body(11, weight: .regular))
+                            .foregroundStyle(.keptInkSoft)
+
+                        TextField("Say something about today...", text: $note, axis: .vertical)
+                            .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15))
+                            .foregroundStyle(.keptInk)
+                            .lineLimit(3...6)
+                            .padding(14)
+                            .background(.keptSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") { hideKeyboard() }
+                                }
+                            }
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.top, 18)
 
                     if !capturedPhotos.isEmpty {
                         photoRow
+                            .padding(.horizontal, 22)
+                            .padding(.top, 14)
                     }
 
-                    Button(isSaving ? "Logging..." : "Log progress") { save() }
+                    Button(isSaving ? "Saving..." : "Save check-in") { save() }
                         .buttonStyle(.keptPrimary)
+                        .padding(.horizontal, 22)
+                        .padding(.top, 26)
+                        .padding(.bottom, 30)
                         .disabled(Double(amountText) == nil || isSaving)
                         .opacity(Double(amountText) == nil || isSaving ? 0.5 : 1)
                 }
-                .padding(22)
             }
             .background(Color.keptBackground.ignoresSafeArea())
             .toolbar {

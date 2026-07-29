@@ -18,7 +18,7 @@ import AVFoundation
 /// class unisolated and only hopping to `@MainActor` for the two things that actually need
 /// it — publishing `isAuthorized` and invoking the SwiftUI-facing capture completion —
 /// keeps what the compiler asserts honest about what actually happens at runtime.
-enum CameraAuthState { case notDetermined, authorized, denied }
+enum CameraAuthState { case notDetermined, authorized, denied, simulatorUnavailable }
 
 final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
     let session = AVCaptureSession()
@@ -40,6 +40,15 @@ final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCa
     /// it unprompted on appear is exactly the "ambushed by a system alert" feeling that
     /// isn't seamless.
     func start() {
+        #if targetEnvironment(simulator)
+        // The Simulator has no real camera — AVCaptureDevice.default(...) for a physical
+        // device type returns nil there, and depending on Xcode/Simulator version,
+        // requestAccess/session configuration can hang rather than fail cleanly. Never
+        // touch AVFoundation at all in this environment; a real device is required to
+        // actually test the live camera.
+        authState = .simulatorUnavailable
+        return
+        #else
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             authState = .authorized
@@ -49,6 +58,7 @@ final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCa
         default:
             authState = .denied
         }
+        #endif
     }
 
     /// Called from a tap on the circle itself when authState is .notDetermined — the
@@ -67,9 +77,13 @@ final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCa
     /// denied-then-granted permission change wouldn't be picked up until the view itself
     /// was torn down and recreated.
     func recheckAuthorizationIfNeeded() {
+        #if targetEnvironment(simulator)
+        return
+        #else
         guard authState != .authorized, AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
         authState = .authorized
         configureAndRun()
+        #endif
     }
 
     func stop() {
@@ -205,6 +219,8 @@ struct LiveCameraCircle: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
+                case .simulatorUnavailable:
+                    break
                 }
             } label: {
                 ZStack {
@@ -223,6 +239,11 @@ struct LiveCameraCircle: View {
                             .multilineTextAlignment(.center)
                     } else if controller.authState == .denied {
                         Text("Tap to enable\ncamera in Settings")
+                            .font(KeptFont.body(10, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                            .multilineTextAlignment(.center)
+                    } else if controller.authState == .simulatorUnavailable {
+                        Text("Camera preview isn't\navailable in Simulator")
                             .font(KeptFont.body(10, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
                             .multilineTextAlignment(.center)
