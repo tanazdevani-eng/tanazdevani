@@ -141,12 +141,10 @@ struct GroupFeedRow: View {
                     .background(Color.keptChip)
                     .clipShape(Capsule())
                     .onSubmit { submitComment() }
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") { commentFocused = false }
-                        }
-                    }
+                    // No .toolbar(.keyboard) here on purpose — this row repeats once per
+                    // feed entry in a ForEach, and toolbar content is collected across the
+                    // whole active hierarchy, not scoped per-row, so N of these would
+                    // collide. The return key (onSubmit above) already posts the comment.
 
                 if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
                     Button("Camera") { showingCommentCamera = true }

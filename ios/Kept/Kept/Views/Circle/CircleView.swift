@@ -4,7 +4,6 @@ struct CircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
     @State private var showingGroups = false
-    @State private var selectedGroup: HabitGroup?
     /// Shown until dismissed once, then remembered — a reminder worth seeing the first
     /// few times you're on this screen, not something that should sit here forever once
     /// you already know Kept habits never show up in Circle.
@@ -48,7 +47,12 @@ struct CircleView: View {
         .navigationDestination(isPresented: $showingGroups) {
             GroupsListView()
         }
-        .navigationDestination(item: $selectedGroup) { group in
+        // Declared once here, at the actual NavigationStack root (RootTabView wraps
+        // CircleView directly in a NavigationStack) — GroupsListView is pushed onto this
+        // same stack and reuses this single destination via NavigationLink(value:) rather
+        // than declaring its own, since a NavigationStack only honors one destination
+        // handler per data type across its whole hierarchy.
+        .navigationDestination(for: HabitGroup.self) { group in
             GroupDetailView(group: group)
         }
         .task { await appModel.loadMyGroups() }
@@ -89,9 +93,7 @@ struct CircleView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(appModel.myGroups) { group in
-                        Button {
-                            selectedGroup = group
-                        } label: {
+                        NavigationLink(value: group) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(group.name)
                                     .font(KeptFont.body(13, weight: .bold))

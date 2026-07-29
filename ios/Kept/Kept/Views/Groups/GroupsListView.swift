@@ -4,7 +4,6 @@ struct GroupsListView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingCreateGroup = false
     @State private var searchText = ""
-    @State private var selectedGroup: HabitGroup?
     @State private var isSearching = false
 
     var body: some View {
@@ -65,9 +64,6 @@ struct GroupsListView: View {
         .sheet(isPresented: $showingCreateGroup) {
             NavigationStack { CreateGroupView() }
         }
-        .navigationDestination(item: $selectedGroup) { group in
-            GroupDetailView(group: group)
-        }
     }
 
     private func section(label: String, @ViewBuilder content: () -> some View) -> some View {
@@ -79,14 +75,13 @@ struct GroupsListView: View {
         }
     }
 
-    /// Two sibling buttons, not one nested inside the other — nesting a Button in another
-    /// Button's label is unreliable (the outer one tends to swallow the inner tap), so the
-    /// row-open action and the Join action need to sit next to each other, not stacked.
+    /// NavigationLink(value:), not a Button setting local state — CircleView (the actual
+    /// NavigationStack root this screen is pushed onto) owns the single
+    /// navigationDestination(for: HabitGroup.self) for the whole stack; a second
+    /// destination registered here would silently lose to the outer one instead of firing.
     private func groupRow(_ group: HabitGroup, showJoin: Bool) -> some View {
         HStack(spacing: 12) {
-            Button {
-                selectedGroup = group
-            } label: {
+            NavigationLink(value: group) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(group.name)
                         .font(KeptFont.display(15, weight: .semibold))
@@ -112,9 +107,7 @@ struct GroupsListView: View {
                     .background(Color.keptOrangeSoft)
                     .clipShape(Capsule())
             } else {
-                Button {
-                    selectedGroup = group
-                } label: {
+                NavigationLink(value: group) {
                     Text("›").foregroundStyle(.keptInkSoft)
                 }
                 .buttonStyle(.plain)

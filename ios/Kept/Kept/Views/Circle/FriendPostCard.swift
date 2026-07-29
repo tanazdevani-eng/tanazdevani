@@ -294,12 +294,10 @@ struct FriendPostCard: View {
                     .background(Color.keptChip)
                     .clipShape(Capsule())
                     .onSubmit { submitComment() }
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") { commentFocused = false }
-                        }
-                    }
+                    // No .toolbar(.keyboard) here on purpose — this field repeats once per
+                    // post in a ForEach, and SwiftUI toolbar content is collected across
+                    // the whole active hierarchy, not scoped per-row, so N of these would
+                    // collide. The return key (onSubmit above) already posts the comment.
 
                 // Camera only, no library import — same reasoning as check-in photos.
                 if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
