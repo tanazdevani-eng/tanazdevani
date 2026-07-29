@@ -70,6 +70,10 @@ struct FriendPostCard: View {
                         .foregroundStyle(.keptInkSoft)
                 }
 
+                if let goal = item.goalDurationDays, let day = item.dayNumber {
+                    goalProgressBar(day: day, goal: goal)
+                }
+
                 if !item.isMine {
                     Group {
                         if isPickingReaction {
@@ -157,6 +161,26 @@ struct FriendPostCard: View {
                 .buttonStyle(.plain)
         } else {
             content
+        }
+    }
+
+    /// Only shown for habits with a duration goal (not Ongoing) — the streak dots above
+    /// already say "how consistent," this says "how far into the goal," which a bare
+    /// streak count doesn't capture on its own.
+    private func goalProgressBar(day: Int, goal: Int) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.keptChip)
+                    Capsule()
+                        .fill(item.isMine ? Color.keptOrange : Color.keptPurpleFill)
+                        .frame(width: geo.size.width * CGFloat(day) / CGFloat(max(goal, 1)))
+                }
+            }
+            .frame(height: 6)
+            Text("Day \(day) of \(goal)")
+                .font(KeptFont.mono(10.5, weight: .semibold))
+                .foregroundStyle(.keptInkSoft)
         }
     }
 

@@ -15,6 +15,10 @@ struct CircleFeedItem: Identifiable, Equatable {
     var note: String?
     var timeLabel: String
     var streakCount: Int
+    /// Non-nil only for habits with a duration goal (not Ongoing) — drives the "Day 12 of
+    /// 30" progress bar on the post. `dayNumber` is already clamped to `goalDurationDays`.
+    var goalDurationDays: Int?
+    var dayNumber: Int?
     var hasCheckedInToday: Bool
     var reactions: [ReactionSummary]
     var myReactionEmoji: String?

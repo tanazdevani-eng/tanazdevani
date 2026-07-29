@@ -363,6 +363,8 @@ final class AppModel: ObservableObject {
                     note: todaysNotes[habit.id],
                     timeLabel: "just now",
                     streakCount: habit.streakCount(calendar: dayCalendar),
+                    goalDurationDays: habit.goalDurationDays,
+                    dayNumber: habit.goalDurationDays.map { min(habit.daysSinceStart(calendar: dayCalendar), $0) },
                     hasCheckedInToday: true,
                     reactions: [],
                     myReactionEmoji: nil,
