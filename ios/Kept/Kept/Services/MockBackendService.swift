@@ -104,10 +104,15 @@ actor MockBackendService: BackendService {
         habits.removeAll { $0.id == id }
     }
 
-    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool) async throws {
+    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool, status: String) async throws {
         guard let index = habits.firstIndex(where: { $0.id == habitId }) else { return }
         if checkedIn {
-            habits[index].checkIn(on: day)
+            // A "missed" (down day) post never enters checkInHistory — only 'done' rows
+            // count toward a streak. AppModel.downDayHabitIds is what actually drives the
+            // Circle post for a down day; this mirror just needs to not fake a streak day.
+            if status == "done" {
+                habits[index].checkIn(on: day)
+            }
         } else {
             habits[index].undoCheckIn(on: day)
         }

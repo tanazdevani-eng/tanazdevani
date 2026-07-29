@@ -27,7 +27,7 @@ protocol BackendService {
     func createHabit(_ habit: Habit, userId: UUID) async throws
     func updateHabit(_ habit: Habit) async throws
     func deleteHabit(id: UUID) async throws
-    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool) async throws
+    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool, status: String) async throws
 
     // Circle
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember]

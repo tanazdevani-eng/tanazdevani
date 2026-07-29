@@ -19,12 +19,21 @@ struct CircleFeedItem: Identifiable, Equatable {
     /// 30" progress bar on the post. `dayNumber` is already clamped to `goalDurationDays`.
     var goalDurationDays: Int?
     var dayNumber: Int?
+    /// `.missed` is a "down day" post — logged on purpose, not silence, so it still shows
+    /// up here just like `.done`, but Nudge never applies to it (see FriendPostCard) and
+    /// it renders without the streak-continues framing.
+    var status: PostStatus = .done
     var hasCheckedInToday: Bool
     var reactions: [ReactionSummary]
     var myReactionEmoji: String?
     var comments: [Comment] = []
 
     var totalReactionCount: Int { reactions.reduce(0) { $0 + $1.count } }
+}
+
+enum PostStatus: Equatable {
+    case done
+    case missed
 }
 
 struct ReactionSummary: Identifiable, Equatable {

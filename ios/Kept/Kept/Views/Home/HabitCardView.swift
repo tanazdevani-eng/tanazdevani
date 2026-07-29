@@ -8,6 +8,7 @@ struct HabitCardView: View {
 
     private var calendar: DayCalendar { appModel.dayCalendar }
     private var checkedInToday: Bool { habit.isCheckedIn(calendar: calendar) }
+    private var isDownDayToday: Bool { appModel.downDayHabitIds.contains(habit.id) }
     private var streak: Int { habit.streakCount(calendar: calendar) }
 
     var body: some View {
@@ -55,16 +56,18 @@ struct HabitCardView: View {
                             Circle().fill(.white.opacity(0.2))
                             if checkedInToday {
                                 Text("✓").font(.system(size: 10))
+                            } else if isDownDayToday {
+                                Text("···").font(.system(size: 9, weight: .bold))
                             }
                         }
                         .frame(width: 16, height: 16)
-                        Text(checkedInToday ? "Checked in" : "Check in today")
+                        Text(checkedInToday ? "Checked in" : (isDownDayToday ? "Down day logged" : "Check in today"))
                     }
                     .font(KeptFont.body(13, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(checkedInToday ? Color.keptSuccess : Color.keptInkFill)
+                    .background(checkedInToday ? Color.keptSuccess : (isDownDayToday ? Color.keptInkSoft : Color.keptInkFill))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .sensoryFeedback(.success, trigger: checkedInToday) { _, newValue in newValue }

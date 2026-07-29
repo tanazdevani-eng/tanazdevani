@@ -118,9 +118,12 @@ final class SupabaseBackendService: BackendService {
             .order("created_at")
             .execute()
             .value
+        // Only 'done' rows count as history — a 'missed' (down day) row is a real post
+        // but was never a completed day, so it must never feed streaks or Home's dots.
         let checkInRows: [CheckInRow] = try await client.from("check_ins")
             .select()
             .eq("user_id", value: userId)
+            .eq("status", value: "done")
             .execute()
             .value
         let audienceRows: [HabitAudienceRow] = try await client.from("habit_audience")
@@ -178,16 +181,17 @@ final class SupabaseBackendService: BackendService {
         try await client.from("habits").delete().eq("id", value: id).execute()
     }
 
-    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool) async throws {
+    func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool, status: String) async throws {
         if checkedIn {
             struct Upsert: Codable {
                 var habit_id: UUID
                 var user_id: UUID
                 var logical_day: Date
                 var note: String?
+                var status: String
             }
             try await client.from("check_ins")
-                .upsert(Upsert(habit_id: habitId, user_id: userId, logical_day: day, note: note),
+                .upsert(Upsert(habit_id: habitId, user_id: userId, logical_day: day, note: note, status: status),
                         onConflict: "habit_id,logical_day")
                 .execute()
         } else {
@@ -268,9 +272,10 @@ final class SupabaseBackendService: BackendService {
             var habit_id: UUID
             var note: String?
             var created_at: Date
+            var status: String
         }
         let rows: [FeedCheckInRow] = try await client.from("check_ins")
-            .select("id, user_id, habit_id, note, created_at")
+            .select("id, user_id, habit_id, note, created_at, status")
             .neq("user_id", value: userId)
             .execute()
             .value
@@ -344,7 +349,7 @@ final class SupabaseBackendService: BackendService {
                 .rpc("habit_streak_count", params: ["p_habit_id": row.habit_id])
                 .execute()
                 .value
-            let streak = streakValue ?? 1
+            let streak = streakValue ?? (row.status == "done" ? 1 : 0)
             let habit = habitInfo.first(where: { $0.id == row.habit_id })
             let dayNumber = habit?.goal_duration_days.map { goal -> Int in
                 let daysSinceStart = max(1, Calendar.current.dateComponents([.day], from: habit!.created_at, to: Date()).day.map { $0 + 1 } ?? 1)
@@ -364,6 +369,7 @@ final class SupabaseBackendService: BackendService {
                 streakCount: streak,
                 goalDurationDays: habit?.goal_duration_days,
                 dayNumber: dayNumber,
+                status: row.status == "missed" ? .missed : .done,
                 hasCheckedInToday: true,
                 reactions: reactions,
                 myReactionEmoji: myReaction,

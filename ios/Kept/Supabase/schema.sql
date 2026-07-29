@@ -48,6 +48,10 @@ create table public.check_ins (
   user_id uuid not null references auth.users(id) on delete cascade,
   logical_day date not null,
   note text,
+  -- 'missed' is a "down day" post: logged on purpose (couldn't get to it today), visible
+  -- to Circle exactly like a 'done' post so people can show up for you either way, but
+  -- never counted toward a streak — see habit_streak_count below.
+  status text not null default 'done' check (status in ('done', 'missed')),
   created_at timestamptz not null default now(),
   unique (habit_id, logical_day)
 );
@@ -220,12 +224,12 @@ declare
   streak int := 0;
   cursor_day date := (now() at time zone 'utc')::date;
 begin
-  if not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day) then
+  if not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day and status = 'done') then
     cursor_day := cursor_day - 1;
   end if;
 
   loop
-    exit when not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day);
+    exit when not exists (select 1 from public.check_ins where habit_id = p_habit_id and logical_day = cursor_day and status = 'done');
     streak := streak + 1;
     cursor_day := cursor_day - 1;
   end loop;

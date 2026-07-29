@@ -33,7 +33,11 @@ struct FriendPostCard: View {
 
                     if item.isMine, let habit = appModel.habits.first(where: { $0.id == item.habitId }) {
                         Button {
-                            appModel.undoCheckIn(habit)
+                            if item.status == .missed {
+                                appModel.undoDownDay(habit)
+                            } else {
+                                appModel.undoCheckIn(habit)
+                            }
                         } label: {
                             Text("✕").font(.system(size: 13)).foregroundStyle(.keptInkSoft)
                         }
@@ -57,8 +61,20 @@ struct FriendPostCard: View {
                         .foregroundStyle(.keptInk)
                 }
 
+                if item.status == .missed {
+                    Text("DOWN DAY")
+                        .font(KeptFont.mono(10, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 9)
+                        .background(Color.keptChip)
+                        .clipShape(Capsule())
+                }
+
                 if let note = item.note, !note.isEmpty {
                     noteText("\u{201C}\(note)\u{201D}", italic: true)
+                } else if item.status == .missed {
+                    noteText("Couldn't get to it today.", italic: false)
                 } else if item.isMine {
                     noteText("Checked in. No note this time.", italic: false)
                 }
@@ -90,7 +106,10 @@ struct FriendPostCard: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                if !item.hasCheckedInToday {
+                                // Never on a down-day post — they already told you they
+                                // couldn't get to it, "nudge" reads as pestering, not
+                                // support. Reactions/comments are the right response there.
+                                if !item.hasCheckedInToday && item.status != .missed {
                                     let alreadyNudged = appModel.nudgedAuthorIds.contains(item.authorId)
                                     Button {
                                         appModel.nudge(item)

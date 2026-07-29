@@ -37,6 +37,11 @@ final class AppModel: ObservableObject {
     /// Comments on your own today's check-ins, keyed by habit id (mirrors todaysNotes,
     /// since "mine" Circle feed items are derived rather than stored — see circleFeed).
     @Published var todaysComments: [UUID: [Comment]] = [:]
+    /// Habits logged today as a "down day" (couldn't get to it) instead of checked in —
+    /// a real post, not silence, but never in checkInHistory so it never extends a streak.
+    /// Mutually exclusive with being checked in today; the note lives in todaysNotes same
+    /// as a normal check-in's note does.
+    @Published var downDayHabitIds: Set<UUID> = []
     /// Friends nudged this session, so the button can flip to a disabled "Nudged" state.
     @Published var nudgedAuthorIds: Set<UUID> = []
     /// Set by handleIncomingURL when someone taps a kept://invite link. RootTabView shows
@@ -192,6 +197,7 @@ final class AppModel: ObservableObject {
         defaultVisibility = .open
         todaysNotes = [:]
         todaysComments = [:]
+        downDayHabitIds = []
         nudgedAuthorIds = []
         friendFeedItems = Self.demoFriendFeed()
         selectedTab = .circle
@@ -291,15 +297,44 @@ final class AppModel: ObservableObject {
     func checkIn(_ habit: Habit, note: String?) {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].checkIn(calendar: dayCalendar)
+        downDayHabitIds.remove(habit.id)
         if let note, !note.isEmpty {
             todaysNotes[habit.id] = note
         }
         let day = dayCalendar.logicalDay(for: Date())
-        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true) }
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true, status: "done") }
 
         if let goal = habits[index].goalDurationDays, habits[index].daysSinceStart(calendar: dayCalendar) >= goal {
             goalCompletedHabit = habits[index]
         }
+    }
+
+    /// "Down day" — logged on purpose (couldn't get to it today), a real Circle post like
+    /// any check-in, but never appended to checkInHistory so it never extends a streak.
+    /// Mutually exclusive with checkIn(_:note:); calling this on an already-checked-in
+    /// habit un-checks it first, since a day can't be both.
+    func logDownDay(_ habit: Habit, note: String?) {
+        guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
+        habits[index].undoCheckIn(calendar: dayCalendar)
+        downDayHabitIds.insert(habit.id)
+        if let note, !note.isEmpty {
+            todaysNotes[habit.id] = note
+        } else {
+            todaysNotes.removeValue(forKey: habit.id)
+        }
+        let day = dayCalendar.logicalDay(for: Date())
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true, status: "missed") }
+    }
+
+    /// Pulls back a down-day post, same idea as undoCheckIn but for the "missed" branch —
+    /// used by the "✕" on your own down-day card in Circle.
+    func undoDownDay(_ habit: Habit) {
+        downDayHabitIds.remove(habit.id)
+        todaysNotes.removeValue(forKey: habit.id)
+        todaysComments.removeValue(forKey: habit.id)
+        let day = dayCalendar.logicalDay(for: Date())
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false, status: "missed") }
+        showToast("Down day removed")
     }
 
     /// Fixes or clears the note on today's check-in without undoing the check-in itself —
@@ -313,8 +348,9 @@ final class AppModel: ObservableObject {
             todaysNotes.removeValue(forKey: habit.id)
         }
         let day = dayCalendar.logicalDay(for: Date())
+        let status = downDayHabitIds.contains(habit.id) ? "missed" : "done"
         performBackendSync { [self] in
-            try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: trimmed, checkedIn: true)
+            try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: trimmed, checkedIn: true, status: status)
         }
     }
 
@@ -342,7 +378,7 @@ final class AppModel: ObservableObject {
         todaysNotes.removeValue(forKey: habit.id)
         todaysComments.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
-        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false) }
+        performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false, status: "done") }
         showToast("Check-in undone")
     }
 
@@ -350,9 +386,10 @@ final class AppModel: ObservableObject {
 
     var circleFeed: [CircleFeedItem] {
         let mine: [CircleFeedItem] = habits
-            .filter { $0.visibility == .open && $0.isCheckedIn(calendar: dayCalendar) }
+            .filter { $0.visibility == .open && ($0.isCheckedIn(calendar: dayCalendar) || downDayHabitIds.contains($0.id)) }
             .map { habit in
-                CircleFeedItem(
+                let isDownDay = downDayHabitIds.contains(habit.id)
+                return CircleFeedItem(
                     id: habit.id,
                     authorId: profile.id,
                     authorName: "You",
@@ -365,7 +402,8 @@ final class AppModel: ObservableObject {
                     streakCount: habit.streakCount(calendar: dayCalendar),
                     goalDurationDays: habit.goalDurationDays,
                     dayNumber: habit.goalDurationDays.map { min(habit.daysSinceStart(calendar: dayCalendar), $0) },
-                    hasCheckedInToday: true,
+                    status: isDownDay ? .missed : .done,
+                    hasCheckedInToday: !isDownDay,
                     reactions: [],
                     myReactionEmoji: nil,
                     comments: todaysComments[habit.id] ?? []

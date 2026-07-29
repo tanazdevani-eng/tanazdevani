@@ -88,6 +88,8 @@ struct HomeView: View {
     private func handleCheckInTap(_ habit: Habit) {
         if habit.isCheckedIn(calendar: appModel.dayCalendar) {
             appModel.undoCheckIn(habit)
+        } else if appModel.downDayHabitIds.contains(habit.id) {
+            appModel.undoDownDay(habit)
         } else {
             checkInHabit = habit
         }

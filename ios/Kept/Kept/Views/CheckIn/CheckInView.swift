@@ -9,7 +9,9 @@ struct CheckInView: View {
     @Environment(\.dismiss) private var dismiss
     let habit: Habit
 
-    @State private var isDone = true
+    private enum Mode { case done, downDay, notLogged }
+
+    @State private var mode: Mode = .done
     @State private var note = ""
     @FocusState private var noteFocused: Bool
 
@@ -34,33 +36,46 @@ struct CheckInView: View {
 
             VStack(spacing: 14) {
                 Button {
-                    isDone.toggle()
+                    mode = (mode == .done) ? .notLogged : .done
                 } label: {
                     ZStack {
                         Circle()
-                            .strokeBorder(isDone ? Color.keptSuccess : Color.keptLine, lineWidth: 3)
-                            .background(Circle().fill(isDone ? Color.keptSuccessSoft : Color.keptSurface))
-                        if isDone {
+                            .strokeBorder(circleStrokeColor, lineWidth: 3)
+                            .background(Circle().fill(circleFillColor))
+                        if mode == .done {
                             Text("✓").font(.system(size: 44)).foregroundStyle(.keptSuccess)
+                        } else if mode == .downDay {
+                            Text("···").font(.system(size: 32, weight: .bold)).foregroundStyle(.keptInkSoft)
                         }
                     }
                     .frame(width: 130, height: 130)
                 }
-                Text(isDone ? "CHECKED IN · tap to undo" : "NOT LOGGED · tap to check in")
+                Text(circleCaption)
                     .font(KeptFont.mono(12, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
+
+                if mode != .downDay {
+                    Button("Couldn't get to this one? Log a down day") { mode = .downDay }
+                        .font(KeptFont.body(12, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
+                        .underline()
+                } else {
+                    Button("Actually, I did it — check in instead") { mode = .done }
+                        .font(KeptFont.body(12, weight: .semibold))
+                        .foregroundStyle(.keptOrangeDeep)
+                }
             }
             .padding(.top, 26)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("ADD A NOTE ")
+                Text(mode == .downDay ? "WHAT GOT IN THE WAY " : "ADD A NOTE ")
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
                 + Text("(optional)")
                     .font(KeptFont.body(11, weight: .regular))
                     .foregroundStyle(.keptInkSoft)
 
-                TextField("Say something about today...", text: $note, axis: .vertical)
+                TextField(mode == .downDay ? "No pressure — say what happened, if you want..." : "Say something about today...", text: $note, axis: .vertical)
                     .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15, italic: true))
                     .foregroundStyle(.keptInk)
                     .focused($noteFocused)
@@ -77,7 +92,7 @@ struct CheckInView: View {
                 .padding(.horizontal, 22)
                 .padding(.top, 14)
 
-            Button("Save check-in") { saveCheckIn() }
+            Button(saveLabel) { saveCheckIn() }
                 .buttonStyle(.keptPrimary)
                 .padding(.horizontal, 22)
                 .padding(.top, 26)
@@ -86,6 +101,38 @@ struct CheckInView: View {
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Check in")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var circleStrokeColor: Color {
+        switch mode {
+        case .done: return .keptSuccess
+        case .downDay: return .keptLine
+        case .notLogged: return .keptLine
+        }
+    }
+
+    private var circleFillColor: Color {
+        switch mode {
+        case .done: return .keptSuccessSoft
+        case .downDay: return .keptChip
+        case .notLogged: return .keptSurface
+        }
+    }
+
+    private var circleCaption: String {
+        switch mode {
+        case .done: return "CHECKED IN · tap to undo"
+        case .downDay: return "DOWN DAY · logged, not done"
+        case .notLogged: return "NOT LOGGED · tap to check in"
+        }
+    }
+
+    private var saveLabel: String {
+        switch mode {
+        case .done: return "Save check-in"
+        case .downDay: return "Post down day"
+        case .notLogged: return "Save"
+        }
     }
 
     @ViewBuilder private var visibilityReminder: some View {
@@ -104,9 +151,13 @@ struct CheckInView: View {
     }
 
     private func saveCheckIn() {
-        if isDone {
-            appModel.checkIn(habit, note: note.trimmingCharacters(in: .whitespacesAndNewlines))
-        } else {
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch mode {
+        case .done:
+            appModel.checkIn(habit, note: trimmedNote)
+        case .downDay:
+            appModel.logDownDay(habit, note: trimmedNote.isEmpty ? nil : trimmedNote)
+        case .notLogged:
             appModel.undoCheckIn(habit)
         }
         dismiss()
