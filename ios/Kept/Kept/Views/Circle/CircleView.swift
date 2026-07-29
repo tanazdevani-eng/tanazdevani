@@ -17,6 +17,11 @@ struct CircleView: View {
                     .foregroundStyle(.keptInkSoft)
                     .padding(.horizontal, 22)
 
+                if !uncheckedHabitsToday.isEmpty {
+                    unfinishedHabitsBanner
+                        .padding(.horizontal, 22)
+                }
+
                 if appModel.circleFeed.isEmpty {
                     emptyState
                         .padding(.horizontal, 22)
@@ -57,6 +62,41 @@ struct CircleView: View {
         }
         .padding(.horizontal, 22)
         .padding(.top, 4)
+    }
+
+    /// Circle is the front door now, but a static habit list one tab over has nothing
+    /// pulling you back to it on its own — this bridges the gap so the personal action is
+    /// never more than a glance away even though the feed opens first.
+    private var uncheckedHabitsToday: [Habit] {
+        appModel.habits.filter {
+            !$0.isCheckedIn(calendar: appModel.dayCalendar) && !appModel.downDayHabitIds.contains($0.id)
+        }
+    }
+
+    private var unfinishedHabitsBanner: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(uncheckedHabitsToday.count == 1 ? "1 habit waiting on you today" : "\(uncheckedHabitsToday.count) habits waiting on you today")
+                    .font(KeptFont.body(13, weight: .bold))
+                    .foregroundStyle(.keptInk)
+                Text(uncheckedHabitsToday.count == 1 ? uncheckedHabitsToday[0].name : "Check in before the day resets.")
+                    .font(KeptFont.body(11.5, weight: .medium))
+                    .foregroundStyle(.keptInkSoft)
+            }
+            Spacer(minLength: 8)
+            Button("Check in") { appModel.selectedTab = .habits }
+                .font(KeptFont.body(12.5, weight: .bold))
+                .foregroundStyle(.keptOrangeDeep)
+                .padding(.vertical, 9)
+                .padding(.horizontal, 16)
+                .background(Color.keptOrangeSoft)
+                .clipShape(Capsule())
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(.keptSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }
 
     private var emptyState: some View {
