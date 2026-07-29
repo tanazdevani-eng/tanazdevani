@@ -28,6 +28,12 @@ protocol BackendService {
     func updateHabit(_ habit: Habit) async throws
     func deleteHabit(id: UUID) async throws
     func setCheckIn(habitId: UUID, userId: UUID, day: Date, note: String?, checkedIn: Bool, status: String) async throws
+    /// Separate from setCheckIn on purpose: photos are attached after the row already
+    /// exists (an UPDATE targeting habit_id+day), not folded into the upsert payload —
+    /// keeps the two concerns independent so editing a note can never accidentally clobber
+    /// a photo that's already there, or vice versa.
+    func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws
+    func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL
 
     // Circle
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember]
@@ -42,7 +48,7 @@ protocol BackendService {
     func notifyInviteAccepted(inviterId: UUID, accepterName: String) async throws
     func sendReaction(feedItemId: UUID, userId: UUID, emoji: String) async throws
     func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws
-    func addComment(feedItemId: UUID, userId: UUID, text: String) async throws
+    func addComment(feedItemId: UUID, userId: UUID, text: String, photoURL: String?) async throws
     func reportCheckIn(checkInId: UUID, reporterId: UUID, reportedUserId: UUID, reason: String) async throws
     func blockUser(blockerId: UUID, blockedId: UUID) async throws
 

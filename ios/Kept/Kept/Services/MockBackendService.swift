@@ -121,6 +121,17 @@ actor MockBackendService: BackendService {
         }
     }
 
+    /// No real Storage bucket in mock mode, same reasoning as uploadAvatar — writes to
+    /// Documents and hands back a real, loadable file:// URL.
+    func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws {}
+
+    func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL {
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = directory.appendingPathComponent("post-photo-\(UUID().uuidString).jpg")
+        try imageData.write(to: fileURL, options: .atomic)
+        return fileURL
+    }
+
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember] { members }
 
     func fetchPendingInvites(userId: UUID) async throws -> [PendingInvite] { invites }
@@ -152,7 +163,7 @@ actor MockBackendService: BackendService {
 
     func sendNudge(userId: UUID, memberId: UUID, day: Date) async throws {}
 
-    func addComment(feedItemId: UUID, userId: UUID, text: String) async throws {}
+    func addComment(feedItemId: UUID, userId: UUID, text: String, photoURL: String?) async throws {}
     func reportCheckIn(checkInId: UUID, reporterId: UUID, reportedUserId: UUID, reason: String) async throws {}
     func blockUser(blockerId: UUID, blockedId: UUID) async throws {}
 

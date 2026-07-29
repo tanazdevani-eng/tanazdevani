@@ -60,8 +60,8 @@ newly added font silently falls back to the system font.
    own APNs secrets set before it can actually deliver — see
    `docs/APP_STORE_GUIDE.md` section 5. It's safe to deploy now even without those secrets
    set; it'll just no-op with an error on push until they're configured.
-5. Storage: create a public bucket named `avatars` (Storage → New bucket) for profile
-   photos.
+5. Storage: create two public buckets (Storage → New bucket) — `avatars` for profile
+   photos, and `post-photos` for photos attached to check-ins and comments.
 6. Phone auth needs an SMS provider — Authentication → Providers → Phone → enable it and
    connect Twilio (or MessageBird/Vonage). This costs a small amount per text and requires
    its own account; there's no way around a paid SMS provider for real phone verification.

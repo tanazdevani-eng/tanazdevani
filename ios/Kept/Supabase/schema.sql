@@ -52,6 +52,10 @@ create table public.check_ins (
   -- to Circle exactly like a 'done' post so people can show up for you either way, but
   -- never counted toward a streak — see habit_streak_count below.
   status text not null default 'done' check (status in ('done', 'missed')),
+  -- Up to 2 photo URLs (Storage public URLs) attached at check-in — capped client-side,
+  -- not here; deliberately not a forced simultaneous front+back pair like BeReal, just an
+  -- optional attachment someone can add one or two of.
+  photo_urls text[] not null default '{}',
   created_at timestamptz not null default now(),
   unique (habit_id, logical_day)
 );
@@ -97,7 +101,9 @@ create table public.comments (
   id uuid primary key default gen_random_uuid(),
   check_in_id uuid not null references public.check_ins(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  text text not null,
+  -- Defaults to '' rather than staying strictly required — a comment can now be photo-only.
+  text text not null default '',
+  photo_url text,
   created_at timestamptz not null default now()
 );
 

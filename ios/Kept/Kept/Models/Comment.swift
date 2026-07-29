@@ -5,4 +5,5 @@ struct Comment: Identifiable, Equatable {
     var authorName: String
     var text: String
     var postedAt: Date
+    var photoURL: URL?
 }

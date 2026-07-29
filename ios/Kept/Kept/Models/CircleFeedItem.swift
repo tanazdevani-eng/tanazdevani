@@ -27,6 +27,9 @@ struct CircleFeedItem: Identifiable, Equatable {
     var reactions: [ReactionSummary]
     var myReactionEmoji: String?
     var comments: [Comment] = []
+    /// Up to 2 photos attached at check-in — not a forced simultaneous front/back pair,
+    /// just an optional attachment (see CheckInView).
+    var photoURLs: [URL] = []
 
     var totalReactionCount: Int { reactions.reduce(0) { $0 + $1.count } }
 }

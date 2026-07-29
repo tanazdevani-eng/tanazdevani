@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Central app state: habits, Circle, profile, notification settings. Views read this via
 /// @EnvironmentObject and call its methods directly rather than going through a
@@ -47,6 +48,8 @@ final class AppModel: ObservableObject {
     /// Mutually exclusive with being checked in today; the note lives in todaysNotes same
     /// as a normal check-in's note does.
     @Published var downDayHabitIds: Set<UUID> = []
+    /// Photos attached to today's check-in per habit — up to 2, mirrors todaysNotes.
+    @Published var todaysPhotoURLs: [UUID: [URL]] = [:]
     /// Friends nudged this session, so the button can flip to a disabled "Nudged" state.
     @Published var nudgedAuthorIds: Set<UUID> = []
     /// Set by handleIncomingURL when someone taps a kept://invite link. RootTabView shows
@@ -203,6 +206,7 @@ final class AppModel: ObservableObject {
         todaysNotes = [:]
         todaysComments = [:]
         downDayHabitIds = []
+        todaysPhotoURLs = [:]
         nudgedAuthorIds = []
         myGroups = []
         discoveredGroups = []
@@ -303,7 +307,7 @@ final class AppModel: ObservableObject {
     /// day isn't possible (the button becomes an undo toggle instead).
     @Published var goalCompletedHabit: Habit?
 
-    func checkIn(_ habit: Habit, note: String?) {
+    func checkIn(_ habit: Habit, note: String?, photos: [UIImage] = []) {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].checkIn(calendar: dayCalendar)
         downDayHabitIds.remove(habit.id)
@@ -312,6 +316,9 @@ final class AppModel: ObservableObject {
         }
         let day = dayCalendar.logicalDay(for: Date())
         performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true, status: "done") }
+        if !photos.isEmpty {
+            Task { [self] in await uploadCheckInPhotos(habit: habit, day: day, photos: photos) }
+        }
 
         if let goal = habits[index].goalDurationDays, habits[index].daysSinceStart(calendar: dayCalendar) >= goal {
             goalCompletedHabit = habits[index]
@@ -322,7 +329,7 @@ final class AppModel: ObservableObject {
     /// any check-in, but never appended to checkInHistory so it never extends a streak.
     /// Mutually exclusive with checkIn(_:note:); calling this on an already-checked-in
     /// habit un-checks it first, since a day can't be both.
-    func logDownDay(_ habit: Habit, note: String?) {
+    func logDownDay(_ habit: Habit, note: String?, photos: [UIImage] = []) {
         guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
         habits[index].undoCheckIn(calendar: dayCalendar)
         downDayHabitIds.insert(habit.id)
@@ -333,6 +340,27 @@ final class AppModel: ObservableObject {
         }
         let day = dayCalendar.logicalDay(for: Date())
         performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: note, checkedIn: true, status: "missed") }
+        if !photos.isEmpty {
+            Task { [self] in await uploadCheckInPhotos(habit: habit, day: day, photos: photos) }
+        }
+    }
+
+    /// Uploads each photo (capped at 2 — not a forced simultaneous front/back pair like
+    /// BeReal, just an optional attachment), then patches photo_urls onto the check-in row
+    /// that checkIn/logDownDay already saved. Runs after the main save so a slow upload
+    /// never blocks the check-in itself from registering.
+    private func uploadCheckInPhotos(habit: Habit, day: Date, photos: [UIImage]) async {
+        guard let userId = session?.userId else { return }
+        var urls: [URL] = []
+        for image in photos.prefix(2) {
+            guard let data = image.jpegData(compressionQuality: 0.75) else { continue }
+            if let url = try? await backend.uploadCheckInPhoto(userId: userId, imageData: data) {
+                urls.append(url)
+            }
+        }
+        guard !urls.isEmpty else { return }
+        todaysPhotoURLs[habit.id] = urls
+        try? await backend.setCheckInPhotos(habitId: habit.id, userId: userId, day: day, photoURLs: urls.map(\.absoluteString))
     }
 
     /// Pulls back a down-day post, same idea as undoCheckIn but for the "missed" branch —
@@ -341,6 +369,7 @@ final class AppModel: ObservableObject {
         downDayHabitIds.remove(habit.id)
         todaysNotes.removeValue(forKey: habit.id)
         todaysComments.removeValue(forKey: habit.id)
+        todaysPhotoURLs.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
         performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false, status: "missed") }
         showToast("Down day removed")
@@ -386,6 +415,7 @@ final class AppModel: ObservableObject {
         habits[index].undoCheckIn(calendar: dayCalendar)
         todaysNotes.removeValue(forKey: habit.id)
         todaysComments.removeValue(forKey: habit.id)
+        todaysPhotoURLs.removeValue(forKey: habit.id)
         let day = dayCalendar.logicalDay(for: Date())
         performBackendSync { [self] in try await backend.setCheckIn(habitId: habit.id, userId: requireUserId(), day: day, note: nil, checkedIn: false, status: "done") }
         showToast("Check-in undone")
@@ -415,7 +445,8 @@ final class AppModel: ObservableObject {
                     hasCheckedInToday: !isDownDay,
                     reactions: [],
                     myReactionEmoji: nil,
-                    comments: todaysComments[habit.id] ?? []
+                    comments: todaysComments[habit.id] ?? [],
+                    photoURLs: todaysPhotoURLs[habit.id] ?? []
                 )
             }
         return mine + friendFeedItems
@@ -447,11 +478,30 @@ final class AppModel: ObservableObject {
     /// Works for both a friend's post (stored on friendFeedItems) and your own (stored in
     /// todaysComments, keyed by habit id, since "mine" feed items are derived rather than
     /// stored — see circleFeed above).
-    func addComment(to item: CircleFeedItem, text: String) {
+    func addComment(to item: CircleFeedItem, text: String, photo: UIImage? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        let comment = Comment(id: UUID(), authorName: "You", text: trimmed, postedAt: Date())
+        guard !trimmed.isEmpty || photo != nil else { return }
 
+        if let photo {
+            // Photo needs to actually finish uploading before there's a URL to attach, so
+            // this branch waits on that; a text-only comment (the common case) posts
+            // immediately without waiting on anything.
+            Task { [self] in
+                let photoURL = await uploadPostPhoto(photo)
+                appendComment(to: item, text: trimmed, photoURL: photoURL)
+            }
+        } else {
+            appendComment(to: item, text: trimmed, photoURL: nil)
+        }
+    }
+
+    private func uploadPostPhoto(_ image: UIImage) async -> URL? {
+        guard let userId = session?.userId, let data = image.jpegData(compressionQuality: 0.75) else { return nil }
+        return try? await backend.uploadCheckInPhoto(userId: userId, imageData: data)
+    }
+
+    private func appendComment(to item: CircleFeedItem, text: String, photoURL: URL?) {
+        let comment = Comment(id: UUID(), authorName: "You", text: text, postedAt: Date(), photoURL: photoURL)
         if item.isMine, let habitId = item.habitId {
             todaysComments[habitId, default: []].append(comment)
         } else if let index = friendFeedItems.firstIndex(where: { $0.id == item.id }) {
@@ -459,7 +509,9 @@ final class AppModel: ObservableObject {
         } else {
             return
         }
-        performBackendSync { [self] in try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: trimmed) }
+        performBackendSync { [self] in
+            try await backend.addComment(feedItemId: item.id, userId: requireUserId(), text: text, photoURL: photoURL?.absoluteString)
+        }
     }
 
     /// Guideline 1.2 (UGC): lets someone flag a Circle post for review. Pulls it from the

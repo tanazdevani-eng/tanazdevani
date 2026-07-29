@@ -203,6 +203,27 @@ final class SupabaseBackendService: BackendService {
         }
     }
 
+    /// An UPDATE against the already-existing row, not folded into setCheckIn's upsert —
+    /// photos upload after the check-in itself is saved, so this only ever touches
+    /// photo_urls, never note/status.
+    func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws {
+        struct Patch: Codable { var photo_urls: [String] }
+        try await client.from("check_ins")
+            .update(Patch(photo_urls: photoURLs))
+            .eq("habit_id", value: habitId)
+            .eq("user_id", value: userId)
+            .eq("logical_day", value: day)
+            .execute()
+    }
+
+    /// Shared by check-in photos and comment photos alike — same bucket, same "one photo,
+    /// its own file" shape, just a different caller.
+    func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL {
+        let path = "\(userId.uuidString)/\(UUID().uuidString).jpg"
+        try await client.storage.from("post-photos").upload(path, data: imageData, options: .init(upsert: false))
+        return try client.storage.from("post-photos").getPublicURL(path: path)
+    }
+
     // MARK: - Circle
 
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember] {
@@ -273,9 +294,10 @@ final class SupabaseBackendService: BackendService {
             var note: String?
             var created_at: Date
             var status: String
+            var photo_urls: [String]
         }
         let rows: [FeedCheckInRow] = try await client.from("check_ins")
-            .select("id, user_id, habit_id, note, created_at, status")
+            .select("id, user_id, habit_id, note, created_at, status, photo_urls")
             .neq("user_id", value: userId)
             .execute()
             .value
@@ -296,9 +318,9 @@ final class SupabaseBackendService: BackendService {
             .execute()
             .value
 
-        struct CommentRow: Codable { var id: UUID; var check_in_id: UUID; var user_id: UUID; var text: String; var created_at: Date }
+        struct CommentRow: Codable { var id: UUID; var check_in_id: UUID; var user_id: UUID; var text: String; var created_at: Date; var photo_url: String? }
         let commentRows: [CommentRow] = try await client.from("comments")
-            .select("id, check_in_id, user_id, text, created_at")
+            .select("id, check_in_id, user_id, text, created_at, photo_url")
             .in("check_in_id", values: checkInIds)
             .execute()
             .value
@@ -338,7 +360,8 @@ final class SupabaseBackendService: BackendService {
                         id: comment.id,
                         authorName: commentAuthorProfiles.first(where: { $0.id == comment.user_id })?.name ?? "Someone",
                         text: comment.text,
-                        postedAt: comment.created_at
+                        postedAt: comment.created_at,
+                        photoURL: comment.photo_url.flatMap(URL.init(string:))
                     )
                 }
 
@@ -373,7 +396,8 @@ final class SupabaseBackendService: BackendService {
                 hasCheckedInToday: true,
                 reactions: reactions,
                 myReactionEmoji: myReaction,
-                comments: comments
+                comments: comments,
+                photoURLs: row.photo_urls.compactMap(URL.init(string:))
             ))
         }
         return items
@@ -473,14 +497,15 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
-    func addComment(feedItemId: UUID, userId: UUID, text: String) async throws {
+    func addComment(feedItemId: UUID, userId: UUID, text: String, photoURL: String?) async throws {
         struct CommentInsert: Codable {
             var check_in_id: UUID
             var user_id: UUID
             var text: String
+            var photo_url: String?
         }
         try await client.from("comments")
-            .insert(CommentInsert(check_in_id: feedItemId, user_id: userId, text: text))
+            .insert(CommentInsert(check_in_id: feedItemId, user_id: userId, text: text, photo_url: photoURL))
             .execute()
     }
 

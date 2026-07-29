@@ -1,10 +1,15 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct FriendPostCard: View {
     @EnvironmentObject var appModel: AppModel
     let item: CircleFeedItem
     @State private var isPickingReaction = false
     @State private var commentText = ""
+    @State private var commentPhoto: UIImage?
+    @State private var showingCommentCamera = false
+    @State private var commentLibraryItem: PhotosPickerItem?
     @FocusState private var commentFocused: Bool
     @State private var showingMoreActions = false
     @State private var showingReportReasons = false
@@ -88,6 +93,10 @@ struct FriendPostCard: View {
 
                 if let goal = item.goalDurationDays, let day = item.dayNumber {
                     goalProgressBar(day: day, goal: goal)
+                }
+
+                if !item.photoURLs.isEmpty {
+                    postPhotosRow
                 }
 
                 if !item.isMine {
@@ -203,20 +212,68 @@ struct FriendPostCard: View {
         }
     }
 
+    /// A check-in's attached photos, if any (never a forced simultaneous front/back pair,
+    /// just whatever the poster chose to attach — see CheckInView).
+    private var postPhotosRow: some View {
+        HStack(spacing: 10) {
+            ForEach(item.photoURLs, id: \.self) { url in
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.keptChip
+                }
+                .frame(height: 160)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
     @ViewBuilder
     private var commentsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !item.comments.isEmpty {
                 Divider().overlay(Color.keptInk.opacity(0.08))
                 ForEach(item.comments) { comment in
-                    HStack(alignment: .top, spacing: 6) {
-                        Text(comment.authorName)
-                            .font(KeptFont.body(12, weight: .bold))
-                            .foregroundStyle(.keptInk)
-                        Text(comment.text)
-                            .font(KeptFont.body(12, weight: .medium))
-                            .foregroundStyle(.keptInkSoft)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(comment.authorName)
+                                .font(KeptFont.body(12, weight: .bold))
+                                .foregroundStyle(.keptInk)
+                            Text(comment.text)
+                                .font(KeptFont.body(12, weight: .medium))
+                                .foregroundStyle(.keptInkSoft)
+                        }
+                        if let photoURL = comment.photoURL {
+                            AsyncImage(url: photoURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Color.keptChip
+                            }
+                            .frame(width: 90, height: 90)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
                     }
+                }
+            }
+
+            if let commentPhoto {
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: commentPhoto)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Button {
+                        self.commentPhoto = nil
+                    } label: {
+                        Text("✕")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 16, height: 16)
+                            .background(Circle().fill(.black.opacity(0.6)))
+                    }
+                    .padding(3)
                 }
             }
 
@@ -230,18 +287,50 @@ struct FriendPostCard: View {
                     .clipShape(Capsule())
                     .onSubmit { submitComment() }
 
-                if !commentText.trimmingCharacters(in: .whitespaces).isEmpty {
+                if commentPhoto == nil {
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button("Camera") { showingCommentCamera = true }
+                            .font(KeptFont.body(11.5, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                    }
+                    PhotosPicker(selection: $commentLibraryItem, matching: .images) {
+                        Text("Photo")
+                            .font(KeptFont.body(11.5, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                    }
+                }
+
+                if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
                     Button("Post", action: submitComment)
                         .font(KeptFont.body(12.5, weight: .bold))
                         .foregroundStyle(.keptOrangeDeep)
                 }
             }
         }
+        .fullScreenCover(isPresented: $showingCommentCamera) {
+            CameraCaptureView(
+                onCapture: { image in
+                    commentPhoto = image
+                    showingCommentCamera = false
+                },
+                onCancel: { showingCommentCamera = false }
+            )
+            .ignoresSafeArea()
+        }
+        .onChange(of: commentLibraryItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                    commentPhoto = image
+                }
+                commentLibraryItem = nil
+            }
+        }
     }
 
     private func submitComment() {
-        appModel.addComment(to: item, text: commentText)
+        appModel.addComment(to: item, text: commentText, photo: commentPhoto)
         commentText = ""
+        commentPhoto = nil
         commentFocused = false
     }
 }
