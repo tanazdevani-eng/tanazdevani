@@ -28,7 +28,7 @@ struct InviteSentView: View {
                 }
 
                 Text("\u{201C}\(appModel.inviteShareMessage)\u{201D}")
-                    .font(KeptFont.display(12.5, italic: true))
+                    .font(KeptFont.display(12.5))
                     .foregroundStyle(.keptInk)
                     .padding(14)
                     .background(.keptSurface)

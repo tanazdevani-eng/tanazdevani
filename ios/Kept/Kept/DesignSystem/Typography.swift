@@ -55,6 +55,6 @@ enum KeptFont {
 
 extension Text {
     func keptWordmark(_ size: CGFloat = 28) -> Text {
-        self.font(KeptFont.display(size, italic: true))
+        self.font(KeptFont.display(size, weight: .semibold))
     }
 }

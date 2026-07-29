@@ -72,11 +72,11 @@ struct FriendPostCard: View {
                 }
 
                 if let note = item.note, !note.isEmpty {
-                    noteText("\u{201C}\(note)\u{201D}", italic: true)
+                    noteText("\u{201C}\(note)\u{201D}", emphasized: true)
                 } else if item.status == .missed {
-                    noteText("Couldn't get to it today.", italic: false)
+                    noteText("Couldn't get to it today.", emphasized: false)
                 } else if item.isMine {
-                    noteText("Checked in. No note this time.", italic: false)
+                    noteText("Checked in. No note this time.", emphasized: false)
                 }
 
                 HStack(spacing: 10) {
@@ -171,10 +171,10 @@ struct FriendPostCard: View {
 
     /// Tappable-to-edit for your own posts only — friends' notes are just text.
     @ViewBuilder
-    private func noteText(_ text: String, italic: Bool) -> some View {
+    private func noteText(_ text: String, emphasized: Bool) -> some View {
         let content = Text(text)
-            .font(italic ? KeptFont.display(15.5, italic: true) : KeptFont.body(13, weight: .medium))
-            .foregroundStyle(italic ? .keptInk : .keptInkSoft)
+            .font(emphasized ? KeptFont.display(15.5) : KeptFont.body(13, weight: .medium))
+            .foregroundStyle(emphasized ? .keptInk : .keptInkSoft)
         if item.isMine {
             Button { isEditingNote = true } label: { content }
                 .buttonStyle(.plain)

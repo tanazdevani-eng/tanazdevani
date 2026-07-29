@@ -76,7 +76,7 @@ struct CheckInView: View {
                     .foregroundStyle(.keptInkSoft)
 
                 TextField(mode == .downDay ? "No pressure — say what happened, if you want..." : "Say something about today...", text: $note, axis: .vertical)
-                    .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15, italic: true))
+                    .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15))
                     .foregroundStyle(.keptInk)
                     .focused($noteFocused)
                     .lineLimit(3...6)
