@@ -708,41 +708,110 @@ final class SupabaseBackendService: BackendService {
         }
     }
 
-    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn] {
-        struct Row: Codable { var id: UUID; var member_id: UUID; var amount: Double; var note: String?; var created_at: Date }
+    func fetchGroupFeed(groupId: UUID, userId: UUID) async throws -> [GroupCheckIn] {
+        struct Row: Codable { var id: UUID; var member_id: UUID; var amount: Double; var note: String?; var created_at: Date; var photo_urls: [String] }
         let rows: [Row] = try await client.from("group_check_ins")
-            .select("id, member_id, amount, note, created_at")
+            .select("id, member_id, amount, note, created_at, photo_urls")
             .eq("group_id", value: groupId)
             .order("created_at", ascending: false)
             .limit(200)
             .execute()
             .value
         guard !rows.isEmpty else { return [] }
+        let entryIds = rows.map(\.id)
+
         struct ProfileRow: Codable { var id: UUID; var name: String }
         let profiles: [ProfileRow] = try await client.from("profiles")
             .select("id, name")
             .in("id", values: Array(Set(rows.map(\.member_id))))
             .execute()
             .value
+
+        struct ReactionRow: Codable { var group_check_in_id: UUID; var user_id: UUID; var emoji: String }
+        let reactionRows: [ReactionRow] = try await client.from("group_check_in_reactions")
+            .select("group_check_in_id, user_id, emoji")
+            .in("group_check_in_id", values: entryIds)
+            .execute()
+            .value
+
+        struct CommentRow: Codable { var id: UUID; var group_check_in_id: UUID; var user_id: UUID; var text: String; var created_at: Date; var photo_url: String? }
+        let commentRows: [CommentRow] = try await client.from("group_check_in_comments")
+            .select("id, group_check_in_id, user_id, text, created_at, photo_url")
+            .in("group_check_in_id", values: entryIds)
+            .execute()
+            .value
+        let commentAuthorIds = Array(Set(commentRows.map(\.user_id)))
+        let commentAuthorProfiles: [ProfileRow] = commentAuthorIds.isEmpty ? [] : try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: commentAuthorIds)
+            .execute()
+            .value
+
         return rows.enumerated().map { index, row in
-            GroupCheckIn(
+            let myReaction = reactionRows.first { $0.group_check_in_id == row.id && $0.user_id == userId }?.emoji
+            var counts: [String: Int] = [:]
+            for reaction in reactionRows where reaction.group_check_in_id == row.id {
+                counts[reaction.emoji, default: 0] += 1
+            }
+            let reactions = counts.map { ReactionSummary(emoji: $0.key, count: $0.value) }
+
+            let comments = commentRows
+                .filter { $0.group_check_in_id == row.id }
+                .sorted { $0.created_at < $1.created_at }
+                .map { comment in
+                    Comment(
+                        id: comment.id,
+                        authorName: commentAuthorProfiles.first(where: { $0.id == comment.user_id })?.name ?? "Someone",
+                        text: comment.text,
+                        postedAt: comment.created_at,
+                        photoURL: comment.photo_url.flatMap(URL.init(string:))
+                    )
+                }
+
+            return GroupCheckIn(
                 id: row.id, groupId: groupId, memberId: row.member_id,
                 memberName: profiles.first(where: { $0.id == row.member_id })?.name ?? "Someone",
-                avatarSeed: index, amount: row.amount, note: row.note, loggedAt: row.created_at
+                avatarSeed: index, amount: row.amount, note: row.note, loggedAt: row.created_at,
+                photoURLs: row.photo_urls.compactMap(URL.init(string:)),
+                comments: comments, reactions: reactions, myReactionEmoji: myReaction
             )
         }
     }
 
-    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws {
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date, photoURLs: [String]) async throws {
         struct Insert: Codable {
             var group_id: UUID
             var member_id: UUID
             var amount: Double
             var note: String?
             var logical_day: Date
+            var photo_urls: [String]
         }
         try await client.from("group_check_ins")
-            .insert(Insert(group_id: groupId, member_id: userId, amount: amount, note: note, logical_day: day))
+            .insert(Insert(group_id: groupId, member_id: userId, amount: amount, note: note, logical_day: day, photo_urls: photoURLs))
+            .execute()
+    }
+
+    func addGroupComment(groupCheckInId: UUID, userId: UUID, text: String, photoURL: String?) async throws {
+        struct Insert: Codable {
+            var group_check_in_id: UUID
+            var user_id: UUID
+            var text: String
+            var photo_url: String?
+        }
+        try await client.from("group_check_in_comments")
+            .insert(Insert(group_check_in_id: groupCheckInId, user_id: userId, text: text, photo_url: photoURL))
+            .execute()
+    }
+
+    func reactToGroupCheckIn(groupCheckInId: UUID, userId: UUID, emoji: String) async throws {
+        struct Upsert: Codable {
+            var group_check_in_id: UUID
+            var user_id: UUID
+            var emoji: String
+        }
+        try await client.from("group_check_in_reactions")
+            .upsert(Upsert(group_check_in_id: groupCheckInId, user_id: userId, emoji: emoji), onConflict: "group_check_in_id,user_id")
             .execute()
     }
 }

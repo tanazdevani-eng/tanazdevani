@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct GroupDetailView: View {
     @EnvironmentObject var appModel: AppModel
@@ -47,7 +48,9 @@ struct GroupDetailView: View {
                     } else {
                         VStack(spacing: 10) {
                             ForEach(feed) { entry in
-                                feedRow(entry)
+                                GroupFeedRow(entry: entry, unit: group.goalUnit) {
+                                    Task { await load() }
+                                }
                             }
                         }
                     }
@@ -157,29 +160,6 @@ struct GroupDetailView: View {
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
     }
 
-    private func feedRow(_ entry: GroupCheckIn) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(entry.memberName)
-                    .font(KeptFont.body(13, weight: .bold))
-                    .foregroundStyle(.keptInk)
-                Spacer()
-                Text("+\(formattedAmount(entry.amount)) \(group.goalUnit)")
-                    .font(KeptFont.mono(11.5, weight: .semibold))
-                    .foregroundStyle(.keptOrangeDeep)
-            }
-            if let note = entry.note, !note.isEmpty {
-                Text(note)
-                    .font(KeptFont.body(12, weight: .medium))
-                    .foregroundStyle(.keptInkSoft)
-            }
-        }
-        .padding(12)
-        .background(.keptSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
-    }
-
     private func formattedAmount(_ value: Double) -> String {
         value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
     }
@@ -203,50 +183,121 @@ private struct LogGroupProgressSheet: View {
     @State private var amountText = ""
     @State private var note = ""
     @State private var isSaving = false
+    @State private var capturedPhotos: [UIImage] = []
+    @State private var showingCamera = false
+    private let maxPhotos = 2
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Log today's progress")
-                    .font(KeptFont.display(19, weight: .semibold))
-                    .foregroundStyle(.keptInk)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Log today's progress")
+                        .font(KeptFont.display(19, weight: .semibold))
+                        .foregroundStyle(.keptInk)
 
-                HStack(spacing: 8) {
-                    TextField("Amount", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .font(KeptFont.body(15))
-                        .padding(15)
+                    HStack(spacing: 8) {
+                        TextField("Amount", text: $amountText)
+                            .keyboardType(.decimalPad)
+                            .font(KeptFont.body(15))
+                            .padding(15)
+                            .background(.keptSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                        Text(group.goalUnit)
+                            .font(KeptFont.body(14, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                    }
+
+                    TextField("Add a note (optional)", text: $note, axis: .vertical)
+                        .font(KeptFont.body(13.5))
+                        .lineLimit(2...4)
+                        .padding(14)
                         .background(.keptSurface)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                    Text(group.goalUnit)
-                        .font(KeptFont.body(14, weight: .medium))
-                        .foregroundStyle(.keptInkSoft)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") { hideKeyboard() }
+                            }
+                        }
+
+                    photoRow
+
+                    Button(isSaving ? "Logging..." : "Log progress") { save() }
+                        .buttonStyle(.keptPrimary)
+                        .disabled(Double(amountText) == nil || isSaving)
+                        .opacity(Double(amountText) == nil || isSaving ? 0.5 : 1)
                 }
-
-                TextField("Add a note (optional)", text: $note, axis: .vertical)
-                    .font(KeptFont.body(13.5))
-                    .lineLimit(2...4)
-                    .padding(14)
-                    .background(.keptSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-
-                Button(isSaving ? "Logging..." : "Log progress") { save() }
-                    .buttonStyle(.keptPrimary)
-                    .disabled(Double(amountText) == nil || isSaving)
-                    .opacity(Double(amountText) == nil || isSaving ? 0.5 : 1)
-
-                Spacer()
+                .padding(22)
             }
-            .padding(22)
             .background(Color.keptBackground.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CameraCaptureView(
+                    onCapture: { image in
+                        capturedPhotos.append(image)
+                        showingCamera = false
+                    },
+                    onCancel: { showingCamera = false }
+                )
+                .ignoresSafeArea()
+            }
         }
+    }
+
+    /// Camera only, same reasoning as check-in photos (no library import) — live progress
+    /// pics, not a forced simultaneous front/back pair.
+    @ViewBuilder private var photoRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !capturedPhotos.isEmpty {
+                HStack(spacing: 10) {
+                    ForEach(Array(capturedPhotos.enumerated()), id: \.offset) { index, image in
+                        VStack(spacing: 4) {
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 72, height: 72)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Button {
+                                    capturedPhotos.remove(at: index)
+                                } label: {
+                                    Text("✕")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .frame(width: 18, height: 18)
+                                        .background(Circle().fill(.black.opacity(0.6)))
+                                }
+                                .padding(4)
+                            }
+                            Button("Save to Photos") {
+                                Task {
+                                    let saved = await PhotoLibrarySaver.save(image)
+                                    appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                                }
+                            }
+                            .font(KeptFont.body(9.5, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                        }
+                    }
+                }
+            }
+
+            if capturedPhotos.count < maxPhotos && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Take a photo") { showingCamera = true }
+                    .font(KeptFont.body(12.5, weight: .semibold))
+                    .foregroundStyle(.keptOrangeDeep)
+            }
+        }
+    }
+
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func save() {
@@ -254,7 +305,7 @@ private struct LogGroupProgressSheet: View {
         isSaving = true
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         Task {
-            await appModel.logGroupProgress(group, amount: amount, note: trimmedNote.isEmpty ? nil : trimmedNote)
+            await appModel.logGroupProgress(group, amount: amount, note: trimmedNote.isEmpty ? nil : trimmedNote, photos: capturedPhotos)
             isSaving = false
             onLogged()
             dismiss()

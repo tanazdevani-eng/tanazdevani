@@ -221,15 +221,34 @@ actor MockBackendService: BackendService {
         }
     }
 
-    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn] {
+    func fetchGroupFeed(groupId: UUID, userId: UUID) async throws -> [GroupCheckIn] {
         groupCheckIns.filter { $0.groupId == groupId }.sorted { $0.loggedAt > $1.loggedAt }
     }
 
-    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws {
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date, photoURLs: [String]) async throws {
         groupCheckIns.append(GroupCheckIn(
             id: UUID(), groupId: groupId, memberId: userId,
             memberName: userId == profile.id ? profile.name : "Member",
-            avatarSeed: 0, amount: amount, note: note, loggedAt: Date()
+            avatarSeed: 0, amount: amount, note: note, loggedAt: Date(),
+            photoURLs: photoURLs.compactMap(URL.init(string:))
         ))
+    }
+
+    func addGroupComment(groupCheckInId: UUID, userId: UUID, text: String, photoURL: String?) async throws {
+        guard let index = groupCheckIns.firstIndex(where: { $0.id == groupCheckInId }) else { return }
+        groupCheckIns[index].comments.append(Comment(
+            id: UUID(), authorName: userId == profile.id ? profile.name : "Member",
+            text: text, postedAt: Date(), photoURL: photoURL.flatMap(URL.init(string:))
+        ))
+    }
+
+    func reactToGroupCheckIn(groupCheckInId: UUID, userId: UUID, emoji: String) async throws {
+        guard let index = groupCheckIns.firstIndex(where: { $0.id == groupCheckInId }) else { return }
+        if let reactionIndex = groupCheckIns[index].reactions.firstIndex(where: { $0.emoji == emoji }) {
+            groupCheckIns[index].reactions[reactionIndex].count += 1
+        } else {
+            groupCheckIns[index].reactions.append(ReactionSummary(emoji: emoji, count: 1))
+        }
+        groupCheckIns[index].myReactionEmoji = emoji
     }
 }

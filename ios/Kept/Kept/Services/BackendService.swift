@@ -64,6 +64,8 @@ protocol BackendService {
     func joinGroup(groupId: UUID, userId: UUID) async throws
     func leaveGroup(groupId: UUID, userId: UUID) async throws
     func fetchGroupMembers(groupId: UUID) async throws -> [GroupMemberInfo]
-    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn]
-    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws
+    func fetchGroupFeed(groupId: UUID, userId: UUID) async throws -> [GroupCheckIn]
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date, photoURLs: [String]) async throws
+    func addGroupComment(groupCheckInId: UUID, userId: UUID, text: String, photoURL: String?) async throws
+    func reactToGroupCheckIn(groupCheckInId: UUID, userId: UUID, emoji: String) async throws
 }

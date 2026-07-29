@@ -369,13 +369,38 @@ create table public.group_check_ins (
   member_id uuid not null references auth.users(id) on delete cascade,
   amount numeric not null,
   note text,
+  -- Camera-only, no library import, up to 2 — same reasoning as check_ins.photo_urls.
+  photo_urls text[] not null default '{}',
   logical_day date not null,
   created_at timestamptz not null default now()
+);
+
+-- A group entry gets the same social loop as a Circle post: comments and reactions,
+-- same shape as the comments/reactions tables above but keyed to group_check_ins instead
+-- of check_ins (a group entry can't reference the personal check_ins table — it isn't one).
+create table public.group_check_in_comments (
+  id uuid primary key default gen_random_uuid(),
+  group_check_in_id uuid not null references public.group_check_ins(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text text not null default '',
+  photo_url text,
+  created_at timestamptz not null default now()
+);
+
+create table public.group_check_in_reactions (
+  id uuid primary key default gen_random_uuid(),
+  group_check_in_id uuid not null references public.group_check_ins(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  emoji text not null,
+  created_at timestamptz not null default now(),
+  unique (group_check_in_id, user_id)
 );
 
 alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
 alter table public.group_check_ins enable row level security;
+alter table public.group_check_in_comments enable row level security;
+alter table public.group_check_in_reactions enable row level security;
 
 -- Runs with elevated privileges specifically so membership can be checked without RLS on
 -- group_members hiding rows the caller isn't personally part of (same pattern as
@@ -445,6 +470,49 @@ create policy "group_check_ins_owner_update" on public.group_check_ins
   for update using (member_id = auth.uid());
 create policy "group_check_ins_owner_delete" on public.group_check_ins
   for delete using (member_id = auth.uid());
+
+-- Same "visible if the underlying entry is visible" shape as comments/reactions above.
+create policy "group_check_in_comments_select_if_visible" on public.group_check_in_comments
+  for select using (
+    exists (
+      select 1 from public.group_check_ins gc
+      join public.groups g on g.id = gc.group_id
+      where gc.id = group_check_in_comments.group_check_in_id
+        and (g.visibility = 'public' or g.creator_id = auth.uid() or public.is_group_member(g.id, auth.uid()))
+    )
+  );
+create policy "group_check_in_comments_insert_self" on public.group_check_in_comments
+  for insert with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from public.group_check_ins gc
+      where gc.id = group_check_in_id and public.is_group_member(gc.group_id, auth.uid())
+    )
+  );
+create policy "group_check_in_comments_owner_delete" on public.group_check_in_comments
+  for delete using (user_id = auth.uid());
+
+create policy "group_check_in_reactions_select_if_visible" on public.group_check_in_reactions
+  for select using (
+    exists (
+      select 1 from public.group_check_ins gc
+      join public.groups g on g.id = gc.group_id
+      where gc.id = group_check_in_reactions.group_check_in_id
+        and (g.visibility = 'public' or g.creator_id = auth.uid() or public.is_group_member(g.id, auth.uid()))
+    )
+  );
+create policy "group_check_in_reactions_insert_self" on public.group_check_in_reactions
+  for insert with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from public.group_check_ins gc
+      where gc.id = group_check_in_id and public.is_group_member(gc.group_id, auth.uid())
+    )
+  );
+create policy "group_check_in_reactions_owner_update" on public.group_check_in_reactions
+  for update using (user_id = auth.uid());
+create policy "group_check_in_reactions_owner_delete" on public.group_check_in_reactions
+  for delete using (user_id = auth.uid());
 
 -- ---------- Notes ----------
 -- Account deletion (auth.users row + cascades) requires the service role key, which must

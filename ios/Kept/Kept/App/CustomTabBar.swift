@@ -14,11 +14,23 @@ struct CustomTabBar: View {
     var onReselect: (RootTab) -> Void
 
     var body: some View {
+        // Three regions — leading pair, fixed-width "+", trailing item — rather than 4
+        // equal columns. With 4 equal columns the "+" lands at the 3rd-of-4 mark, not
+        // center; splitting into two equally-flexible outer groups around a fixed-width
+        // center keeps the "+" visually centered regardless of how many items flank it.
         HStack(spacing: 0) {
-            tabItem(.circle, glyph: "◎", label: "Circle")
-            tabItem(.habits, glyph: "⌂", label: "Habits")
+            HStack(spacing: 0) {
+                tabItem(.circle, glyph: "◎", label: "Circle")
+                tabItem(.habits, glyph: "⌂", label: "Habits")
+            }
+            .frame(maxWidth: .infinity)
+
             addButton
-            profileTabItem
+
+            HStack(spacing: 0) {
+                profileTabItem
+            }
+            .frame(maxWidth: .infinity)
         }
         .frame(height: 74)
         .padding(.horizontal, 8)
@@ -96,6 +108,5 @@ struct CustomTabBar: View {
                 .padding(.bottom, 1)
         }
         .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
     }
 }

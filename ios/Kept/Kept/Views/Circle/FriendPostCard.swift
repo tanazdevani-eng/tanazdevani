@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 import UIKit
 
 struct FriendPostCard: View {
@@ -9,7 +8,6 @@ struct FriendPostCard: View {
     @State private var commentText = ""
     @State private var commentPhoto: UIImage?
     @State private var showingCommentCamera = false
-    @State private var commentLibraryItem: PhotosPickerItem?
     @FocusState private var commentFocused: Bool
     @State private var showingMoreActions = false
     @State private var showingReportReasons = false
@@ -258,22 +256,32 @@ struct FriendPostCard: View {
             }
 
             if let commentPhoto {
-                ZStack(alignment: .topTrailing) {
-                    Image(uiImage: commentPhoto)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 60, height: 60)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    Button {
-                        self.commentPhoto = nil
-                    } label: {
-                        Text("✕")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 16, height: 16)
-                            .background(Circle().fill(.black.opacity(0.6)))
+                VStack(alignment: .leading, spacing: 4) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: commentPhoto)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Button {
+                            self.commentPhoto = nil
+                        } label: {
+                            Text("✕")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 16, height: 16)
+                                .background(Circle().fill(.black.opacity(0.6)))
+                        }
+                        .padding(3)
                     }
-                    .padding(3)
+                    Button("Save to Photos") {
+                        Task {
+                            let saved = await PhotoLibrarySaver.save(commentPhoto)
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                        }
+                    }
+                    .font(KeptFont.body(9.5, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
                 }
             }
 
@@ -286,18 +294,18 @@ struct FriendPostCard: View {
                     .background(Color.keptChip)
                     .clipShape(Capsule())
                     .onSubmit { submitComment() }
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { commentFocused = false }
+                        }
+                    }
 
-                if commentPhoto == nil {
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button("Camera") { showingCommentCamera = true }
-                            .font(KeptFont.body(11.5, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                    }
-                    PhotosPicker(selection: $commentLibraryItem, matching: .images) {
-                        Text("Photo")
-                            .font(KeptFont.body(11.5, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                    }
+                // Camera only, no library import — same reasoning as check-in photos.
+                if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button("Camera") { showingCommentCamera = true }
+                        .font(KeptFont.body(11.5, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
                 }
 
                 if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
@@ -316,14 +324,6 @@ struct FriendPostCard: View {
                 onCancel: { showingCommentCamera = false }
             )
             .ignoresSafeArea()
-        }
-        .onChange(of: commentLibraryItem) { _, newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                    commentPhoto = image
-                }
-                commentLibraryItem = nil
-            }
         }
     }
 

@@ -11,6 +11,11 @@ struct GroupCheckIn: Identifiable, Equatable {
     var amount: Double
     var note: String?
     var loggedAt: Date
+    /// Camera-only, up to 2 — same shape as CircleFeedItem.photoURLs.
+    var photoURLs: [URL] = []
+    var comments: [Comment] = []
+    var reactions: [ReactionSummary] = []
+    var myReactionEmoji: String?
 }
 
 /// A bare member identity for a group's roster — separate from CircleMember since group

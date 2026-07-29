@@ -615,18 +615,44 @@ final class AppModel: ObservableObject {
     }
 
     func fetchGroupFeed(_ group: HabitGroup) async -> [GroupCheckIn] {
-        (try? await backend.fetchGroupFeed(groupId: group.id)) ?? []
+        guard let userId = session?.userId else { return [] }
+        return (try? await backend.fetchGroupFeed(groupId: group.id, userId: userId)) ?? []
     }
 
-    func logGroupProgress(_ group: HabitGroup, amount: Double, note: String?) async {
+    /// Camera-only photos (capped at 2), same reasoning as check-in photos — uploaded
+    /// before the insert since, unlike a habit check-in, a group entry doesn't already
+    /// exist as a row to patch afterward.
+    func logGroupProgress(_ group: HabitGroup, amount: Double, note: String?, photos: [UIImage] = []) async {
         guard let userId = session?.userId else { return }
         let day = dayCalendar.logicalDay(for: Date())
+        var urls: [String] = []
+        for image in photos.prefix(2) {
+            guard let data = image.jpegData(compressionQuality: 0.75) else { continue }
+            if let url = try? await backend.uploadCheckInPhoto(userId: userId, imageData: data) {
+                urls.append(url.absoluteString)
+            }
+        }
         do {
-            try await backend.logGroupCheckIn(groupId: group.id, userId: userId, amount: amount, note: note, day: day)
+            try await backend.logGroupCheckIn(groupId: group.id, userId: userId, amount: amount, note: note, day: day, photoURLs: urls)
             showToast("Progress logged")
         } catch {
             showToast("Couldn't log that")
         }
+    }
+
+    func addGroupComment(_ entry: GroupCheckIn, text: String, photo: UIImage? = nil) async {
+        guard let userId = session?.userId else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty || photo != nil else { return }
+        var photoURLString: String?
+        if let photo, let data = photo.jpegData(compressionQuality: 0.75) {
+            photoURLString = (try? await backend.uploadCheckInPhoto(userId: userId, imageData: data))?.absoluteString
+        }
+        try? await backend.addGroupComment(groupCheckInId: entry.id, userId: userId, text: trimmed, photoURL: photoURLString)
+    }
+
+    func reactToGroupCheckIn(_ entry: GroupCheckIn, emoji: String) {
+        performBackendSync { [self] in try await backend.reactToGroupCheckIn(groupCheckInId: entry.id, userId: requireUserId(), emoji: emoji) }
     }
 
     // MARK: - Circle management
