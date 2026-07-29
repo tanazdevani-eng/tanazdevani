@@ -18,6 +18,9 @@ struct CheckInView: View {
 
     @State private var capturedPhotos: [UIImage] = []
     @State private var showingCamera = false
+    /// Guards the auto-launch below so it fires exactly once per visit to this screen,
+    /// not on every re-render.
+    @State private var hasAutoLaunchedCamera = false
     private let maxPhotos = 2
 
     private var day: Int { habit.daysSinceStart(calendar: appModel.dayCalendar) }
@@ -141,6 +144,15 @@ struct CheckInView: View {
                 onCancel: { showingCamera = false }
             )
             .ignoresSafeArea()
+        }
+        .onAppear {
+            // The whole point of checking in is the moment itself — camera opens right
+            // away instead of waiting for a separate tap, same as the founder wanted
+            // "the live capture as soon as you press check in." Canceling out of it just
+            // leaves you on this screen with no photo; nothing is forced.
+            guard !hasAutoLaunchedCamera, UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
+            hasAutoLaunchedCamera = true
+            showingCamera = true
         }
     }
 
