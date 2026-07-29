@@ -12,11 +12,13 @@ struct HabitCardView: View {
     private var isDownDayToday: Bool { appModel.downDayHabitIds.contains(habit.id) }
     private var streak: Int { habit.streakCount(calendar: calendar) }
 
-    /// The down-day state used to be flat grey with white text — a warm chip fill with
-    /// dark ink text matches the softer "DOWN DAY" tag used in Circle instead.
+    /// keptChip used to fill this, but it's a warm cream nearly identical to the Open
+    /// card's own gradient tint — on an Open card the button all but vanished into the
+    /// background instead of reading as a button. keptSurface (near-white/near-black,
+    /// depending on mode) plus a hairline border gives it real edges against any card.
     private var checkInButtonBackground: Color {
         if checkedInToday { return .keptSuccess }
-        if isDownDayToday { return .keptChip }
+        if isDownDayToday { return .keptSurface }
         return .keptInkFill
     }
 
@@ -89,6 +91,10 @@ struct HabitCardView: View {
                     .padding(.vertical, 11)
                     .background(checkInButtonBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(isDownDayToday && !checkedInToday ? Color.keptLine : .clear, lineWidth: 1)
+                    )
                 }
                 .sensoryFeedback(.success, trigger: checkedInToday) { _, newValue in newValue }
                 .padding(.top, 12)
