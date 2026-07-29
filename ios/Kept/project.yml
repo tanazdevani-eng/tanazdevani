@@ -52,6 +52,7 @@ targets:
           - IBMPlexMono-SemiBold.ttf
         NSPhotoLibraryUsageDescription: Kept uses your photo library so you can set a profile photo.
         NSContactsUsageDescription: Kept can check your contacts to help you find friends already using the app.
+        NSLocationWhenInUseUsageDescription: Kept can use your location to suggest nearby location-based habit groups, or to set one when you create a group.
         NSUserTrackingUsageDescription: Kept does not track you across other apps or websites. This is required boilerplate only if analytics are added later.
         CFBundleURLTypes:
           - CFBundleURLName: com.kept.app.invite

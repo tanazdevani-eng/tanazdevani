@@ -49,4 +49,15 @@ protocol BackendService {
     // Notifications
     func fetchNotificationSettings(userId: UUID) async throws -> NotificationSettings
     func updateNotificationSettings(_ settings: NotificationSettings, userId: UUID) async throws
+
+    // Groups — public/private location-based communities around one shared goal.
+    func fetchMyGroups(userId: UUID) async throws -> [HabitGroup]
+    func searchPublicGroups(query: String) async throws -> [HabitGroup]
+    func fetchGroup(byInviteToken token: String) async throws -> HabitGroup?
+    func createGroup(_ group: HabitGroup) async throws
+    func joinGroup(groupId: UUID, userId: UUID) async throws
+    func leaveGroup(groupId: UUID, userId: UUID) async throws
+    func fetchGroupMembers(groupId: UUID) async throws -> [GroupMemberInfo]
+    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn]
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws
 }

@@ -131,6 +131,16 @@ a real device (the Simulator can't register for real APNs tokens), and only once
 `docs/APP_STORE_GUIDE.md` section 5. Accepting an invite in the Simulator still works fully
 otherwise (Circles link up); it just won't trigger an actual push.
 
+Group invite links work the same way, one host over: `kept://group?token=<invite_token>`.
+Test the same way:
+
+```
+xcrun simctl openurl booted "kept://group?token=<a-group's-invite_token-from-the-groups-table>"
+```
+
+Public groups don't need a link at all — they're joinable straight from the Discover list in
+Circle → Groups.
+
 ## 7. Project layout
 
 ```

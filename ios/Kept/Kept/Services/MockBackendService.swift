@@ -13,6 +13,9 @@ actor MockBackendService: BackendService {
     private var contacts: [Contact]
     private var notificationSettings = NotificationSettings()
     private var reactionsByCheckIn: [UUID: [String: Int]] = [:]
+    private var groups: [HabitGroup] = []
+    private var groupMemberIds: [UUID: [UUID]] = [:]
+    private var groupCheckIns: [GroupCheckIn] = []
     private var isSignedIn = false
     /// Fixed code accepted in place of a real SMS — there's no Twilio/etc. configured yet
     /// in mock mode, so this is what VerifyCodeView tells you to type when testing locally.
@@ -157,5 +160,65 @@ actor MockBackendService: BackendService {
 
     func updateNotificationSettings(_ settings: NotificationSettings, userId: UUID) async throws {
         notificationSettings = settings
+    }
+
+    // MARK: - Groups
+
+    func fetchMyGroups(userId: UUID) async throws -> [HabitGroup] {
+        groups.filter { (groupMemberIds[$0.id] ?? []).contains(userId) }
+    }
+
+    func searchPublicGroups(query: String) async throws -> [HabitGroup] {
+        let trimmed = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let publicGroups = groups.filter { $0.visibility == .publicGroup }
+        guard !trimmed.isEmpty else { return publicGroups }
+        return publicGroups.filter {
+            $0.name.lowercased().contains(trimmed) || $0.locationLabel.lowercased().contains(trimmed)
+        }
+    }
+
+    func fetchGroup(byInviteToken token: String) async throws -> HabitGroup? {
+        groups.first { $0.inviteToken == token }
+    }
+
+    func createGroup(_ group: HabitGroup) async throws {
+        groups.append(group)
+        groupMemberIds[group.id, default: []].append(group.creatorId)
+    }
+
+    func joinGroup(groupId: UUID, userId: UUID) async throws {
+        guard var ids = groupMemberIds[groupId] else { return }
+        guard !ids.contains(userId) else { return }
+        ids.append(userId)
+        groupMemberIds[groupId] = ids
+        if let index = groups.firstIndex(where: { $0.id == groupId }) {
+            groups[index].memberCount = ids.count
+        }
+    }
+
+    func leaveGroup(groupId: UUID, userId: UUID) async throws {
+        groupMemberIds[groupId]?.removeAll { $0 == userId }
+        if let index = groups.firstIndex(where: { $0.id == groupId }) {
+            groups[index].memberCount = groupMemberIds[groupId]?.count ?? 0
+        }
+    }
+
+    func fetchGroupMembers(groupId: UUID) async throws -> [GroupMemberInfo] {
+        let ids = groupMemberIds[groupId] ?? []
+        return ids.enumerated().map { index, id in
+            GroupMemberInfo(id: id, name: id == profile.id ? profile.name : "Member", avatarSeed: index)
+        }
+    }
+
+    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn] {
+        groupCheckIns.filter { $0.groupId == groupId }.sorted { $0.loggedAt > $1.loggedAt }
+    }
+
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws {
+        groupCheckIns.append(GroupCheckIn(
+            id: UUID(), groupId: groupId, memberId: userId,
+            memberName: userId == profile.id ? profile.name : "Member",
+            avatarSeed: 0, amount: amount, note: note, loggedAt: Date()
+        ))
     }
 }

@@ -330,6 +330,116 @@ create policy "blocks_owner_all" on public.blocks
 create policy "push_tokens_owner_all" on public.push_tokens
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- ---------- Groups (location-based, public or private, shared numeric goal) ----------
+-- Distinct from the private Circle-of-friends model: a group is discoverable community
+-- content (if public) tracking one shared goal ("4 miles a week") that every member logs
+-- their own amount against — see group_check_ins. Not a Habit; Habits stay binary
+-- done/not-done and fully personal.
+create table public.groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  location_label text not null,
+  latitude double precision,
+  longitude double precision,
+  goal_amount numeric not null,
+  goal_unit text not null,
+  goal_period text not null default 'weekly' check (goal_period in ('daily','weekly','monthly')),
+  visibility text not null default 'private' check (visibility in ('public','private')),
+  creator_id uuid not null references auth.users(id) on delete cascade,
+  invite_token text not null unique default encode(gen_random_bytes(9), 'base64'),
+  created_at timestamptz not null default now()
+);
+
+create table public.group_members (
+  group_id uuid not null references public.groups(id) on delete cascade,
+  member_id uuid not null references auth.users(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (group_id, member_id)
+);
+
+create table public.group_check_ins (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references public.groups(id) on delete cascade,
+  member_id uuid not null references auth.users(id) on delete cascade,
+  amount numeric not null,
+  note text,
+  logical_day date not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.groups enable row level security;
+alter table public.group_members enable row level security;
+alter table public.group_check_ins enable row level security;
+
+-- Runs with elevated privileges specifically so membership can be checked without RLS on
+-- group_members hiding rows the caller isn't personally part of (same pattern as
+-- habit_visible_to above).
+create or replace function public.is_group_member(p_group_id uuid, p_user uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.group_members where group_id = p_group_id and member_id = p_user)
+$$;
+
+-- Public groups are readable by anyone (that's the whole point of "discoverable"); private
+-- groups only by members/creator — joining a private group requires the invite_token,
+-- which this policy doesn't expose to non-members since it's just one column among many
+-- and PostgREST column-level trust isn't assumed here, so the token is served only via the
+-- join-by-token RPC below rather than a raw select.
+create policy "groups_select_public_or_member" on public.groups
+  for select using (
+    visibility = 'public'
+    or creator_id = auth.uid()
+    or public.is_group_member(id, auth.uid())
+  );
+create policy "groups_insert_self" on public.groups
+  for insert with check (creator_id = auth.uid());
+create policy "groups_creator_update" on public.groups
+  for update using (creator_id = auth.uid());
+create policy "groups_creator_delete" on public.groups
+  for delete using (creator_id = auth.uid());
+
+-- Looks a group up by invite token without ever exposing every group's token via a raw
+-- select — this is the only path the "join via link" flow uses.
+create or replace function public.group_by_invite_token(p_token text)
+returns setof public.groups
+language sql
+security definer
+set search_path = public
+as $$
+  select * from public.groups where invite_token = p_token
+$$;
+
+create policy "group_members_select_if_group_visible" on public.group_members
+  for select using (
+    exists (
+      select 1 from public.groups g
+      where g.id = group_members.group_id
+        and (g.visibility = 'public' or g.creator_id = auth.uid() or public.is_group_member(g.id, auth.uid()))
+    )
+  );
+create policy "group_members_insert_self" on public.group_members
+  for insert with check (member_id = auth.uid());
+create policy "group_members_leave_self" on public.group_members
+  for delete using (member_id = auth.uid());
+
+create policy "group_check_ins_select_if_group_visible" on public.group_check_ins
+  for select using (
+    exists (
+      select 1 from public.groups g
+      where g.id = group_check_ins.group_id
+        and (g.visibility = 'public' or g.creator_id = auth.uid() or public.is_group_member(g.id, auth.uid()))
+    )
+  );
+create policy "group_check_ins_insert_self" on public.group_check_ins
+  for insert with check (member_id = auth.uid() and public.is_group_member(group_id, auth.uid()));
+create policy "group_check_ins_owner_update" on public.group_check_ins
+  for update using (member_id = auth.uid());
+create policy "group_check_ins_owner_delete" on public.group_check_ins
+  for delete using (member_id = auth.uid());
+
 -- ---------- Notes ----------
 -- Account deletion (auth.users row + cascades) requires the service role key, which must
 -- never ship in the client. Deploy a Supabase Edge Function that runs with the service

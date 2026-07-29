@@ -13,6 +13,11 @@ final class AppModel: ObservableObject {
     @Published var circleMembers: [CircleMember] = []
     @Published var pendingInvites: [PendingInvite] = []
     @Published var contacts: [Contact] = []
+    /// Public/private location-based groups you belong to — separate from Circle, which is
+    /// always your own private friend list.
+    @Published var myGroups: [HabitGroup] = []
+    /// Last searchPublicGroups() result, shown in the Discover section of GroupsListView.
+    @Published var discoveredGroups: [HabitGroup] = []
     @Published var notificationSettings = NotificationSettings()
     @Published var defaultVisibility: HabitVisibility = .open
     @Published var toast: String?
@@ -199,6 +204,8 @@ final class AppModel: ObservableObject {
         todaysComments = [:]
         downDayHabitIds = []
         nudgedAuthorIds = []
+        myGroups = []
+        discoveredGroups = []
         friendFeedItems = Self.demoFriendFeed()
         selectedTab = .circle
     }
@@ -213,6 +220,7 @@ final class AppModel: ObservableObject {
             async let membersFetch = backend.fetchCircleMembers(userId: userId)
             async let invitesFetch = backend.fetchPendingInvites(userId: userId)
             async let feedFetch = backend.fetchCircleFeed(userId: userId)
+            async let groupsFetch = backend.fetchMyGroups(userId: userId)
 
             habits = try await habitsFetch
             circleMembers = try await membersFetch
@@ -221,6 +229,7 @@ final class AppModel: ObservableObject {
             if !freshFriendFeed.isEmpty {
                 friendFeedItems = freshFriendFeed
             }
+            myGroups = try await groupsFetch
             reconcilePerHabitReminders()
         } catch {
             showToast("Couldn't refresh. Check your connection")
@@ -476,6 +485,98 @@ final class AppModel: ObservableObject {
         performBackendSync { [self] in try await backend.blockUser(blockerId: requireUserId(), blockedId: authorId) }
     }
 
+    // MARK: - Groups
+
+    func loadMyGroups() async {
+        guard let userId = session?.userId else { return }
+        do { myGroups = try await backend.fetchMyGroups(userId: userId) }
+        catch { showToast("Couldn't load your groups") }
+    }
+
+    func searchGroups(query: String) async {
+        do { discoveredGroups = try await backend.searchPublicGroups(query: query) }
+        catch { showToast("Couldn't search groups") }
+    }
+
+    @discardableResult
+    func createGroup(
+        name: String, locationLabel: String, latitude: Double?, longitude: Double?,
+        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
+    ) async -> HabitGroup? {
+        guard let userId = session?.userId else { return nil }
+        let group = HabitGroup(
+            name: name, locationLabel: locationLabel, latitude: latitude, longitude: longitude,
+            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod,
+            visibility: visibility, creatorId: userId
+        )
+        do {
+            try await backend.createGroup(group)
+            myGroups.append(group)
+            showToast("Group created")
+            return group
+        } catch {
+            showToast("Couldn't create the group")
+            return nil
+        }
+    }
+
+    func joinGroup(_ group: HabitGroup) async {
+        guard let userId = session?.userId, !myGroups.contains(where: { $0.id == group.id }) else { return }
+        do {
+            try await backend.joinGroup(groupId: group.id, userId: userId)
+            var joined = group
+            joined.memberCount += 1
+            myGroups.append(joined)
+            showToast("Joined \(group.name)")
+        } catch {
+            showToast("Couldn't join the group")
+        }
+    }
+
+    /// The join-by-link entry point — looks the group up by its invite token, then joins
+    /// exactly like tapping Join on a discovered public group would.
+    func joinGroup(byInviteToken token: String) async {
+        do {
+            guard let group = try await backend.fetchGroup(byInviteToken: token) else {
+                showToast("That invite link isn't valid")
+                return
+            }
+            await joinGroup(group)
+        } catch {
+            showToast("Couldn't open that invite")
+        }
+    }
+
+    func leaveGroup(_ group: HabitGroup) async {
+        guard let userId = session?.userId else { return }
+        do {
+            try await backend.leaveGroup(groupId: group.id, userId: userId)
+            myGroups.removeAll { $0.id == group.id }
+            showToast("Left \(group.name)")
+        } catch {
+            showToast("Couldn't leave the group")
+        }
+    }
+
+    func fetchGroupMembers(_ group: HabitGroup) async -> [GroupMemberInfo] {
+        (try? await backend.fetchGroupMembers(groupId: group.id)) ?? []
+    }
+
+    func fetchGroupFeed(_ group: HabitGroup) async -> [GroupCheckIn] {
+        (try? await backend.fetchGroupFeed(groupId: group.id)) ?? []
+    }
+
+    func logGroupProgress(_ group: HabitGroup, amount: Double, note: String?) async {
+        guard let userId = session?.userId else { return }
+        let day = dayCalendar.logicalDay(for: Date())
+        do {
+            try await backend.logGroupCheckIn(groupId: group.id, userId: userId, amount: amount, note: note, day: day)
+            showToast("Progress logged")
+        } catch {
+            showToast("Couldn't log that")
+        }
+    }
+
     // MARK: - Circle management
 
     func removeMember(_ member: CircleMember) {
@@ -523,18 +624,33 @@ final class AppModel: ObservableObject {
         "I'm using Kept to stay on track with my habits. Join my circle on Kept."
     }
 
-    /// Parses a tapped kept://invite link. Setting incomingInvite here is safe to call
-    /// before the recipient is signed in — RootTabView (where the accept sheet lives)
-    /// only exists once authStage is .authenticated, so the sheet naturally waits until
-    /// after they've signed up or logged in and simply appears once it does.
+    /// Same idea as inviteShareURL but for a private group's join link — kept://group,
+    /// carrying the group's invite_token rather than an inviter id.
+    func groupShareURL(_ group: HabitGroup) -> URL {
+        var components = URLComponents()
+        components.scheme = "kept"
+        components.host = "group"
+        components.queryItems = [URLQueryItem(name: "token", value: group.inviteToken)]
+        return components.url!
+    }
+
+    /// Parses a tapped kept://invite or kept://group link. Setting incomingInvite (or
+    /// joining a group) here is safe to call before the recipient is signed in —
+    /// RootTabView (where the accept sheet lives) only exists once authStage is
+    /// .authenticated, so it naturally waits until after they've signed up or logged in.
     func handleIncomingURL(_ url: URL) {
-        guard url.scheme == "kept", url.host == "invite" else { return }
+        guard url.scheme == "kept" else { return }
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-        guard let inviterIdString = items.first(where: { $0.name == "inviter" })?.value,
-              let inviterId = UUID(uuidString: inviterIdString),
-              inviterId != profile.id else { return }
-        let inviterName = items.first(where: { $0.name == "name" })?.value ?? "A friend"
-        incomingInvite = IncomingInvite(inviterId: inviterId, inviterName: inviterName)
+        if url.host == "invite" {
+            guard let inviterIdString = items.first(where: { $0.name == "inviter" })?.value,
+                  let inviterId = UUID(uuidString: inviterIdString),
+                  inviterId != profile.id else { return }
+            let inviterName = items.first(where: { $0.name == "name" })?.value ?? "A friend"
+            incomingInvite = IncomingInvite(inviterId: inviterId, inviterName: inviterName)
+        } else if url.host == "group" {
+            guard let token = items.first(where: { $0.name == "token" })?.value else { return }
+            Task { await joinGroup(byInviteToken: token) }
+        }
     }
 
     /// Mutual: both people end up able to see each other's Open habits, matching how

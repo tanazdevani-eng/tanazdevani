@@ -3,6 +3,7 @@ import SwiftUI
 struct CircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
+    @State private var showingGroups = false
     /// Shown until dismissed once, then remembered — a reminder worth seeing the first
     /// few times you're on this screen, not something that should sit here forever once
     /// you already know Kept habits never show up in Circle.
@@ -41,12 +42,24 @@ struct CircleView: View {
         .navigationDestination(isPresented: $showingAddToCircle) {
             AddToCircleView()
         }
+        .navigationDestination(isPresented: $showingGroups) {
+            GroupsListView()
+        }
     }
 
     private var header: some View {
         HStack {
             Text("Circle").keptWordmark(28).foregroundStyle(.keptInk)
             Spacer()
+            Button { showingGroups = true } label: {
+                Text("Groups")
+                    .font(KeptFont.body(12.5, weight: .bold))
+                    .foregroundStyle(.keptInk)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
+                    .background(Color.keptChip)
+                    .clipShape(Capsule())
+            }
             Button { showingAddToCircle = true } label: {
                 Text("+")
                     .font(.system(size: 17, weight: .semibold))

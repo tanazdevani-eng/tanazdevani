@@ -527,4 +527,197 @@ final class SupabaseBackendService: BackendService {
             .eq("id", value: userId)
             .execute()
     }
+
+    // MARK: - Groups
+
+    private struct GroupRow: Codable {
+        var id: UUID
+        var name: String
+        var location_label: String
+        var latitude: Double?
+        var longitude: Double?
+        var goal_amount: Double
+        var goal_unit: String
+        var goal_period: String
+        var visibility: String
+        var creator_id: UUID
+        var invite_token: String
+        var created_at: Date
+    }
+
+    private func habitGroup(from row: GroupRow, memberCount: Int) -> HabitGroup {
+        HabitGroup(
+            id: row.id, name: row.name, locationLabel: row.location_label,
+            latitude: row.latitude, longitude: row.longitude,
+            goalAmount: row.goal_amount, goalUnit: row.goal_unit,
+            goalPeriod: GroupGoalPeriod(rawValue: row.goal_period) ?? .weekly,
+            visibility: GroupVisibility(rawValue: row.visibility) ?? .privateGroup,
+            creatorId: row.creator_id, createdAt: row.created_at,
+            inviteToken: row.invite_token, memberCount: memberCount
+        )
+    }
+
+    private func memberCounts(for groupIds: [UUID]) async throws -> [UUID: Int] {
+        guard !groupIds.isEmpty else { return [:] }
+        struct Row: Codable { var group_id: UUID }
+        let rows: [Row] = try await client.from("group_members")
+            .select("group_id")
+            .in("group_id", values: groupIds)
+            .execute()
+            .value
+        var counts: [UUID: Int] = [:]
+        for row in rows { counts[row.group_id, default: 0] += 1 }
+        return counts
+    }
+
+    func fetchMyGroups(userId: UUID) async throws -> [HabitGroup] {
+        struct MembershipRow: Codable { var group_id: UUID }
+        let memberships: [MembershipRow] = try await client.from("group_members")
+            .select("group_id")
+            .eq("member_id", value: userId)
+            .execute()
+            .value
+        guard !memberships.isEmpty else { return [] }
+        let groupIds = memberships.map(\.group_id)
+        let rows: [GroupRow] = try await client.from("groups")
+            .select()
+            .in("id", values: groupIds)
+            .execute()
+            .value
+        let counts = try await memberCounts(for: groupIds)
+        return rows.map { habitGroup(from: $0, memberCount: counts[$0.id] ?? 1) }
+    }
+
+    /// Filters client-side rather than trying to express an OR-across-columns ilike filter
+    /// server-side — at this app's scale (a handful of public groups, not thousands) a
+    /// single "recent public groups" fetch plus a local substring match is simpler and just
+    /// as correct, and avoids depending on PostgREST's `or()` filter string syntax.
+    func searchPublicGroups(query: String) async throws -> [HabitGroup] {
+        let rows: [GroupRow] = try await client.from("groups")
+            .select()
+            .eq("visibility", value: "public")
+            .order("created_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value
+        let trimmed = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let filtered = trimmed.isEmpty ? rows : rows.filter {
+            $0.name.lowercased().contains(trimmed) || $0.location_label.lowercased().contains(trimmed)
+        }
+        let counts = try await memberCounts(for: filtered.map(\.id))
+        return filtered.map { habitGroup(from: $0, memberCount: counts[$0.id] ?? 0) }
+    }
+
+    /// Looks a group up by its invite token via group_by_invite_token() — a raw select
+    /// against groups can't be used for this since a private group's row is only visible
+    /// to existing members/its creator, and someone following a join link is neither yet.
+    func fetchGroup(byInviteToken token: String) async throws -> HabitGroup? {
+        let rows: [GroupRow] = try await client
+            .rpc("group_by_invite_token", params: ["p_token": token])
+            .execute()
+            .value
+        guard let row = rows.first else { return nil }
+        let counts = try await memberCounts(for: [row.id])
+        return habitGroup(from: row, memberCount: counts[row.id] ?? 0)
+    }
+
+    func createGroup(_ group: HabitGroup) async throws {
+        struct Insert: Codable {
+            var id: UUID
+            var name: String
+            var location_label: String
+            var latitude: Double?
+            var longitude: Double?
+            var goal_amount: Double
+            var goal_unit: String
+            var goal_period: String
+            var visibility: String
+            var creator_id: UUID
+            var invite_token: String
+        }
+        try await client.from("groups").insert(Insert(
+            id: group.id, name: group.name, location_label: group.locationLabel,
+            latitude: group.latitude, longitude: group.longitude,
+            goal_amount: group.goalAmount, goal_unit: group.goalUnit,
+            goal_period: group.goalPeriod.rawValue, visibility: group.visibility.rawValue,
+            creator_id: group.creatorId, invite_token: group.inviteToken
+        )).execute()
+        try await joinGroup(groupId: group.id, userId: group.creatorId)
+    }
+
+    func joinGroup(groupId: UUID, userId: UUID) async throws {
+        struct Upsert: Codable { var group_id: UUID; var member_id: UUID }
+        try await client.from("group_members")
+            .upsert(Upsert(group_id: groupId, member_id: userId), onConflict: "group_id,member_id")
+            .execute()
+    }
+
+    func leaveGroup(groupId: UUID, userId: UUID) async throws {
+        try await client.from("group_members")
+            .delete()
+            .eq("group_id", value: groupId)
+            .eq("member_id", value: userId)
+            .execute()
+    }
+
+    func fetchGroupMembers(groupId: UUID) async throws -> [GroupMemberInfo] {
+        struct MemberRow: Codable { var member_id: UUID }
+        let memberRows: [MemberRow] = try await client.from("group_members")
+            .select("member_id")
+            .eq("group_id", value: groupId)
+            .execute()
+            .value
+        guard !memberRows.isEmpty else { return [] }
+        struct ProfileRow: Codable { var id: UUID; var name: String }
+        let profiles: [ProfileRow] = try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: memberRows.map(\.member_id))
+            .execute()
+            .value
+        return memberRows.enumerated().map { index, row in
+            GroupMemberInfo(
+                id: row.member_id,
+                name: profiles.first(where: { $0.id == row.member_id })?.name ?? "Someone",
+                avatarSeed: index
+            )
+        }
+    }
+
+    func fetchGroupFeed(groupId: UUID) async throws -> [GroupCheckIn] {
+        struct Row: Codable { var id: UUID; var member_id: UUID; var amount: Double; var note: String?; var created_at: Date }
+        let rows: [Row] = try await client.from("group_check_ins")
+            .select("id, member_id, amount, note, created_at")
+            .eq("group_id", value: groupId)
+            .order("created_at", ascending: false)
+            .limit(200)
+            .execute()
+            .value
+        guard !rows.isEmpty else { return [] }
+        struct ProfileRow: Codable { var id: UUID; var name: String }
+        let profiles: [ProfileRow] = try await client.from("profiles")
+            .select("id, name")
+            .in("id", values: Array(Set(rows.map(\.member_id))))
+            .execute()
+            .value
+        return rows.enumerated().map { index, row in
+            GroupCheckIn(
+                id: row.id, groupId: groupId, memberId: row.member_id,
+                memberName: profiles.first(where: { $0.id == row.member_id })?.name ?? "Someone",
+                avatarSeed: index, amount: row.amount, note: row.note, loggedAt: row.created_at
+            )
+        }
+    }
+
+    func logGroupCheckIn(groupId: UUID, userId: UUID, amount: Double, note: String?, day: Date) async throws {
+        struct Insert: Codable {
+            var group_id: UUID
+            var member_id: UUID
+            var amount: Double
+            var note: String?
+            var logical_day: Date
+        }
+        try await client.from("group_check_ins")
+            .insert(Insert(group_id: groupId, member_id: userId, amount: amount, note: note, logical_day: day))
+            .execute()
+    }
 }
