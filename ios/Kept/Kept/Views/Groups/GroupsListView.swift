@@ -79,11 +79,14 @@ struct GroupsListView: View {
         }
     }
 
+    /// Two sibling buttons, not one nested inside the other — nesting a Button in another
+    /// Button's label is unreliable (the outer one tends to swallow the inner tap), so the
+    /// row-open action and the Join action need to sit next to each other, not stacked.
     private func groupRow(_ group: HabitGroup, showJoin: Bool) -> some View {
-        Button {
-            selectedGroup = group
-        } label: {
-            HStack(spacing: 12) {
+        HStack(spacing: 12) {
+            Button {
+                selectedGroup = group
+            } label: {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(group.name)
                         .font(KeptFont.display(15, weight: .semibold))
@@ -95,24 +98,31 @@ struct GroupsListView: View {
                         .font(KeptFont.mono(10.5, weight: .semibold))
                         .foregroundStyle(.keptInkSoft)
                 }
-                Spacer()
-                if showJoin {
-                    Button("Join") { Task { await appModel.joinGroup(group) } }
-                        .font(KeptFont.body(12.5, weight: .bold))
-                        .foregroundStyle(.keptOrangeDeep)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
-                        .background(Color.keptOrangeSoft)
-                        .clipShape(Capsule())
-                } else {
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if showJoin {
+                Button("Join") { Task { await appModel.joinGroup(group) } }
+                    .font(KeptFont.body(12.5, weight: .bold))
+                    .foregroundStyle(.keptOrangeDeep)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
+                    .background(Color.keptOrangeSoft)
+                    .clipShape(Capsule())
+            } else {
+                Button {
+                    selectedGroup = group
+                } label: {
                     Text("›").foregroundStyle(.keptInkSoft)
                 }
+                .buttonStyle(.plain)
             }
-            .padding(14)
-            .background(.keptSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(.keptSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
     }
 }

@@ -14,6 +14,11 @@ struct LocationField: View {
     @State private var fetcher = LocationFetcher()
     @State private var isEditing = false
     @State private var isLocating = false
+    /// Set right before a resolved pick (dropdown row or "use my location") assigns
+    /// `label` programmatically, so the onChange below — which exists to clear stale
+    /// coordinates while someone is actually typing — doesn't also fire on that
+    /// assignment and immediately null out the coordinates it was just given.
+    @State private var isProgrammaticUpdate = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -24,6 +29,10 @@ struct LocationField: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
                 .onChange(of: label) { _, newValue in
+                    if isProgrammaticUpdate {
+                        isProgrammaticUpdate = false
+                        return
+                    }
                     isEditing = true
                     latitude = nil
                     longitude = nil
@@ -36,6 +45,7 @@ struct LocationField: View {
                         Button {
                             Task {
                                 if let resolved = await completer.resolve(result) {
+                                    isProgrammaticUpdate = true
                                     label = resolved.label
                                     latitude = resolved.latitude
                                     longitude = resolved.longitude
@@ -66,6 +76,7 @@ struct LocationField: View {
                 Task {
                     isLocating = true
                     if let place = await fetcher.currentPlace() {
+                        isProgrammaticUpdate = true
                         label = place.label
                         latitude = place.latitude
                         longitude = place.longitude
