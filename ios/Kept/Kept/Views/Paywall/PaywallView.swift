@@ -4,6 +4,7 @@ import StoreKit
 struct PaywallView: View {
     @EnvironmentObject var appModel: AppModel
     @EnvironmentObject var storeKit: StoreKitManager
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedPlan: Plan = .keptPlus
     @State private var billingPeriod: BillingPeriod = .monthly
     @State private var showingManageSubscriptions = false
@@ -45,6 +46,20 @@ struct PaywallView: View {
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationBarHidden(true)
+        // Presented as a sheet from Home/Profile/Streak Insights, not a tab root, so it
+        // needs its own way out beyond a swipe-down.
+        .overlay(alignment: .topTrailing) {
+            Button { dismiss() } label: {
+                Text("✕")
+                    .font(KeptFont.body(13, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
+                    .frame(width: 30, height: 30)
+                    .background(.keptSurface)
+                    .clipShape(Circle())
+            }
+            .padding(.top, 14)
+            .padding(.trailing, 18)
+        }
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
         .onChange(of: showingManageSubscriptions) { _, isPresented in
             // Canceling (or any other change) made inside that sheet doesn't push a

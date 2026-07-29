@@ -19,6 +19,9 @@ final class AppModel: ObservableObject {
     @Published var isLoading = false
     @Published var lastError: String?
     @Published var selectedTab: RootTab = .home
+    /// Kept+ isn't a tab — this presents it as a sheet from wherever an upsell fires
+    /// (Add Habit's 3-habit cap, Streak Insights' locked state, Profile's upgrade box).
+    @Published var showingPaywall = false
 
     /// Drives which top-level screen AuthGateView shows: a launch spinner while checking
     /// for an existing session, the phone sign-up/log-in flow, the one-time post-signup
@@ -356,6 +359,7 @@ final class AppModel: ObservableObject {
                     avatarSeed: 0,
                     isMine: true,
                     habitId: habit.id,
+                    habitName: habit.name,
                     note: todaysNotes[habit.id],
                     timeLabel: "just now",
                     streakCount: habit.streakCount(calendar: dayCalendar),

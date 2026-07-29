@@ -16,6 +16,9 @@ struct ProfileView: View {
             VStack(spacing: 0) {
                 hero
                 statRow
+                if !appModel.isSubscribed {
+                    upgradeBox
+                }
                 settingsSection(label: "Account") {
                     settingsRow("Edit profile") { showingEditProfile = true }
                     settingsRow("Notifications") { showingNotifications = true }
@@ -29,7 +32,7 @@ struct ProfileView: View {
                 }
                 settingsSection(label: "Billing") {
                     settingsRow("Manage subscription", value: appModel.isSubscribed ? "Kept+" : "Free") {
-                        appModel.selectedTab = .paywall
+                        appModel.showingPaywall = true
                     }
                     settingsRow("Streak insights", value: appModel.isSubscribed ? nil : "Kept+") {
                         showingStreakInsights = true
@@ -120,6 +123,42 @@ struct ProfileView: View {
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.keptLine))
         .padding(.top, 20)
         .padding(.bottom, 6)
+    }
+
+    /// Kept+'s only presence outside a sheet — a single tappable card here instead of a
+    /// full tab of its own, since it's an upsell, not a destination someone browses to.
+    private var upgradeBox: some View {
+        Button { appModel.showingPaywall = true } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("KEPT+")
+                        .font(KeptFont.mono(10.5, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.75))
+                    Text("Unlimited habits, locks, and streak insights")
+                        .font(KeptFont.display(15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Text("Upgrade")
+                    .font(KeptFont.body(12.5, weight: .bold))
+                    .foregroundStyle(.keptPurpleDeep)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
+                    .background(.white)
+                    .clipShape(Capsule())
+            }
+            .padding(16)
+            .background(
+                LinearGradient(
+                    colors: [Color.keptPurpleFill, Color.keptPurpleDeep],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 14)
     }
 
     private func statBlock(value: String, label: String) -> some View {

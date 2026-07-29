@@ -304,6 +304,16 @@ final class SupabaseBackendService: BackendService {
             .execute()
             .value
 
+        // Only readable at all because of habits_circle_select_if_checkin_visible_today,
+        // which mirrors the check-in visibility conditions exactly — the post shouldn't
+        // just show a streak and a note with no idea what habit it's even about.
+        struct HabitNameRow: Codable { var id: UUID; var name: String }
+        let habitNames: [HabitNameRow] = try await client.from("habits")
+            .select("id, name")
+            .in("id", values: Array(Set(rows.map(\.habit_id))))
+            .execute()
+            .value
+
         var items: [CircleFeedItem] = []
         for (index, row) in rows.enumerated() {
             let authorName = authorProfiles.first(where: { $0.id == row.user_id })?.name ?? "Someone"
@@ -343,6 +353,7 @@ final class SupabaseBackendService: BackendService {
                 avatarSeed: index,
                 isMine: false,
                 habitId: row.habit_id,
+                habitName: habitNames.first(where: { $0.id == row.habit_id })?.name,
                 note: row.note,
                 timeLabel: relativeTimeLabel(row.created_at),
                 streakCount: streak,

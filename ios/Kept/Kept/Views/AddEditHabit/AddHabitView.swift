@@ -42,7 +42,7 @@ struct AddHabitView: View {
             dismiss()
         } else {
             appModel.showToast("Upgrade to add more than 3 habits")
-            appModel.selectedTab = .paywall
+            appModel.showingPaywall = true
             dismiss()
         }
     }

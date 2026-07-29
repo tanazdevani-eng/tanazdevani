@@ -51,10 +51,23 @@ struct FriendPostCard: View {
                     }
                 }
 
+                if let habitName = item.habitName {
+                    Text(habitName)
+                        .font(KeptFont.display(16, weight: .semibold))
+                        .foregroundStyle(.keptInk)
+                }
+
                 if let note = item.note, !note.isEmpty {
                     noteText("\u{201C}\(note)\u{201D}", italic: true)
                 } else if item.isMine {
                     noteText("Checked in. No note this time.", italic: false)
+                }
+
+                HStack(spacing: 10) {
+                    StreakDotsRow(filled: min(item.streakCount, 16), visibility: .open)
+                    Text("\(item.streakCount) day\(item.streakCount == 1 ? "" : "s")")
+                        .font(KeptFont.mono(11.5, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
                 }
 
                 if !item.isMine {

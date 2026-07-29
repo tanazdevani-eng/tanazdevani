@@ -158,6 +158,29 @@ create policy "profiles_update_self" on public.profiles
 create policy "habits_owner_all" on public.habits
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- The Circle feed needs to show *which* habit a post is about, not just its note and
+-- streak — this mirrors check_ins_circle_select_open_today's exact conditions (Open,
+-- checked in today, audience-visible, not blocked) so a habit's name is only ever
+-- readable by a circle member at the exact moment its check-in is already visible to
+-- them, never more broadly.
+create policy "habits_circle_select_if_checkin_visible_today" on public.habits
+  for select using (
+    visibility = 'open'
+    and exists (
+      select 1 from public.check_ins c
+      where c.habit_id = habits.id
+        and c.logical_day = (now() at time zone 'utc')::date
+    )
+    and exists (
+      select 1 from public.circle_members cm
+      where cm.owner_id = auth.uid() and cm.member_id = habits.user_id
+    )
+    and public.habit_visible_to(habits.id, auth.uid())
+    and not exists (
+      select 1 from public.blocks b where b.blocker_id = habits.user_id and b.blocked_id = auth.uid()
+    )
+  );
+
 -- Check-ins: owner has full access. Circle members can SELECT only today's check-ins
 -- on habits currently marked Open — this single policy is what enforces "Kept is fully
 -- invisible" and "switching to Open only exposes future check-ins," server-side, with

@@ -27,6 +27,11 @@ struct CheckInView: View {
             .padding(.horizontal, 22)
             .padding(.top, 6)
 
+            // Pushes the whole interactive cluster (toggle, note, save) down toward the
+            // bottom half of the screen instead of it sitting right under the header —
+            // the toggle circle especially was a one-handed reach stretch at the top.
+            Spacer(minLength: 16)
+
             VStack(spacing: 14) {
                 Button {
                     isDone.toggle()
@@ -76,8 +81,7 @@ struct CheckInView: View {
                 .buttonStyle(.keptPrimary)
                 .padding(.horizontal, 22)
                 .padding(.top, 26)
-
-            Spacer()
+                .padding(.bottom, 30)
         }
         .background(Color.keptBackground.ignoresSafeArea())
         .navigationTitle("Check in")

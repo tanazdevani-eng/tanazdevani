@@ -1,13 +1,15 @@
 import SwiftUI
 
 enum RootTab: Hashable {
-    case home, circle, paywall, profile
+    case home, circle, profile
 }
 
 /// Root screen switcher using CustomTabBar instead of SwiftUI's stock TabView, to match
 /// kept.html's floating pill tab bar exactly rather than the system's default chrome.
-/// All four sections stay mounted simultaneously (toggled via opacity) so each keeps its
+/// All three sections stay mounted simultaneously (toggled via opacity) so each keeps its
 /// own navigation/scroll state when you switch away and back, instead of resetting.
+/// Kept+ isn't a tab — it lives under Profile and opens as a sheet from anywhere
+/// (AppModel.showingPaywall) since upsells fire from Home, Profile, and Streak Insights.
 struct RootTabView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddHabit = false
@@ -18,14 +20,12 @@ struct RootTabView: View {
     // that tab's root AND clears any stale in-progress form state, in one move.
     @State private var homeResetToken = UUID()
     @State private var circleResetToken = UUID()
-    @State private var paywallResetToken = UUID()
     @State private var profileResetToken = UUID()
 
     var body: some View {
         ZStack {
             section(.home) { NavigationStack { HomeView() }.id(homeResetToken) }
             section(.circle) { NavigationStack { CircleView() }.id(circleResetToken) }
-            section(.paywall) { NavigationStack { PaywallView() }.id(paywallResetToken) }
             section(.profile) { NavigationStack { ProfileView() }.id(profileResetToken) }
         }
         // Reserves room above the floating tab bar for every screen at once — including
@@ -58,6 +58,9 @@ struct RootTabView: View {
         .sheet(item: $appModel.incomingInvite) { invite in
             AcceptInviteView(invite: invite)
         }
+        .sheet(isPresented: $appModel.showingPaywall) {
+            NavigationStack { PaywallView() }
+        }
     }
 
     @ViewBuilder
@@ -72,7 +75,6 @@ struct RootTabView: View {
         switch tab {
         case .home: homeResetToken = UUID()
         case .circle: circleResetToken = UUID()
-        case .paywall: paywallResetToken = UUID()
         case .profile: profileResetToken = UUID()
         }
     }

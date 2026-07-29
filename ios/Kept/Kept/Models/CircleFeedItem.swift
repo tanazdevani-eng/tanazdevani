@@ -11,6 +11,7 @@ struct CircleFeedItem: Identifiable, Equatable {
     var avatarSeed: Int
     var isMine: Bool
     var habitId: UUID?
+    var habitName: String?
     var note: String?
     var timeLabel: String
     var streakCount: Int

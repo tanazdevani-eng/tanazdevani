@@ -70,7 +70,7 @@ struct HabitFormBody: View {
                 showingAudiencePicker = true
             } else {
                 appModel.showToast("Kept+ lets you share with just a few people")
-                appModel.selectedTab = .paywall
+                appModel.showingPaywall = true
             }
         } label: {
             HStack {

@@ -18,7 +18,6 @@ struct CustomTabBar: View {
             tabItem(.home, glyph: "⌂", label: "Home")
             tabItem(.circle, glyph: "◎", label: "Circle")
             addButton
-            tabItem(.paywall, glyph: "✦", label: "Kept+")
             profileTabItem
         }
         .frame(height: 74)

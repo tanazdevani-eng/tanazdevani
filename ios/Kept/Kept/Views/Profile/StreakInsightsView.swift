@@ -150,7 +150,7 @@ struct StreakInsightsView: View {
                 .foregroundStyle(.keptInk)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
-            Button("Unlock with Kept+") { appModel.selectedTab = .paywall }
+            Button("Unlock with Kept+") { appModel.showingPaywall = true }
                 .buttonStyle(.keptPrimary)
                 .padding(.horizontal, 40)
                 .padding(.top, 8)
