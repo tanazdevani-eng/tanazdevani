@@ -18,7 +18,7 @@ final class AppModel: ObservableObject {
     @Published var toast: String?
     @Published var isLoading = false
     @Published var lastError: String?
-    @Published var selectedTab: RootTab = .home
+    @Published var selectedTab: RootTab = .circle
     /// Kept+ isn't a tab — this presents it as a sheet from wherever an upsell fires
     /// (Add Habit's 3-habit cap, Streak Insights' locked state, Profile's upgrade box).
     @Published var showingPaywall = false
@@ -194,7 +194,7 @@ final class AppModel: ObservableObject {
         todaysComments = [:]
         nudgedAuthorIds = []
         friendFeedItems = Self.demoFriendFeed()
-        selectedTab = .home
+        selectedTab = .circle
     }
 
     /// Pull-to-refresh: re-fetches everything that can change from outside this device

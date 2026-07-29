@@ -15,8 +15,8 @@ struct CustomTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home, glyph: "⌂", label: "Home")
             tabItem(.circle, glyph: "◎", label: "Circle")
+            tabItem(.habits, glyph: "⌂", label: "Habits")
             addButton
             profileTabItem
         }
