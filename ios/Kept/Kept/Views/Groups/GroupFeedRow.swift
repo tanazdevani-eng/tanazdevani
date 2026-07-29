@@ -7,7 +7,6 @@ struct GroupFeedRow: View {
     @EnvironmentObject var appModel: AppModel
     let entry: GroupCheckIn
     let unit: String
-    var goalKind: GroupGoalKind = .numeric
     var onUpdate: () -> Void
 
     @State private var isPickingReaction = false
@@ -23,7 +22,7 @@ struct GroupFeedRow: View {
                     .font(KeptFont.body(13, weight: .bold))
                     .foregroundStyle(.keptInk)
                 Spacer()
-                Text(goalKind == .count ? "Checked in" : "+\(formattedAmount(entry.amount)) \(unit)")
+                Text("+\(formattedAmount(entry.amount)) \(unit)")
                     .font(KeptFont.mono(11.5, weight: .semibold))
                     .foregroundStyle(.keptOrangeDeep)
             }
@@ -148,9 +147,11 @@ struct GroupFeedRow: View {
                     // collide. The return key (onSubmit above) already posts the comment.
 
                 if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button("Camera") { showingCommentCamera = true }
-                        .font(KeptFont.body(11.5, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
+                    Button { showingCommentCamera = true } label: {
+                        Image(systemName: "camera")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                    }
                 }
 
                 if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {

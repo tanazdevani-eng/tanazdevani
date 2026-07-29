@@ -40,6 +40,15 @@ enum HabitDuration: Equatable, Hashable {
     }
 }
 
+/// One past day's captured photo(s) for a habit — surfaced in HabitPhotosView so a live
+/// camera capture at check-in isn't a one-and-done social post, it's also a photo memory
+/// you can look back on later, same idea as a streak count but visual.
+struct HabitCheckInMemory: Identifiable, Hashable {
+    var id: Date { day }
+    var day: Date
+    var photoURLs: [URL]
+}
+
 struct Habit: Identifiable, Codable, Equatable, Hashable {
     var id: UUID
     var name: String

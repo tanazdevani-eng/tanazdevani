@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var checkInHabit: Habit?
     @State private var editHabit: Habit?
+    @State private var photosHabit: Habit?
 
     /// Locale-aware instead of a hardcoded US-style "EEEE, MMMM d" template — weekday/month
     /// names, and their order, both vary by language and region.
@@ -22,7 +23,8 @@ struct HomeView: View {
                         HabitCardView(
                             habit: habit,
                             onCheckInTapped: { handleCheckInTap(habit) },
-                            onEditTapped: { editHabit = habit }
+                            onEditTapped: { editHabit = habit },
+                            onPhotosTapped: { photosHabit = habit }
                         )
                     }
                 }
@@ -38,6 +40,9 @@ struct HomeView: View {
         }
         .navigationDestination(item: $editHabit) { habit in
             EditHabitView(habit: habit)
+        }
+        .navigationDestination(item: $photosHabit) { habit in
+            HabitPhotosView(habit: habit)
         }
     }
 

@@ -363,6 +363,13 @@ final class AppModel: ObservableObject {
         try? await backend.setCheckInPhotos(habitId: habit.id, userId: userId, day: day, photoURLs: urls.map(\.absoluteString))
     }
 
+    /// Every day this habit has a captured photo, newest first — the check-in camera isn't
+    /// just for the momentary Circle post, it's building a photo history you can revisit.
+    func fetchCheckInPhotos(_ habit: Habit) async -> [HabitCheckInMemory] {
+        guard let userId = session?.userId else { return [] }
+        return (try? await backend.fetchCheckInPhotos(habitId: habit.id, userId: userId)) ?? []
+    }
+
     /// Pulls back a down-day post, same idea as undoCheckIn but for the "missed" branch —
     /// used by the "✕" on your own down-day card in Circle.
     func undoDownDay(_ habit: Habit) {
@@ -553,12 +560,12 @@ final class AppModel: ObservableObject {
     @discardableResult
     func createGroup(
         name: String, locationLabel: String, latitude: Double?, longitude: Double?,
-        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, goalKind: GroupGoalKind, visibility: GroupVisibility
+        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
     ) async -> HabitGroup? {
         guard let userId = session?.userId else { return nil }
         let group = HabitGroup(
             name: name, locationLabel: locationLabel, latitude: latitude, longitude: longitude,
-            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod, goalKind: goalKind,
+            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod,
             visibility: visibility, creatorId: userId
         )
         do {

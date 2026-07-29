@@ -54,36 +54,6 @@ enum GroupGoalPeriod: String, Codable, CaseIterable, Identifiable, Hashable {
     }
 }
 
-/// Distinguishes "I did a measurable amount of something" (5 miles, 40 pages) — someone
-/// types in a number each time — from "I just did the thing or I didn't" (a workout, a
-/// meditation session) — a single tap logs it, same as a personal habit check-in. Not every
-/// group goal is a quantity, so log-time behavior branches on this instead of forcing every
-/// group through the numeric-amount flow.
-enum GroupGoalKind: String, Codable, CaseIterable, Identifiable, Hashable {
-    case numeric
-    case count
-
-    var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .numeric: return "Track an amount"
-        case .count: return "Track a count"
-        }
-    }
-    var pickerDescription: String {
-        switch self {
-        case .numeric: return "Members type in how much they did — miles, pages, minutes."
-        case .count: return "Members just tap check-in — workouts, sessions, days."
-        }
-    }
-    var unitPlaceholder: String {
-        switch self {
-        case .numeric: return "Unit, e.g. miles"
-        case .count: return "e.g. workouts, sessions"
-        }
-    }
-}
-
 /// A location-tied public or private community tracking one shared goal — distinct
 /// from a personal Habit, which is binary done/not-done. "NYC Runners, 4 miles a week" is a
 /// HabitGroup; each member logs their own amount toward that same shared goal (see
@@ -97,7 +67,6 @@ struct HabitGroup: Identifiable, Codable, Equatable, Hashable {
     var goalAmount: Double
     var goalUnit: String
     var goalPeriod: GroupGoalPeriod
-    var goalKind: GroupGoalKind
     var visibility: GroupVisibility
     var creatorId: UUID
     var createdAt: Date
@@ -113,7 +82,6 @@ struct HabitGroup: Identifiable, Codable, Equatable, Hashable {
         goalAmount: Double,
         goalUnit: String,
         goalPeriod: GroupGoalPeriod = .weekly,
-        goalKind: GroupGoalKind = .numeric,
         visibility: GroupVisibility,
         creatorId: UUID,
         createdAt: Date = Date(),
@@ -128,7 +96,6 @@ struct HabitGroup: Identifiable, Codable, Equatable, Hashable {
         self.goalAmount = goalAmount
         self.goalUnit = goalUnit
         self.goalPeriod = goalPeriod
-        self.goalKind = goalKind
         self.visibility = visibility
         self.creatorId = creatorId
         self.createdAt = createdAt

@@ -300,10 +300,15 @@ struct FriendPostCard: View {
                     // collide. The return key (onSubmit above) already posts the comment.
 
                 // Camera only, no library import — same reasoning as check-in photos.
+                // A plain glyph rather than the word "Camera" — this is a single
+                // functional button, not a decorative icon grid, so it doesn't conflict
+                // with the app's "no icon library" rule.
                 if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button("Camera") { showingCommentCamera = true }
-                        .font(KeptFont.body(11.5, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
+                    Button { showingCommentCamera = true } label: {
+                        Image(systemName: "camera")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                    }
                 }
 
                 if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {

@@ -5,6 +5,7 @@ struct HabitCardView: View {
     let habit: Habit
     var onCheckInTapped: () -> Void
     var onEditTapped: () -> Void
+    var onPhotosTapped: () -> Void
 
     private var calendar: DayCalendar { appModel.dayCalendar }
     private var checkedInToday: Bool { habit.isCheckedIn(calendar: calendar) }
@@ -27,16 +28,23 @@ struct HabitCardView: View {
         KeptCard(fill: AnyShapeStyle(habit.visibility.cardGradient), borderColor: habit.visibility.borderColor, cornerRadius: 26) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(habit.name)
-                            .font(KeptFont.display(18, weight: .semibold))
-                            .foregroundStyle(.keptInk)
-                        if let subtitle = habit.subtitle(calendar: calendar) {
-                            Text(subtitle)
-                                .font(KeptFont.body(12, weight: .medium))
-                                .foregroundStyle(.keptInkSoft)
+                    // Tappable to the habit's photo memories — a sibling to the "⋯" edit
+                    // button below, not nested inside anything, so it can't swallow or be
+                    // swallowed by another button's taps.
+                    Button(action: onPhotosTapped) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(habit.name)
+                                .font(KeptFont.display(18, weight: .semibold))
+                                .foregroundStyle(.keptInk)
+                            if let subtitle = habit.subtitle(calendar: calendar) {
+                                Text(subtitle)
+                                    .font(KeptFont.body(12, weight: .medium))
+                                    .foregroundStyle(.keptInkSoft)
+                            }
                         }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     Spacer()
                     HStack(spacing: 4) {
                         VisibilityPill(visibility: habit.visibility) {

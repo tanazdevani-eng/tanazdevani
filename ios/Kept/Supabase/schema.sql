@@ -350,7 +350,6 @@ create table public.groups (
   goal_amount numeric not null,
   goal_unit text not null,
   goal_period text not null default 'weekly' check (goal_period in ('daily','weekly','monthly')),
-  goal_kind text not null default 'numeric' check (goal_kind in ('numeric','count')),
   visibility text not null default 'private' check (visibility in ('public','private')),
   creator_id uuid not null references auth.users(id) on delete cascade,
   invite_token text not null unique default encode(gen_random_bytes(9), 'base64'),

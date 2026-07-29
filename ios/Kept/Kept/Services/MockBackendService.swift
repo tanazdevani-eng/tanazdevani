@@ -14,6 +14,7 @@ actor MockBackendService: BackendService {
     private var notificationSettings = NotificationSettings()
     private var reactionsByCheckIn: [UUID: [String: Int]] = [:]
     private var groups: [HabitGroup] = []
+    private var checkInPhotosByHabit: [UUID: [Date: [String]]] = [:]
     private var groupMemberIds: [UUID: [UUID]] = [:]
     private var groupCheckIns: [GroupCheckIn] = []
     private var isSignedIn = false
@@ -121,15 +122,30 @@ actor MockBackendService: BackendService {
         }
     }
 
+    /// Keyed by logical day so fetchCheckInPhotos can hand the same photos back later —
+    /// mock mode has no real check_ins table row to patch, so this dictionary is standing
+    /// in for that column.
+    func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws {
+        let logicalDay = DayCalendar().logicalDay(for: day)
+        checkInPhotosByHabit[habitId, default: [:]][logicalDay] = photoURLs
+    }
+
     /// No real Storage bucket in mock mode, same reasoning as uploadAvatar — writes to
     /// Documents and hands back a real, loadable file:// URL.
-    func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws {}
-
     func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileURL = directory.appendingPathComponent("post-photo-\(UUID().uuidString).jpg")
         try imageData.write(to: fileURL, options: .atomic)
         return fileURL
+    }
+
+    func fetchCheckInPhotos(habitId: UUID, userId: UUID) async throws -> [HabitCheckInMemory] {
+        guard let byDay = checkInPhotosByHabit[habitId] else { return [] }
+        return byDay.compactMap { day, urls in
+            guard !urls.isEmpty else { return nil }
+            return HabitCheckInMemory(day: day, photoURLs: urls.compactMap(URL.init(string:)))
+        }
+        .sorted { $0.day > $1.day }
     }
 
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember] { members }

@@ -34,6 +34,10 @@ protocol BackendService {
     /// a photo that's already there, or vice versa.
     func setCheckInPhotos(habitId: UUID, userId: UUID, day: Date, photoURLs: [String]) async throws
     func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL
+    /// Every past day this habit has a photo attached, newest first — the "photo memories"
+    /// grid on HabitPhotosView, independent of whether that day's check-in was ever Open
+    /// (a Kept habit's photos are still yours to look back on, they just never left Circle).
+    func fetchCheckInPhotos(habitId: UUID, userId: UUID) async throws -> [HabitCheckInMemory]
 
     // Circle
     func fetchCircleMembers(userId: UUID) async throws -> [CircleMember]

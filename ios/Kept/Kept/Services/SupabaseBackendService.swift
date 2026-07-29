@@ -216,6 +216,21 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
+    func fetchCheckInPhotos(habitId: UUID, userId: UUID) async throws -> [HabitCheckInMemory] {
+        struct Row: Codable { var logical_day: Date; var photo_urls: [String] }
+        let rows: [Row] = try await client.from("check_ins")
+            .select("logical_day, photo_urls")
+            .eq("habit_id", value: habitId)
+            .eq("user_id", value: userId)
+            .order("logical_day", ascending: false)
+            .execute()
+            .value
+        return rows.compactMap { row in
+            guard !row.photo_urls.isEmpty else { return nil }
+            return HabitCheckInMemory(day: row.logical_day, photoURLs: row.photo_urls.compactMap(URL.init(string:)))
+        }
+    }
+
     /// Shared by check-in photos and comment photos alike — same bucket, same "one photo,
     /// its own file" shape, just a different caller.
     func uploadCheckInPhoto(userId: UUID, imageData: Data) async throws -> URL {
@@ -564,7 +579,6 @@ final class SupabaseBackendService: BackendService {
         var goal_amount: Double
         var goal_unit: String
         var goal_period: String
-        var goal_kind: String
         var visibility: String
         var creator_id: UUID
         var invite_token: String
@@ -577,7 +591,6 @@ final class SupabaseBackendService: BackendService {
             latitude: row.latitude, longitude: row.longitude,
             goalAmount: row.goal_amount, goalUnit: row.goal_unit,
             goalPeriod: GroupGoalPeriod(rawValue: row.goal_period) ?? .weekly,
-            goalKind: GroupGoalKind(rawValue: row.goal_kind) ?? .numeric,
             visibility: GroupVisibility(rawValue: row.visibility) ?? .privateGroup,
             creatorId: row.creator_id, createdAt: row.created_at,
             inviteToken: row.invite_token, memberCount: memberCount
@@ -658,7 +671,6 @@ final class SupabaseBackendService: BackendService {
             var goal_amount: Double
             var goal_unit: String
             var goal_period: String
-            var goal_kind: String
             var visibility: String
             var creator_id: UUID
             var invite_token: String
@@ -667,7 +679,7 @@ final class SupabaseBackendService: BackendService {
             id: group.id, name: group.name, location_label: group.locationLabel,
             latitude: group.latitude, longitude: group.longitude,
             goal_amount: group.goalAmount, goal_unit: group.goalUnit,
-            goal_period: group.goalPeriod.rawValue, goal_kind: group.goalKind.rawValue, visibility: group.visibility.rawValue,
+            goal_period: group.goalPeriod.rawValue, visibility: group.visibility.rawValue,
             creator_id: group.creatorId, invite_token: group.inviteToken
         )).execute()
         try await joinGroup(groupId: group.id, userId: group.creatorId)

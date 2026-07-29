@@ -48,7 +48,7 @@ struct GroupDetailView: View {
                     } else {
                         VStack(spacing: 10) {
                             ForEach(feed) { entry in
-                                GroupFeedRow(entry: entry, unit: group.goalUnit, goalKind: group.goalKind) {
+                                GroupFeedRow(entry: entry, unit: group.goalUnit) {
                                     Task { await load() }
                                 }
                             }
@@ -220,27 +220,28 @@ private struct LogGroupProgressSheet: View {
                     }
                     .padding(.top, 26)
 
-                    if group.goalKind == .numeric {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("AMOUNT")
-                                .font(KeptFont.mono(11, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("AMOUNT ")
+                            .font(KeptFont.mono(11, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                        + Text("(optional — leave blank to just count as 1)")
+                            .font(KeptFont.body(10.5, weight: .regular))
+                            .foregroundStyle(.keptInkSoft)
+                        HStack(spacing: 8) {
+                            TextField("1", text: $amountText)
+                                .keyboardType(.decimalPad)
+                                .font(KeptFont.body(15))
+                                .padding(15)
+                                .background(.keptSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                            Text(group.goalUnit)
+                                .font(KeptFont.body(14, weight: .medium))
                                 .foregroundStyle(.keptInkSoft)
-                            HStack(spacing: 8) {
-                                TextField("0", text: $amountText)
-                                    .keyboardType(.decimalPad)
-                                    .font(KeptFont.body(15))
-                                    .padding(15)
-                                    .background(.keptSurface)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                                Text(group.goalUnit)
-                                    .font(KeptFont.body(14, weight: .medium))
-                                    .foregroundStyle(.keptInkSoft)
-                            }
                         }
-                        .padding(.horizontal, 22)
-                        .padding(.top, 18)
                     }
+                    .padding(.horizontal, 22)
+                    .padding(.top, 18)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ADD A NOTE ")
@@ -326,10 +327,13 @@ private struct LogGroupProgressSheet: View {
         }
     }
 
-    /// Count-kind groups skip manual entry entirely — one check-in is worth 1, same as a
-    /// personal habit — so amountText only matters for numeric-kind groups.
+    /// Typing a number is optional — leaving it blank (e.g. for a "did the workout or not"
+    /// kind of goal) just logs 1, same simplicity as a personal habit check-in. Only an
+    /// actual non-empty, non-numeric entry is treated as invalid.
     private var effectiveAmount: Double? {
-        group.goalKind == .count ? 1 : Double(amountText)
+        let trimmed = amountText.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return 1 }
+        return Double(trimmed)
     }
 
     private func hideKeyboard() {
