@@ -1,15 +1,18 @@
 import SwiftUI
 
 enum RootTab: Hashable {
-    case circle, habits, profile
+    case circle, groups, habits, profile
 }
 
 /// Root screen switcher using CustomTabBar instead of SwiftUI's stock TabView, to match
 /// kept.html's floating pill tab bar exactly rather than the system's default chrome.
-/// All three sections stay mounted simultaneously (toggled via opacity) so each keeps its
+/// All four sections stay mounted simultaneously (toggled via opacity) so each keeps its
 /// own navigation/scroll state when you switch away and back, instead of resetting.
 /// Circle launches first — Kept is social-media-for-habits, not a habit tracker with a
 /// social tab bolted on, so the feed is the front door and your own list lives one tab over.
+/// Groups gets its own tab (Circle, Groups, +, Habits, You) rather than living embedded
+/// inside Circle — five items lets the "+" sit naturally in the middle (two tabs flank it
+/// on each side) instead of needing an asymmetric 2-and-1 split to fake center it.
 /// Kept+ isn't a tab — it lives under Profile and opens as a sheet from anywhere
 /// (AppModel.showingPaywall) since upsells fire from Habits, Profile, and Streak Insights.
 struct RootTabView: View {
@@ -21,12 +24,14 @@ struct RootTabView: View {
     // scratch — tapping the already-active tab again does this, so it both pops back to
     // that tab's root AND clears any stale in-progress form state, in one move.
     @State private var circleResetToken = UUID()
+    @State private var groupsResetToken = UUID()
     @State private var habitsResetToken = UUID()
     @State private var profileResetToken = UUID()
 
     var body: some View {
         ZStack {
             section(.circle) { NavigationStack { CircleView() }.id(circleResetToken) }
+            section(.groups) { NavigationStack { GroupsListView() }.id(groupsResetToken) }
             section(.habits) { NavigationStack { HomeView() }.id(habitsResetToken) }
             section(.profile) { NavigationStack { ProfileView() }.id(profileResetToken) }
         }
@@ -76,6 +81,7 @@ struct RootTabView: View {
     private func resetTab(_ tab: RootTab) {
         switch tab {
         case .circle: circleResetToken = UUID()
+        case .groups: groupsResetToken = UUID()
         case .habits: habitsResetToken = UUID()
         case .profile: profileResetToken = UUID()
         }

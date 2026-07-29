@@ -14,20 +14,20 @@ struct CustomTabBar: View {
     var onReselect: (RootTab) -> Void
 
     var body: some View {
-        // Three regions — leading pair, fixed-width "+", trailing item — rather than 4
-        // equal columns. With 4 equal columns the "+" lands at the 3rd-of-4 mark, not
-        // center; splitting into two equally-flexible outer groups around a fixed-width
-        // center keeps the "+" visually centered regardless of how many items flank it.
+        // Two pairs flanking a fixed-width "+" — five items total lets it sit dead center
+        // naturally (two tabs on each side) instead of needing an asymmetric split to fake
+        // it, the way a 4-item bar would.
         HStack(spacing: 0) {
             HStack(spacing: 0) {
                 tabItem(.circle, glyph: "◎", label: "Circle")
-                tabItem(.habits, glyph: "⌂", label: "Habits")
+                tabItem(.groups, glyph: "⬡", label: "Groups")
             }
             .frame(maxWidth: .infinity)
 
             addButton
 
             HStack(spacing: 0) {
+                tabItem(.habits, glyph: "⌂", label: "Habits")
                 profileTabItem
             }
             .frame(maxWidth: .infinity)

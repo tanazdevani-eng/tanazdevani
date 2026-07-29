@@ -9,6 +9,8 @@ struct GroupsListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                header
+
                 if !appModel.myGroups.isEmpty {
                     section(label: "My groups") {
                         ForEach(appModel.myGroups) { group in
@@ -55,8 +57,14 @@ struct GroupsListView: View {
             .padding(.bottom, 90)
         }
         .background(Color.keptBackground.ignoresSafeArea())
-        .navigationTitle("Groups")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        // Declared here since this screen is now its own NavigationStack root (its own
+        // tab in RootTabView), not pushed inside Circle's stack anymore — a NavigationStack
+        // only honors one destination handler per data type, so this is the only place
+        // HabitGroup needs one now.
+        .navigationDestination(for: HabitGroup.self) { group in
+            GroupDetailView(group: group)
+        }
         .task {
             await appModel.loadMyGroups()
             await appModel.searchGroups(query: "")
@@ -64,6 +72,21 @@ struct GroupsListView: View {
         .sheet(isPresented: $showingCreateGroup) {
             NavigationStack { CreateGroupView() }
         }
+    }
+
+    private var header: some View {
+        HStack {
+            Text("Groups").keptWordmark(28).foregroundStyle(.keptInk)
+            Spacer()
+            Button { showingCreateGroup = true } label: {
+                Text("+")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.keptInk)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().stroke(.keptInk, lineWidth: 1.5))
+            }
+        }
+        .padding(.top, 4)
     }
 
     private func section(label: String, @ViewBuilder content: () -> some View) -> some View {
@@ -75,10 +98,8 @@ struct GroupsListView: View {
         }
     }
 
-    /// NavigationLink(value:), not a Button setting local state — CircleView (the actual
-    /// NavigationStack root this screen is pushed onto) owns the single
-    /// navigationDestination(for: HabitGroup.self) for the whole stack; a second
-    /// destination registered here would silently lose to the outer one instead of firing.
+    /// NavigationLink(value:), matching the destination declared on this screen's own
+    /// body above (this view is a NavigationStack root now, not pushed inside another).
     private func groupRow(_ group: HabitGroup, showJoin: Bool) -> some View {
         HStack(spacing: 12) {
             NavigationLink(value: group) {
