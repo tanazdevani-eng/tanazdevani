@@ -694,12 +694,17 @@ final class AppModel: ObservableObject {
         return components.url!
     }
 
-    /// Deliberately doesn't include the raw URL as visible text — ShareLink already
-    /// attaches inviteShareURL separately and shows its own link preview, so folding the
-    /// (ugly, UUID-and-query-string-bearing) URL into this string would just show up
-    /// twice, once as a rich preview and once as raw text.
     var inviteShareMessage: String {
         "I'm using Kept to stay on track with my habits. Join my circle on Kept."
+    }
+
+    /// ShareLink's separate item/message split assumes every share target renders a rich
+    /// preview for the link plus the message text alongside it — Messages and several
+    /// other targets don't do that for a custom kept:// scheme (no rich preview at all),
+    /// so the message was silently getting dropped and only the bare link went out. One
+    /// combined string guarantees the note travels with the link everywhere.
+    var inviteShareText: String {
+        "\(inviteShareMessage)\n\(inviteShareURL.absoluteString)"
     }
 
     /// Same idea as inviteShareURL but for a private group's join link — kept://group,
@@ -710,6 +715,12 @@ final class AppModel: ObservableObject {
         components.host = "group"
         components.queryItems = [URLQueryItem(name: "token", value: group.inviteToken)]
         return components.url!
+    }
+
+    /// Same reasoning as inviteShareText — one combined string so the message actually
+    /// travels with the link regardless of share target.
+    func groupShareText(_ group: HabitGroup) -> String {
+        "Join \(group.name) on Kept.\n\(groupShareURL(group).absoluteString)"
     }
 
     /// Parses a tapped kept://invite or kept://group link. Setting incomingInvite (or

@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct InviteSentView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appModel: AppModel
     let contact: Contact
+    @State private var hasMarkedPending = false
 
     var body: some View {
         ScrollView {
@@ -35,20 +35,25 @@ struct InviteSentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
 
-                ShareLink(item: appModel.inviteShareURL, message: Text(appModel.inviteShareMessage)) {
+                ShareLink(item: appModel.inviteShareText) {
                     Text("Share the link")
                 }
                 .buttonStyle(.keptPrimary)
                 .padding(.top, 4)
-
-                Button("Maybe later") { dismiss() }
-                    .buttonStyle(KeptPillButtonStyle(background: .keptBackground, foreground: .keptInkSoft, borderColor: .keptLine))
-                    .padding(.top, 10)
+                // Only marks Pending once the share sheet is actually engaged, not just
+                // from reaching this screen — ShareLink has no "did the user actually send
+                // it" completion callback, but this is the closest real signal of intent
+                // there is, and simultaneousGesture doesn't interfere with ShareLink's own
+                // tap handling that presents the system sheet.
+                .simultaneousGesture(TapGesture().onEnded {
+                    guard !hasMarkedPending else { return }
+                    hasMarkedPending = true
+                    appModel.sendInvite(to: contact)
+                })
             }
             .padding(.horizontal, 30)
             .padding(.bottom, 120)
         }
         .background(Color.keptBackground.ignoresSafeArea())
-        .navigationBarBackButtonHidden(true)
     }
 }

@@ -18,9 +18,13 @@ import AVFoundation
 /// class unisolated and only hopping to `@MainActor` for the two things that actually need
 /// it — publishing `isAuthorized` and invoking the SwiftUI-facing capture completion —
 /// keeps what the compiler asserts honest about what actually happens at runtime.
+enum CameraAuthState { case notDetermined, authorized, denied }
+
 final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
     let session = AVCaptureSession()
-    @Published var isAuthorized = false
+    /// Three states, not a bool — .notDetermined and .denied need different taps (request
+    /// vs. deep-link to Settings), so the view needs to tell them apart.
+    @Published var authState: CameraAuthState = .notDetermined
 
     private let sessionQueue = DispatchQueue(label: "kept.circleCamera.session")
     private let photoOutput = AVCapturePhotoOutput()
@@ -30,23 +34,31 @@ final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCa
     private var isConfigured = false
     private var captureCompletion: ((UIImage?) -> Void)?
 
-    /// Requests permission (first launch only — after that this just reflects the existing
-    /// status) and, once authorized, wires up the session and starts the preview. Safe to
-    /// call from the main thread (that's how LiveCameraCircle calls it, from .onAppear).
+    /// Just reads the current status — deliberately does NOT call requestAccess itself.
+    /// The system permission dialog should only appear because someone tapped something
+    /// asking for it (requestAccess() below), not the instant this screen loads; showing
+    /// it unprompted on appear is exactly the "ambushed by a system alert" feeling that
+    /// isn't seamless.
     func start() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            isAuthorized = true
+            authState = .authorized
             configureAndRun()
         case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                Task { @MainActor in
-                    self?.isAuthorized = granted
-                    if granted { self?.configureAndRun() }
-                }
-            }
+            authState = .notDetermined
         default:
-            isAuthorized = false
+            authState = .denied
+        }
+    }
+
+    /// Called from a tap on the circle itself when authState is .notDetermined — the
+    /// system dialog appears as a direct result of that tap, not automatically.
+    func requestAccess() {
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+            Task { @MainActor in
+                self?.authState = granted ? .authorized : .denied
+                if granted { self?.configureAndRun() }
+            }
         }
     }
 
@@ -55,8 +67,8 @@ final class CircleCameraController: NSObject, ObservableObject, AVCapturePhotoCa
     /// denied-then-granted permission change wouldn't be picked up until the view itself
     /// was torn down and recreated.
     func recheckAuthorizationIfNeeded() {
-        guard !isAuthorized, AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
-        isAuthorized = true
+        guard authState != .authorized, AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+        authState = .authorized
         configureAndRun()
     }
 
@@ -165,22 +177,38 @@ struct LiveCameraCircle: View {
         // meant for the inner one (learned the hard way earlier on the Groups screens).
         ZStack(alignment: .bottomTrailing) {
             Button {
-                guard !isCapturing && !isDisabled else { return }
-                isCapturing = true
-                controller.capturePhoto { image in
-                    isCapturing = false
-                    if let image {
-                        onCapture(image)
-                        justCaptured = true
-                        Task {
-                            try? await Task.sleep(for: .milliseconds(500))
-                            justCaptured = false
+                switch controller.authState {
+                case .authorized:
+                    guard !isCapturing && !isDisabled else { return }
+                    isCapturing = true
+                    controller.capturePhoto { image in
+                        isCapturing = false
+                        if let image {
+                            onCapture(image)
+                            justCaptured = true
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(500))
+                                justCaptured = false
+                            }
                         }
+                    }
+                case .notDetermined:
+                    // The system dialog fires as a direct result of this tap, not
+                    // automatically on appear — that's what makes it feel requested
+                    // rather than an ambush.
+                    controller.requestAccess()
+                case .denied:
+                    // One tap straight to Kept's Settings page instead of making someone
+                    // hunt through Settings > Privacy > Camera manually — as close to
+                    // "grant access from the app" as iOS actually allows; Apple doesn't
+                    // permit a true in-app permission toggle.
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
                     }
                 }
             } label: {
                 ZStack {
-                    if controller.isAuthorized {
+                    if controller.authState == .authorized {
                         CameraPreviewLayerView(session: controller.session)
                     } else {
                         Circle().fill(Color.keptChip)
@@ -188,8 +216,13 @@ struct LiveCameraCircle: View {
                     if justCaptured {
                         Circle().fill(.black.opacity(0.35))
                         Text("✓").font(.system(size: 44, weight: .bold)).foregroundStyle(.white)
-                    } else if !controller.isAuthorized {
-                        Text("Enable camera\naccess in Settings")
+                    } else if controller.authState == .notDetermined {
+                        Text("Tap to enable\ncamera")
+                            .font(KeptFont.body(10, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                            .multilineTextAlignment(.center)
+                    } else if controller.authState == .denied {
+                        Text("Tap to enable\ncamera in Settings")
                             .font(KeptFont.body(10, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
                             .multilineTextAlignment(.center)
@@ -198,12 +231,12 @@ struct LiveCameraCircle: View {
                 .frame(width: 130, height: 130)
                 .clipShape(Circle())
                 .overlay(Circle().strokeBorder(ringColor, lineWidth: 3))
-                .opacity(isDisabled ? 0.6 : 1)
+                .opacity(isDisabled && controller.authState == .authorized ? 0.6 : 1)
             }
             .buttonStyle(.plain)
-            .disabled(isDisabled)
+            .disabled(isDisabled && controller.authState == .authorized)
 
-            if controller.isAuthorized {
+            if controller.authState == .authorized {
                 Button {
                     controller.flipCamera()
                 } label: {

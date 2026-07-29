@@ -75,7 +75,7 @@ struct AddToCircleView: View {
                 .padding(.vertical, 9)
                 .overlay(Capsule().strokeBorder(.white.opacity(0.5)))
 
-                ShareLink(item: appModel.inviteShareURL, message: Text(appModel.inviteShareMessage)) {
+                ShareLink(item: appModel.inviteShareText) {
                     Text("Share")
                         .font(KeptFont.body(11.5, weight: .bold))
                         .foregroundStyle(.white)
@@ -100,7 +100,8 @@ struct AddToCircleView: View {
             }
             Spacer()
             Button("Invite") {
-                appModel.sendInvite(to: contact)
+                // Doesn't mark them Pending yet — that only happens once the share sheet
+                // is actually engaged (see InviteSentView), not just from tapping this.
                 invitedContact = contact
             }
             .font(KeptFont.body(11.5, weight: .bold))

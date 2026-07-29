@@ -100,7 +100,7 @@ struct GroupDetailView: View {
                     .buttonStyle(.keptAccent)
 
                 if group.visibility == .privateGroup {
-                    ShareLink(item: appModel.groupShareURL(group), message: Text("Join \(group.name) on Kept.")) {
+                    ShareLink(item: appModel.groupShareText(group)) {
                         Text("Share invite")
                             .font(KeptFont.body(13, weight: .bold))
                             .foregroundStyle(.keptInk)

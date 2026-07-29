@@ -4,6 +4,7 @@ struct CircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
     @State private var showingGroups = false
+    @State private var showingCreateGroup = false
     /// Shown until dismissed once, then remembered — a reminder worth seeing the first
     /// few times you're on this screen, not something that should sit here forever once
     /// you already know Kept habits never show up in Circle.
@@ -55,6 +56,9 @@ struct CircleView: View {
         .navigationDestination(for: HabitGroup.self) { group in
             GroupDetailView(group: group)
         }
+        .sheet(isPresented: $showingCreateGroup) {
+            NavigationStack { CreateGroupView() }
+        }
         .task { await appModel.loadMyGroups() }
     }
 
@@ -84,6 +88,9 @@ struct CircleView: View {
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
                 Spacer()
+                Button("Create") { showingCreateGroup = true }
+                    .font(KeptFont.body(12, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
                 Button("See all") { showingGroups = true }
                     .font(KeptFont.body(12, weight: .semibold))
                     .foregroundStyle(.keptOrangeDeep)
