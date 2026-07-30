@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+/// Two distinct layouts depending on whether a photo was captured, not one template every
+/// post gets regardless of content: a photo makes this the feed's dominant, hero-sized
+/// card (big image, overlay caption); no photo collapses to a compact single-card row.
+/// Before this, every post — photo or not — rendered the exact same full-size template,
+/// which is most of why the feed read as a stack of identical forms rather than a feed.
 struct FriendPostCard: View {
     @EnvironmentObject var appModel: AppModel
     let item: CircleFeedItem
@@ -13,140 +18,29 @@ struct FriendPostCard: View {
     @State private var showingReportReasons = false
     @State private var showingBlockConfirm = false
     @State private var isEditingNote = false
-    /// The comment field used to be permanently expanded on every card at once, whether
-    /// or not anyone was actually using it — the feed read as a stack of small open forms
-    /// rather than posts. Collapsed to a plain link until tapped, like the comment
-    /// affordance on other social feeds.
     @State private var isComposingComment = false
 
+    private var hasPhoto: Bool { !item.photoURLs.isEmpty }
+
     var body: some View {
-        KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: 24) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    AvatarView(initial: String(item.authorName.prefix(1)), seed: item.avatarSeed, size: 36)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(item.isMine ? "You" : item.authorName)
-                            .font(KeptFont.body(14, weight: .bold))
-                            .foregroundStyle(.keptInk)
-                        Text(item.timeLabel)
-                            .font(KeptFont.body(11.5, weight: .medium))
-                            .foregroundStyle(.keptInkSoft)
+        KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: hasPhoto ? 24 : 20) {
+            if hasPhoto {
+                VStack(alignment: .leading, spacing: 0) {
+                    heroPhotoHeader
+                    VStack(alignment: .leading, spacing: 12) {
+                        postDetails
+                        actionsAndComments
                     }
-                    Spacer()
-
-                    if item.isMine, let habit = appModel.habits.first(where: { $0.id == item.habitId }) {
-                        Button {
-                            if item.status == .missed {
-                                appModel.undoDownDay(habit)
-                            } else {
-                                appModel.undoCheckIn(habit)
-                            }
-                        } label: {
-                            Text("✕").font(.system(size: 13)).foregroundStyle(.keptInkSoft)
-                        }
-                        .padding(4)
-                    } else if !item.isMine {
-                        Button {
-                            showingMoreActions = true
-                        } label: {
-                            Text("⋯")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.keptInkSoft)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
-                        }
-                    }
+                    .padding(16)
                 }
-
-                if let habitName = item.habitName {
-                    Text(habitName)
-                        .font(KeptFont.display(16, weight: .semibold))
-                        .foregroundStyle(.keptInk)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    compactHeader
+                    postDetails
+                    actionsAndComments
                 }
-
-                if item.status == .missed {
-                    Text("DOWN DAY")
-                        .font(KeptFont.mono(10, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 9)
-                        .background(Color.keptChip)
-                        .clipShape(Capsule())
-                }
-
-                // Only a real note shows here now, down day or not — the DOWN DAY tag
-                // above already says what happened; a filler line repeating that in
-                // sentence form wasn't adding anything.
-                if let note = item.note, !note.isEmpty {
-                    noteText("\u{201C}\(note)\u{201D}", emphasized: true)
-                }
-
-                // The only streak display on the card now — a 🔥 chip up in the header used
-                // to show this same number a second time, which just made the header (already
-                // carrying avatar, name, time, and an action button) more crowded for no
-                // extra information.
-                HStack(spacing: 10) {
-                    StreakDotsRow(filled: min(item.streakCount, 16), visibility: .open)
-                    Text("\(item.streakCount) day\(item.streakCount == 1 ? "" : "s")")
-                        .font(KeptFont.mono(11.5, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
-                }
-
-                if let goal = item.goalDurationDays, let day = item.dayNumber {
-                    goalProgressBar(day: day, goal: goal)
-                }
-
-                if !item.photoURLs.isEmpty {
-                    postPhotosRow
-                }
-
-                if !item.isMine {
-                    Group {
-                        if isPickingReaction {
-                            ReactionPickerRow { emoji in
-                                appModel.reactToFeedItem(item, emoji: emoji)
-                                isPickingReaction = false
-                            }
-                        } else {
-                            HStack(spacing: 8) {
-                                Button {
-                                    isPickingReaction = true
-                                } label: {
-                                    ReactionSummaryButton(reactions: item.reactions, myReactionEmoji: item.myReactionEmoji)
-                                }
-                                .buttonStyle(.plain)
-
-                                // Never on a down-day post — they already told you they
-                                // couldn't get to it, "nudge" reads as pestering, not
-                                // support. Reactions/comments are the right response there.
-                                if !item.hasCheckedInToday && item.status != .missed {
-                                    let alreadyNudged = appModel.nudgedAuthorIds.contains(item.authorId)
-                                    Button {
-                                        appModel.nudge(item)
-                                    } label: {
-                                        Text(alreadyNudged ? "Nudged" : "Nudge")
-                                            .font(KeptFont.body(13, weight: .semibold))
-                                            .foregroundStyle(alreadyNudged ? .keptInkSoft : .keptOrangeDeep)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 9)
-                                            // Matches the reaction button's neutral chip
-                                            // background instead of orange-on-orange — the
-                                            // color now lives only in the text, not doubled
-                                            // up in the fill too.
-                                            .background(Color.keptChip)
-                                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    }
-                                    .disabled(alreadyNudged)
-                                }
-                            }
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.15), value: isPickingReaction)
-                }
-
-                commentsSection
+                .padding(14)
             }
-            .padding(16)
         }
         .confirmationDialog("\(item.authorName)", isPresented: $showingMoreActions, titleVisibility: .visible) {
             Button("Report post") { showingReportReasons = true }
@@ -179,6 +73,199 @@ struct FriendPostCard: View {
         }
     }
 
+    /// The big, hero-sized moment — a real captured photo fills the top of the card,
+    /// bleeding to its rounded corners, with who/what overlaid directly on the image
+    /// instead of a separate header row above it.
+    private var heroPhotoHeader: some View {
+        ZStack(alignment: .bottom) {
+            AsyncImage(url: item.photoURLs[0]) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Color.keptChip
+            }
+            .frame(height: 210)
+            .frame(maxWidth: .infinity)
+            .clipped()
+
+            LinearGradient(colors: [.black.opacity(0.62), .clear], startPoint: .bottom, endPoint: .top)
+                .frame(height: 90)
+
+            HStack(spacing: 8) {
+                AvatarView(initial: String(item.authorName.prefix(1)), seed: item.avatarSeed, size: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.isMine ? "You" : item.authorName)
+                        .font(KeptFont.body(13.5, weight: .bold))
+                        .foregroundStyle(.white)
+                    if let habitName = item.habitName {
+                        Text("\(habitName) · \(item.timeLabel)")
+                            .font(KeptFont.body(11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                }
+                Spacer()
+            }
+            .padding(12)
+        }
+        .overlay(alignment: .topTrailing) {
+            postActionButton
+                .padding(8)
+                .background(.black.opacity(0.4))
+                .clipShape(Circle())
+                .padding(8)
+        }
+    }
+
+    /// The whole card, compressed into one row — no image to anchor a big layout around,
+    /// so this stays small: avatar, name, habit, streak, done.
+    private var compactHeader: some View {
+        HStack(spacing: 10) {
+            AvatarView(initial: String(item.authorName.prefix(1)), seed: item.avatarSeed, size: 30)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
+                    Text(item.isMine ? "You" : item.authorName)
+                        .font(KeptFont.body(13.5, weight: .bold))
+                        .foregroundStyle(.keptInk)
+                    if item.status == .missed {
+                        Text("DOWN DAY")
+                            .font(KeptFont.mono(8.5, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)
+                            .background(Color.keptMuted)
+                            .clipShape(Capsule())
+                    }
+                }
+                if let habitName = item.habitName {
+                    Text("\(habitName) · \(item.timeLabel)")
+                        .font(KeptFont.body(11, weight: .medium))
+                        .foregroundStyle(.keptInkSoft)
+                }
+            }
+            Spacer()
+            // A tintable symbol, not the 🔥 emoji — emoji carry their own fixed color
+            // regardless of surrounding style and read as more visual noise than a
+            // repeated small streak count needs, especially once it shows up on every row.
+            HStack(spacing: 3) {
+                Image(systemName: "flame.fill").font(.system(size: 10))
+                Text("\(item.streakCount)").font(KeptFont.mono(11.5, weight: .semibold))
+            }
+            .foregroundStyle(.keptInkSoft)
+            postActionButton
+        }
+    }
+
+    @ViewBuilder
+    private var postActionButton: some View {
+        if item.isMine, let habit = appModel.habits.first(where: { $0.id == item.habitId }) {
+            Button {
+                if item.status == .missed {
+                    appModel.undoDownDay(habit)
+                } else {
+                    appModel.undoCheckIn(habit)
+                }
+            } label: {
+                Text("✕")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(hasPhoto ? .white : .keptInkSoft)
+            }
+            .padding(4)
+        } else if !item.isMine {
+            Button {
+                showingMoreActions = true
+            } label: {
+                Text("⋯")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(hasPhoto ? .white : .keptInkSoft)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+            }
+        }
+    }
+
+    /// Down day tag (photo posts only — the compact header inlines it instead), note,
+    /// streak dots, goal bar, and any photos past the first one. Shared by both layouts.
+    @ViewBuilder
+    private var postDetails: some View {
+        if hasPhoto && item.status == .missed {
+            Text("DOWN DAY")
+                .font(KeptFont.mono(10, weight: .semibold))
+                .foregroundStyle(.keptInk)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 9)
+                .background(Color.keptMuted)
+                .clipShape(Capsule())
+        }
+
+        if let note = item.note, !note.isEmpty {
+            noteText("\u{201C}\(note)\u{201D}", emphasized: true)
+        }
+
+        // Photo posts still get the fuller streak-dots treatment (there's room for it);
+        // compact posts already show the count inline in the header, so repeating it here
+        // would be the exact same redundancy that used to show the streak twice per post.
+        if hasPhoto {
+            HStack(spacing: 10) {
+                StreakDotsRow(filled: min(item.streakCount, 16), visibility: .open)
+                Text("\(item.streakCount) day\(item.streakCount == 1 ? "" : "s")")
+                    .font(KeptFont.mono(11.5, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
+            }
+        }
+
+        if let goal = item.goalDurationDays, let day = item.dayNumber {
+            goalProgressBar(day: day, goal: goal)
+        }
+
+        if item.photoURLs.count > 1 {
+            additionalPhotosRow
+        }
+    }
+
+    @ViewBuilder
+    private var actionsAndComments: some View {
+        if !item.isMine {
+            Group {
+                if isPickingReaction {
+                    ReactionPickerRow { emoji in
+                        appModel.reactToFeedItem(item, emoji: emoji)
+                        isPickingReaction = false
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Button {
+                            isPickingReaction = true
+                        } label: {
+                            ReactionSummaryButton(reactions: item.reactions, myReactionEmoji: item.myReactionEmoji)
+                        }
+                        .buttonStyle(.plain)
+
+                        // Never on a down-day post — they already told you they
+                        // couldn't get to it, "nudge" reads as pestering, not
+                        // support. Reactions/comments are the right response there.
+                        if !item.hasCheckedInToday && item.status != .missed {
+                            let alreadyNudged = appModel.nudgedAuthorIds.contains(item.authorId)
+                            Button {
+                                appModel.nudge(item)
+                            } label: {
+                                Text(alreadyNudged ? "Nudged" : "Nudge")
+                                    .font(KeptFont.body(13, weight: .semibold))
+                                    .foregroundStyle(alreadyNudged ? .keptInkSoft : .keptOrangeDeep)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 9)
+                                    .background(Color.keptChip)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            }
+                            .disabled(alreadyNudged)
+                        }
+                    }
+                }
+            }
+            .animation(.easeInOut(duration: 0.15), value: isPickingReaction)
+        }
+
+        commentsSection
+    }
+
     /// Tappable-to-edit for your own posts only — friends' notes are just text.
     @ViewBuilder
     private func noteText(_ text: String, emphasized: Bool) -> some View {
@@ -202,7 +289,7 @@ struct FriendPostCard: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.keptChip)
                     Capsule()
-                        .fill(item.isMine ? Color.keptOrange : Color.keptPurpleFill)
+                        .fill(item.isMine ? Color.keptOrangeFill : Color.keptPurpleFill)
                         .frame(width: geo.size.width * CGFloat(day) / CGFloat(max(goal, 1)))
                 }
             }
@@ -213,19 +300,19 @@ struct FriendPostCard: View {
         }
     }
 
-    /// A check-in's attached photos, if any (never a forced simultaneous front/back pair,
-    /// just whatever the poster chose to attach — see CheckInView).
-    private var postPhotosRow: some View {
+    /// The first photo already anchors the hero header — this is only for a second shot,
+    /// if there is one.
+    private var additionalPhotosRow: some View {
         HStack(spacing: 10) {
-            ForEach(item.photoURLs, id: \.self) { url in
+            ForEach(item.photoURLs.dropFirst(), id: \.self) { url in
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
                     Color.keptChip
                 }
-                .frame(height: 160)
+                .frame(height: 120)
                 .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
     }

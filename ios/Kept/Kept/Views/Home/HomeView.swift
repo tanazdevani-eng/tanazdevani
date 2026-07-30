@@ -20,6 +20,7 @@ struct HomeView: View {
                 if appModel.habits.isEmpty {
                     emptyState
                 } else {
+                    todayStat
                     ForEach(appModel.habits) { habit in
                         HabitCardView(
                             habit: habit,
@@ -61,7 +62,11 @@ struct HomeView: View {
                     if !appModel.habits.isEmpty {
                         Button { showingStreakInsights = true } label: {
                             HStack(spacing: 5) {
-                                Text("🔥").font(.system(size: 12))
+                                // A tintable SF Symbol, not the 🔥 emoji — emoji render in
+                                // their own fixed multicolor regardless of surrounding
+                                // style, so it never actually matched the number next to
+                                // it and read as more visual noise than the streak needed.
+                                Image(systemName: "flame.fill").font(.system(size: 11))
                                 Text("\(appModel.overallStreak)").font(KeptFont.mono(13, weight: .semibold))
                             }
                             .foregroundStyle(.white)
@@ -84,6 +89,30 @@ struct HomeView: View {
         }
         .padding(.top, 4)
         .padding(.bottom, 10)
+    }
+
+    private var checkedInTodayCount: Int {
+        appModel.habits.filter { $0.isCheckedIn(calendar: appModel.dayCalendar) }.count
+    }
+
+    /// One solid, high-contrast stat before the list — everything else on this screen
+    /// (cards, pills, streak dots) leans on soft tints; this is the one place that commits
+    /// to a bold fill, giving the screen a single confident anchor instead of an even wash
+    /// of pastel throughout.
+    private var todayStat: some View {
+        HStack {
+            Text("Today")
+                .font(KeptFont.body(13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.7))
+            Spacer()
+            Text("\(checkedInTodayCount) of \(appModel.habits.count) kept")
+                .font(KeptFont.mono(14, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .padding(.vertical, 13)
+        .padding(.horizontal, 16)
+        .background(Color.keptInkFill)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var emptyState: some View {

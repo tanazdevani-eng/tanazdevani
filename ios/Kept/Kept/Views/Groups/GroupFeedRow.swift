@@ -2,7 +2,9 @@ import SwiftUI
 import UIKit
 
 /// One entry in a group's activity feed — same social loop as a Circle post (reactions,
-/// comments, photos), just for a shared check-in instead of a personal one.
+/// comments, photos), just for a shared check-in instead of a personal one. Same hero vs.
+/// compact split as FriendPostCard: a photo makes this entry the feed's dominant card, no
+/// photo collapses it to a single compact row.
 struct GroupFeedRow: View {
     @EnvironmentObject var appModel: AppModel
     let entry: GroupCheckIn
@@ -13,68 +15,124 @@ struct GroupFeedRow: View {
     @State private var commentPhoto: UIImage?
     @State private var showingCommentCamera = false
     @FocusState private var commentFocused: Bool
-    /// Collapsed until tapped, same reasoning as FriendPostCard's comment field — every
-    /// entry showing a permanently open composer at once made the feed read as a stack of
-    /// small forms rather than a feed.
     @State private var isComposingComment = false
 
+    private var hasPhoto: Bool { !entry.photoURLs.isEmpty }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(entry.memberName)
-                    .font(KeptFont.body(13, weight: .bold))
-                    .foregroundStyle(.keptInk)
-                Spacer()
-                Text("Checked in")
-                    .font(KeptFont.mono(11.5, weight: .semibold))
-                    .foregroundStyle(.keptOrangeDeep)
-            }
-
-            if let note = entry.note, !note.isEmpty {
-                Text(note)
-                    .font(KeptFont.body(12, weight: .medium))
-                    .foregroundStyle(.keptInkSoft)
-            }
-
-            if !entry.photoURLs.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(entry.photoURLs, id: \.self) { url in
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Color.keptChip
-                        }
-                        .frame(height: 130)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        Group {
+            if hasPhoto {
+                VStack(alignment: .leading, spacing: 0) {
+                    heroPhotoHeader
+                    VStack(alignment: .leading, spacing: 10) {
+                        entryDetails
+                        actionsAndComments
                     }
+                    .padding(14)
                 }
-            }
-
-            Group {
-                if isPickingReaction {
-                    ReactionPickerRow { emoji in
-                        appModel.reactToGroupCheckIn(entry, emoji: emoji)
-                        isPickingReaction = false
-                        onUpdate()
-                    }
-                } else {
-                    Button {
-                        isPickingReaction = true
-                    } label: {
-                        ReactionSummaryButton(reactions: entry.reactions, myReactionEmoji: entry.myReactionEmoji)
-                    }
-                    .buttonStyle(.plain)
+                .background(.keptSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    compactHeader
+                    entryDetails
+                    actionsAndComments
                 }
+                .padding(12)
+                .background(.keptSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
             }
-            .animation(.easeInOut(duration: 0.15), value: isPickingReaction)
-
-            commentsSection
         }
-        .padding(12)
-        .background(.keptSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
+    }
+
+    private var heroPhotoHeader: some View {
+        ZStack(alignment: .bottom) {
+            AsyncImage(url: entry.photoURLs[0]) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Color.keptChip
+            }
+            .frame(height: 190)
+            .frame(maxWidth: .infinity)
+            .clipped()
+
+            LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .bottom, endPoint: .top)
+                .frame(height: 80)
+
+            HStack(spacing: 8) {
+                AvatarView(initial: String(entry.memberName.prefix(1)), seed: entry.avatarSeed, size: 30)
+                Text(entry.memberName)
+                    .font(KeptFont.body(13.5, weight: .bold))
+                    .foregroundStyle(.white)
+                Spacer()
+                Text("CHECKED IN")
+                    .font(KeptFont.mono(9.5, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(12)
+        }
+    }
+
+    private var compactHeader: some View {
+        HStack {
+            AvatarView(initial: String(entry.memberName.prefix(1)), seed: entry.avatarSeed, size: 28)
+            Text(entry.memberName)
+                .font(KeptFont.body(13, weight: .bold))
+                .foregroundStyle(.keptInk)
+            Spacer()
+            Text("Checked in")
+                .font(KeptFont.mono(11, weight: .semibold))
+                .foregroundStyle(.keptOrangeDeep)
+        }
+    }
+
+    @ViewBuilder
+    private var entryDetails: some View {
+        if let note = entry.note, !note.isEmpty {
+            Text(note)
+                .font(KeptFont.body(12, weight: .medium))
+                .foregroundStyle(.keptInkSoft)
+        }
+
+        if entry.photoURLs.count > 1 {
+            HStack(spacing: 8) {
+                ForEach(entry.photoURLs.dropFirst(), id: \.self) { url in
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Color.keptChip
+                    }
+                    .frame(height: 110)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionsAndComments: some View {
+        Group {
+            if isPickingReaction {
+                ReactionPickerRow { emoji in
+                    appModel.reactToGroupCheckIn(entry, emoji: emoji)
+                    isPickingReaction = false
+                    onUpdate()
+                }
+            } else {
+                Button {
+                    isPickingReaction = true
+                } label: {
+                    ReactionSummaryButton(reactions: entry.reactions, myReactionEmoji: entry.myReactionEmoji)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .animation(.easeInOut(duration: 0.15), value: isPickingReaction)
+
+        commentsSection
     }
 
     @ViewBuilder
@@ -200,5 +258,4 @@ struct GroupFeedRow: View {
             onUpdate()
         }
     }
-
 }

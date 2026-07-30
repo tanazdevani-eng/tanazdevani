@@ -158,22 +158,26 @@ struct CircleView: View {
         .padding(.top, 60)
     }
 
+    /// Quieter than before — a full-weight card here was competing with the feed above it
+    /// for attention it didn't need. Still dismissible for good via the same "✕" (and the
+    /// same @AppStorage flag), just sized like a footnote instead of another card.
     private var lockedNote: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Text("🔒")
-            Text("Your circle can't see anything marked \u{201C}Kept.\u{201D} Not the streak, not the name. Nothing.")
-                .font(KeptFont.body(12, weight: .semibold))
+                .font(.system(size: 11))
+            Text("Your circle can't see anything marked \u{201C}Kept.\u{201D}")
+                .font(KeptFont.body(11, weight: .semibold))
                 .foregroundStyle(.keptPurpleDeep)
             Spacer(minLength: 0)
             Button {
                 hasSeenPrivacyNote = true
             } label: {
-                Text("✕").font(.system(size: 12, weight: .semibold)).foregroundStyle(.keptPurpleDeep)
+                Text("✕").font(.system(size: 11, weight: .semibold)).foregroundStyle(.keptPurpleDeep)
             }
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 13)
         .background(Color.keptPurpleSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(Capsule())
     }
 }
