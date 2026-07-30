@@ -11,10 +11,6 @@ struct HabitCardView: View {
     private var checkedInToday: Bool { habit.isCheckedIn(calendar: calendar) }
     private var isDownDayToday: Bool { appModel.downDayHabitIds.contains(habit.id) }
     private var streak: Int { habit.streakCount(calendar: calendar) }
-    /// A habit tracking toward a real end date earns more visual weight than a plain
-    /// ongoing one — it becomes this list's natural focal point on its own, rather than
-    /// every habit card claiming equal size and attention regardless of what's actually
-    /// going on with it.
     private var hasActiveGoal: Bool { habit.goalDurationDays != nil }
 
     /// Both keptChip and keptSurface were tried here for the down-day state and both read
@@ -31,28 +27,36 @@ struct HabitCardView: View {
     }
 
     var body: some View {
-        KeptCard(fill: AnyShapeStyle(habit.visibility.cardGradient), borderColor: habit.visibility.borderColor, cornerRadius: 26) {
+        KeptCard(fill: AnyShapeStyle(habit.visibility.cardGradient), borderColor: habit.visibility.borderColor, cornerRadius: 22) {
             VStack(alignment: .leading, spacing: 0) {
                 topRow
 
-                if hasActiveGoal {
-                    goalProgress.padding(.top, 16)
-                } else {
-                    HStack(spacing: 10) {
-                        StreakDotsRow(filled: min(streak, 16), visibility: habit.visibility)
-                        Text("\(streak) day\(streak == 1 ? "" : "s")")
-                            .font(KeptFont.mono(12, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                    }
-                    .padding(.top, 14)
-                }
+                streakRow.padding(.top, 12)
 
-                Divider().overlay(Color.keptInk.opacity(0.08)).padding(.top, hasActiveGoal ? 18 : 12)
+                Divider().overlay(Color.keptInk.opacity(0.08)).padding(.top, 12)
 
                 checkInButton
-                    .padding(.top, 12)
+                    .padding(.top, 10)
             }
-            .padding(EdgeInsets(top: 18, leading: 18, bottom: 16, trailing: 18))
+            .padding(EdgeInsets(top: 15, leading: 16, bottom: 14, trailing: 16))
+        }
+    }
+
+    /// The small dots-row-plus-count is the one display every card gets, goal or not — a
+    /// habit with an end date still gets a "Day X of Y" alongside it, but as a quiet mono
+    /// footnote next to the streak, not a big display-weight number taking over the card.
+    private var streakRow: some View {
+        HStack(spacing: 10) {
+            StreakDotsRow(filled: min(streak, 16), visibility: habit.visibility)
+            Text("\(streak) day\(streak == 1 ? "" : "s")")
+                .font(KeptFont.mono(12, weight: .semibold))
+                .foregroundStyle(.keptInkSoft)
+            if hasActiveGoal, let goal = habit.goalDurationDays {
+                Spacer()
+                Text("Day \(min(habit.daysSinceStart(calendar: calendar), goal)) of \(goal)")
+                    .font(KeptFont.mono(11, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
+            }
         }
     }
 
@@ -64,7 +68,7 @@ struct HabitCardView: View {
             Button(action: onPhotosTapped) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name)
-                        .font(KeptFont.display(hasActiveGoal ? 20 : 18, weight: .semibold))
+                        .font(KeptFont.display(18, weight: .semibold))
                         .foregroundStyle(.keptInk)
                     if let subtitle = habit.subtitle(calendar: calendar) {
                         Text(subtitle)
@@ -87,40 +91,6 @@ struct HabitCardView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                 }
-            }
-        }
-    }
-
-    /// Only for habits with a real end date — a big display-weight streak number and a
-    /// solid (not soft-tint) progress fill, instead of the same small dots row every habit
-    /// gets regardless of whether there's an actual goal behind it. This is what makes this
-    /// card the visually dominant one in the list, without needing a separate fake
-    /// "featured" banner bolted on above everything.
-    private var goalProgress: some View {
-        let goal = habit.goalDurationDays ?? 1
-        let day = min(habit.daysSinceStart(calendar: calendar), goal)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(streak)")
-                    .font(KeptFont.display(32, weight: .semibold))
-                    .foregroundStyle(habit.visibility.accentDeep)
-                Text("day streak")
-                    .font(KeptFont.body(13, weight: .semibold))
-                    .foregroundStyle(.keptInkSoft)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.keptChip)
-                    Capsule()
-                        .fill(habit.visibility.accentFill)
-                        .frame(width: geo.size.width * CGFloat(day) / CGFloat(max(goal, 1)))
-                }
-            }
-            .frame(height: 8)
-            HStack {
-                Text("Day \(day)").font(KeptFont.mono(11.5, weight: .semibold)).foregroundStyle(.keptInkSoft)
-                Spacer()
-                Text("of \(goal)").font(KeptFont.mono(11.5, weight: .semibold)).foregroundStyle(.keptInkSoft)
             }
         }
     }
@@ -148,7 +118,7 @@ struct HabitCardView: View {
             .font(KeptFont.body(13, weight: .bold))
             .foregroundStyle(checkInButtonForeground)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, hasActiveGoal ? 13 : 11)
+            .padding(.vertical, 11)
             .background(checkInButtonBackground)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }

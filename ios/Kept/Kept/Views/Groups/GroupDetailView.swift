@@ -88,9 +88,15 @@ struct GroupDetailView: View {
                     .font(KeptFont.body(13, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .padding(.top, 4)
-                Text(group.goalSummary)
+                // Two different weights on one line, not one uniform-size string — the
+                // activity is the headline, the cadence is a footnote next to it, not a
+                // second half of the same sentence.
+                Text(group.goalUnit)
                     .font(KeptFont.display(19, weight: .semibold))
                     .foregroundStyle(.keptInk)
+                + Text("  ·  resets \(group.goalPeriod.adverb)")
+                    .font(KeptFont.mono(11.5, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
                 Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)

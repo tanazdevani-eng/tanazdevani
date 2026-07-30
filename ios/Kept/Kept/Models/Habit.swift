@@ -122,10 +122,7 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
 
     /// Subtitle line: only present when there's something to say, never restates Open/Kept
     /// or today's check-in status — the button below already shows that in color. Goal
-    /// progress ("Day X of Y") used to live here too, but a goal-tracked habit now gets its
-    /// own dedicated progress section on the card (bigger streak number, a real bar) —
-    /// showing "Day X of Y" twice on one card would be the exact redundancy this app has
-    /// been cleaning up all along.
+    /// progress ("Day X of Y") lives in the card's streak row instead, next to the dots.
     func subtitle(now: Date = Date(), calendar: DayCalendar = DayCalendar()) -> String? {
         var parts: [String] = []
         if hasCustomAudience {
