@@ -19,7 +19,7 @@ struct AddToCircleView: View {
                 inviteLinkCard
 
                 fieldLabel("Find people").padding(.top, 20)
-                TextField("🔍  Search by username or number", text: $searchText)
+                TextField("Search by username or number", text: $searchText)
                     .font(KeptFont.body(14))
                     .padding(13)
                     .background(.keptSurface)
@@ -55,10 +55,15 @@ struct AddToCircleView: View {
                 Text("YOUR INVITE LINK")
                     .font(KeptFont.mono(10, weight: .semibold))
                     .foregroundStyle(Color(hex: 0xC6B4DC))
-                Text("kept.app/invite/\(appModel.profile.handle)")
-                    .font(KeptFont.mono(12.5, weight: .medium))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
+                // No literal URL shown here on purpose — it used to display a made-up
+                // "kept.app/invite/..." string that didn't match the real kept:// link
+                // Copy/Share actually send, so anyone who checked what they'd shared would
+                // find something unrecognizable. Nothing to display accurately yet without
+                // a hosted domain, so this just describes what the link (whatever it is)
+                // actually does.
+                Text("Adds you to their circle the moment they open it in Kept.")
+                    .font(KeptFont.body(12.5, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
             }
             HStack(spacing: 8) {
                 Button(copied ? "Copied!" : "Copy") {

@@ -37,10 +37,10 @@ struct ProfileView: View {
                     settingsRow("Streak insights", value: appModel.isSubscribed ? nil : "Kept+") {
                         showingStreakInsights = true
                     }
-                    settingsRow("Log out", isDanger: true) { showingLogoutConfirm = true }
+                    settingsRow("Log out") { showingLogoutConfirm = true }
                 }
                 settingsSection(label: "Account") {
-                    settingsRow("Delete account", isDanger: true) { showingDeleteConfirm = true }
+                    settingsRow("Delete account", isDestructive: true) { showingDeleteConfirm = true }
                 }
             }
             .padding(.horizontal, 22)
@@ -59,6 +59,7 @@ struct ProfileView: View {
                 title: "Log out?",
                 message: "You can sign back in any time with the same phone number.",
                 destructiveLabel: "Log out",
+                isDestructive: false,
                 onConfirm: {
                     showingLogoutConfirm = false
                     Task { await appModel.signOut() }
@@ -95,7 +96,7 @@ struct ProfileView: View {
                 .padding(.top, 2)
 
             if appModel.isSubscribed {
-                Text("✨ Kept+ member")
+                Text("KEPT+ MEMBER")
                     .font(KeptFont.mono(10.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.vertical, 5)
@@ -185,12 +186,16 @@ struct ProfileView: View {
         }
     }
 
-    private func settingsRow(_ title: String, value: String? = nil, isDanger: Bool = false, action: @escaping () -> Void) -> some View {
+    // Log out is fully reversible and stays plain ink like every other row; only
+    // permanently destructive actions (delete account) get flagged in danger-red — using
+    // the same warning color for both blurred a reversible action into looking as
+    // consequential as an irreversible one.
+    private func settingsRow(_ title: String, value: String? = nil, isDestructive: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack {
                 Text(title)
                     .font(KeptFont.body(13.5, weight: .semibold))
-                    .foregroundStyle(isDanger ? .keptOrangeDeep : .keptInk)
+                    .foregroundStyle(isDestructive ? .keptDanger : .keptInk)
                 Spacer()
                 if let value {
                     Text(value).font(KeptFont.body(13, weight: .medium)).foregroundStyle(.keptInkSoft)

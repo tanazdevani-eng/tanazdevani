@@ -29,6 +29,13 @@ extension Color {
     static let keptSuccess = Color(light: 0x3EA05B, dark: 0x4ECB82)
     static let keptSuccessSoft = Color(light: 0xEAF6EE, dark: 0x173423)
 
+    /// Semantic-only, like `keptSuccess` — not a third brand accent. Orange already means
+    /// "Open" everywhere else in the app, so it can't also mean "destructive" without
+    /// contradicting itself on screens like Delete account, where the two ideas would
+    /// otherwise collide in the same color.
+    static let keptDanger = Color(light: 0xC23B2E, dark: 0xE8695C)
+    static let keptDangerSoft = Color(light: 0xFBEAE7, dark: 0x3A1E1A)
+
     /// Non-adaptive "always rich" accents for solid branded fills (paywall badge, featured
     /// plan card, invite-link card, Kept+ chip, destructive buttons) that must stay a deep,
     /// saturated color with white text on top in both modes — unlike `keptPurpleDeep`/
@@ -80,6 +87,8 @@ extension ShapeStyle where Self == Color {
     static var keptPurpleSoft: Color { .keptPurpleSoft }
     static var keptSuccess: Color { .keptSuccess }
     static var keptSuccessSoft: Color { .keptSuccessSoft }
+    static var keptDanger: Color { .keptDanger }
+    static var keptDangerSoft: Color { .keptDangerSoft }
     static var keptPurpleFill: Color { .keptPurpleFill }
     static var keptOrangeFill: Color { .keptOrangeFill }
     static var keptChip: Color { .keptChip }

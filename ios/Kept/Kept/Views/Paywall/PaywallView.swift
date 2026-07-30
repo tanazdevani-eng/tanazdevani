@@ -276,10 +276,11 @@ struct PaywallView: View {
             .buttonStyle(KeptPillButtonStyle(background: .keptOrange))
             .disabled(isPurchasing)
         } else {
-            Button("Continue with Free") {}
-                .buttonStyle(KeptPillButtonStyle(background: .keptOrange))
-                .disabled(true)
-                .opacity(0.6)
+            // Selecting Free and tapping through just means "not subscribing right now" —
+            // this used to be a permanently disabled dead button with no way to actually
+            // finish the flow you're on.
+            Button("Continue with Free") { dismiss() }
+                .buttonStyle(KeptPillButtonStyle(background: .keptInkFill))
         }
     }
 

@@ -6,6 +6,11 @@ struct ConfirmSheetContent: View {
     let title: String
     let message: String
     let destructiveLabel: String
+    /// Log out is fully reversible (sign back in any time) and shouldn't carry the same
+    /// visual weight as permanently deleting a habit or an account — only truly
+    /// irreversible actions get the danger-red treatment; everything else reads as a
+    /// normal confirm.
+    var isDestructive: Bool = true
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
@@ -21,7 +26,7 @@ struct ConfirmSheetContent: View {
                 .padding(.bottom, 12)
 
             Button(destructiveLabel, action: onConfirm)
-                .buttonStyle(KeptPillButtonStyle(background: .keptOrangeFill))
+                .buttonStyle(KeptPillButtonStyle(background: isDestructive ? .keptDanger : .keptInkFill))
 
             Button("Cancel", action: onCancel)
                 .buttonStyle(KeptPillButtonStyle(background: .keptBackground, foreground: .keptInk, borderColor: .keptLine))

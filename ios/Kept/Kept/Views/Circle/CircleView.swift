@@ -52,13 +52,15 @@ struct CircleView: View {
         HStack {
             Text("Circle").keptWordmark(28).foregroundStyle(.keptInk)
             Spacer()
-            Button { showingAddToCircle = true } label: {
-                Text("+")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.keptInk)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().stroke(.keptInk, lineWidth: 1.5))
-            }
+            // A labeled pill, not a bare "+" — the tab bar already has its own "+" (always
+            // Add Habit) sitting right below; a second, different-meaning "+" glyph up here
+            // read as the same button doing two different things.
+            Button("Invite") { showingAddToCircle = true }
+                .font(KeptFont.body(12.5, weight: .bold))
+                .foregroundStyle(.keptInk)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .overlay(Capsule().strokeBorder(.keptInk, lineWidth: 1.5))
         }
         .padding(.horizontal, 22)
         .padding(.top, 4)

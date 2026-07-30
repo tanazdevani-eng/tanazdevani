@@ -48,7 +48,7 @@ struct HabitFormBody: View {
             if let onDelete {
                 Button("Delete this habit", action: onDelete)
                     .font(KeptFont.body(13, weight: .bold))
-                    .foregroundStyle(.keptOrangeDeep)
+                    .foregroundStyle(.keptDanger)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 16)
             }
@@ -103,15 +103,12 @@ struct HabitFormBody: View {
     }
 
     private var lockBadge: some View {
-        HStack(spacing: 8) {
-            Text("✨")
-            Text("Kept habits are limited on Free. Upgrade for unlimited locks.")
-                .font(KeptFont.body(12, weight: .semibold))
-        }
-        .foregroundStyle(.keptPurpleDeep)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
-        .background(Color.keptPurpleSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        Text("Kept habits are limited on Free. Upgrade for unlimited locks.")
+            .font(KeptFont.body(12, weight: .semibold))
+            .foregroundStyle(.keptPurpleDeep)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .background(Color.keptPurpleSoft)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

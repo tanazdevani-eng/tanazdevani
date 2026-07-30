@@ -78,13 +78,15 @@ struct GroupsListView: View {
         HStack {
             Text("Groups").keptWordmark(28).foregroundStyle(.keptInk)
             Spacer()
-            Button { showingCreateGroup = true } label: {
-                Text("+")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.keptInk)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().stroke(.keptInk, lineWidth: 1.5))
-            }
+            // A labeled pill, not a bare "+" — the tab bar's own "+" always means Add
+            // Habit, so a second, differently-scoped "+" glyph here read as the same
+            // button doing two different things.
+            Button("New group") { showingCreateGroup = true }
+                .font(KeptFont.body(12.5, weight: .bold))
+                .foregroundStyle(.keptInk)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .overlay(Capsule().strokeBorder(.keptInk, lineWidth: 1.5))
         }
         .padding(.top, 4)
     }
