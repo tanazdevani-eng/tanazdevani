@@ -6,7 +6,10 @@ import UIKit
 /// a flat gray inversion, it leans into a deep warm plum-black so the same "editorial
 /// warmth" carries through instead of becoming a generic dark theme.
 extension Color {
-    static let keptBackground = Color(light: 0xFFFFFF, dark: 0x120E19)
+    // Was 0xFFFFFF (pure white) — CLAUDE.md's brief calls for a warm ivory page
+    // background specifically, and pure white read as a colder/flatter ground than
+    // intended, especially with white keptSurface cards then having no contrast against it.
+    static let keptBackground = Color(light: 0xFBF6F0, dark: 0x120E19)
     static let keptSurface = Color(light: 0xFFFFFF, dark: 0x1E1828)
     /// Solid fill for primary buttons/pills (checkin button, streak pill, "+"). Kept
     /// separate from `keptInk` on purpose: ink is page *text* and must lighten in dark
@@ -120,6 +123,16 @@ extension HabitVisibility {
         switch self {
         case .open: return .keptOrangeSoft
         case .kept: return .keptPurpleSoft
+        }
+    }
+
+    /// For solid fills specifically (a goal-progress bar's bold fill) — `accent` is
+    /// adaptive and meant to *lighten* in dark mode for legibility as small text, so using
+    /// it for a solid fill would wash the bar out to pale orange/lavender in dark mode.
+    var accentFill: Color {
+        switch self {
+        case .open: return .keptOrangeFill
+        case .kept: return .keptPurpleFill
         }
     }
 
