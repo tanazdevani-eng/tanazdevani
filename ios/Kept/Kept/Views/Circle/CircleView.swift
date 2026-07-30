@@ -3,10 +3,6 @@ import SwiftUI
 struct CircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
-    /// Shown until dismissed once, then remembered — a reminder worth seeing the first
-    /// few times you're on this screen, not something that should sit here forever once
-    /// you already know Kept habits never show up in Circle.
-    @AppStorage("hasSeenCirclePrivacyNote") private var hasSeenPrivacyNote = false
 
     var body: some View {
         ScrollView {
@@ -32,11 +28,9 @@ struct CircleView: View {
                     }
                 }
 
-                if !hasSeenPrivacyNote {
-                    lockedNote
-                        .padding(.horizontal, 22)
-                        .padding(.top, 4)
-                }
+                lockedNote
+                    .padding(.horizontal, 22)
+                    .padding(.top, 4)
             }
             .padding(.bottom, 110)
         }
@@ -120,18 +114,16 @@ struct CircleView: View {
         .padding(.top, 60)
     }
 
+    /// Permanent, not a one-time dismissible tip — this is the core privacy promise the
+    /// whole Kept/Open split rests on, not a piece of onboarding trivia you only need to
+    /// see once. It used to be dismissible forever after a single tap, which meant the one
+    /// reassurance that Kept habits are truly invisible here could vanish for good.
     private var lockedNote: some View {
         HStack(spacing: 10) {
             Text("🔒")
             Text("Your circle can't see anything marked \u{201C}Kept.\u{201D} Not the streak, not the name. Nothing.")
                 .font(KeptFont.body(12, weight: .semibold))
                 .foregroundStyle(.keptPurpleDeep)
-            Spacer(minLength: 0)
-            Button {
-                hasSeenPrivacyNote = true
-            } label: {
-                Text("✕").font(.system(size: 12, weight: .semibold)).foregroundStyle(.keptPurpleDeep)
-            }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)

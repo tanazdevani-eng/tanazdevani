@@ -28,7 +28,10 @@ struct HabitFormBody: View {
             fieldLabel("Who sees it?").padding(.top, 16)
             VisibilityPicker(selection: $visibility)
 
-            if visibility == .kept && appModel.isNearKeptLockLimit {
+            // Shown as soon as Kept is picked, not just once the free lock is already
+            // used up — creating your very first Kept habit used to get no preview at
+            // all that a second one would need Kept+.
+            if visibility == .kept && !appModel.isSubscribed {
                 lockBadge.padding(.top, 16)
             }
 
@@ -103,7 +106,9 @@ struct HabitFormBody: View {
     }
 
     private var lockBadge: some View {
-        Text("Kept habits are limited on Free. Upgrade for unlimited locks.")
+        Text(appModel.isNearKeptLockLimit
+             ? "Kept habits are limited on Free. Upgrade for unlimited locks."
+             : "This uses your one free Kept lock. Upgrade any time for unlimited.")
             .font(KeptFont.body(12, weight: .semibold))
             .foregroundStyle(.keptPurpleDeep)
             .padding(.vertical, 10)

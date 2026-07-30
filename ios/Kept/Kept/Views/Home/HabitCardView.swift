@@ -79,7 +79,13 @@ struct HabitCardView: View {
                             if checkedInToday {
                                 Text("✓").font(.system(size: 10))
                             } else if isDownDayToday {
-                                Text("···").font(.system(size: 9, weight: .bold))
+                                // A drawn bar, not a "···" character — at this size that
+                                // read too close to the "⋯" more-options glyph used
+                                // elsewhere on the same card, despite meaning something
+                                // completely different (a paused/down-day status, not a menu).
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(checkInButtonForeground)
+                                    .frame(width: 8, height: 2)
                             }
                         }
                         .frame(width: 16, height: 16)

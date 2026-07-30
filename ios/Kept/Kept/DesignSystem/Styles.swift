@@ -1,6 +1,12 @@
 import SwiftUI
 
 /// Full-width pill button, ~100px radius, matches kept.html's .primary-btn / .checkin-btn / .paywall-cta.
+///
+/// Color rule: `.keptPrimary` (ink) is the default for routine in-app actions — Save,
+/// Create, Continue once you're already a user. Orange (`.keptOrangeFill`) is reserved for
+/// the actual conversion moments: Sign Up, Verify, Accept Invite, Paywall's Continue —
+/// screens whose whole job is getting someone to say yes to something new, where the
+/// brighter color earns its emphasis instead of being the default everywhere.
 struct KeptPillButtonStyle: ButtonStyle {
     var background: Color = .keptInkFill
     var foreground: Color = .white
@@ -24,7 +30,6 @@ struct KeptPillButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == KeptPillButtonStyle {
     static var keptPrimary: KeptPillButtonStyle { KeptPillButtonStyle() }
-    static var keptAccent: KeptPillButtonStyle { KeptPillButtonStyle(background: .keptOrange) }
 }
 
 /// Card container: large radius, hairline border, matches .habit-card / .friend-card / .member-row.

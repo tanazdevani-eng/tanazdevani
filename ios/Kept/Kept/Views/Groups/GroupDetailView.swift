@@ -144,9 +144,10 @@ struct GroupDetailView: View {
     }
 
     private func progressRow(_ member: GroupMemberProgress) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        let isMe = member.memberId == appModel.profile.id
+        return VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text(member.memberName)
+                Text(isMe ? "\(member.memberName) (you)" : member.memberName)
                     .font(KeptFont.body(13, weight: .semibold))
                     .foregroundStyle(.keptInk)
                 Spacer()
@@ -165,9 +166,11 @@ struct GroupDetailView: View {
             .frame(height: 6)
         }
         .padding(12)
-        .background(.keptSurface)
+        .background(isMe ? Color.keptOrangeSoft : Color.keptSurface)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.keptLine))
+        // Easy to lose track of your own row in a busy leaderboard without this — every
+        // other row looked identical regardless of who was you.
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(isMe ? Color.keptOrange : Color.keptLine, lineWidth: isMe ? 1.5 : 1))
     }
 
     private func formattedAmount(_ value: Double) -> String {
