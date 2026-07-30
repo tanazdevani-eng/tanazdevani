@@ -4,6 +4,7 @@ struct InviteSentView: View {
     @EnvironmentObject var appModel: AppModel
     let contact: Contact
     @State private var hasMarkedPending = false
+    @State private var showingShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -35,25 +36,27 @@ struct InviteSentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
 
-                ShareLink(item: appModel.inviteShareText) {
-                    Text("Share the link")
-                }
-                .buttonStyle(.keptPrimary)
-                .padding(.top, 4)
-                // Only marks Pending once the share sheet is actually engaged, not just
-                // from reaching this screen — ShareLink has no "did the user actually send
-                // it" completion callback, but this is the closest real signal of intent
-                // there is, and simultaneousGesture doesn't interfere with ShareLink's own
-                // tap handling that presents the system sheet.
-                .simultaneousGesture(TapGesture().onEnded {
-                    guard !hasMarkedPending else { return }
-                    hasMarkedPending = true
-                    appModel.sendInvite(to: contact)
-                })
+                Button("Share the link") { showingShareSheet = true }
+                    .buttonStyle(.keptPrimary)
+                    .padding(.top, 4)
             }
             .padding(.horizontal, 30)
             .padding(.bottom, 120)
         }
         .background(Color.keptBackground.ignoresSafeArea())
+        // A real UIActivityViewController, not ShareLink — ShareLink can't tell you
+        // whether someone actually sent the share or backed out of the sheet, so it used
+        // to mark Pending the instant the sheet opened. Cancel out of it here and nothing
+        // happens; the button's still right there to try again. Only a genuine completion
+        // marks Pending, and only once per visit to this screen (hasMarkedPending) so
+        // sharing a second time doesn't create a duplicate pending invite for the same
+        // contact.
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(items: [appModel.inviteShareText]) { completed in
+                guard completed, !hasMarkedPending else { return }
+                hasMarkedPending = true
+                appModel.sendInvite(to: contact)
+            }
+        }
     }
 }

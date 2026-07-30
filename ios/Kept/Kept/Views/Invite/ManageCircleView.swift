@@ -4,6 +4,7 @@ struct ManageCircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
     @State private var memberPendingRemoval: CircleMember?
+    @State private var resendTarget: PendingInvite?
 
     var body: some View {
         ScrollView {
@@ -53,6 +54,13 @@ struct ManageCircleView: View {
             }
             Button("Cancel", role: .cancel) { memberPendingRemoval = nil }
         }
+        // Resend doesn't call sendInvite again — that would append a second
+        // PendingInvite for someone already pending. It just reopens the same share
+        // sheet so the link can go out again, for whoever's still waiting or wasn't
+        // sure the first share actually went through.
+        .sheet(item: $resendTarget) { _ in
+            ShareSheet(items: [appModel.inviteShareText])
+        }
     }
 
     private func memberRow(_ member: CircleMember) -> some View {
@@ -86,6 +94,13 @@ struct ManageCircleView: View {
                 Text("Invited \(relativeDays(invite.invitedAt))").font(KeptFont.body(11, weight: .medium)).foregroundStyle(.keptInkSoft)
             }
             Spacer()
+            // A way forward besides Cancel — someone stuck as Pending because a share got
+            // backed out of (or just hasn't heard back yet) used to have no option except
+            // deleting the invite and starting the whole flow over.
+            Button("Resend") { resendTarget = invite }
+                .font(KeptFont.body(11.5, weight: .bold))
+                .foregroundStyle(.keptOrangeDeep)
+                .padding(.trailing, 4)
             Button("Cancel") { appModel.cancelInvite(invite) }
                 .font(KeptFont.body(11.5, weight: .bold))
                 .foregroundStyle(.keptInkSoft)
