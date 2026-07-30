@@ -28,6 +28,11 @@ final class AppModel: ObservableObject {
     /// Kept+ isn't a tab — this presents it as a sheet from wherever an upsell fires
     /// (Add Habit's 3-habit cap, Streak Insights' locked state, Profile's upgrade box).
     @Published var showingPaywall = false
+    /// What actually triggered the paywall, shown as a banner inside PaywallView itself.
+    /// Used to pair with a showToast() call instead, but the sheet animates in fast enough
+    /// that the 2-second toast was usually already gone (or hidden behind the sheet) by
+    /// the time someone could read it — so the reason for being here never landed.
+    @Published var paywallReason: String?
 
     /// Drives which top-level screen AuthGateView shows: a launch spinner while checking
     /// for an existing session, the phone sign-up/log-in flow, the one-time post-signup

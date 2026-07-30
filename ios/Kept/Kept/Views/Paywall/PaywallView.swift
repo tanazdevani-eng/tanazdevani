@@ -18,6 +18,13 @@ struct PaywallView: View {
         ScrollView {
             VStack(spacing: 0) {
                 hero
+                // Whatever actually triggered this sheet (hit the 3-habit cap, tried to
+                // share with just a few people, etc.) — used to only be a toast, which the
+                // sheet's own slide-in animation usually buried or outraced before it could
+                // be read. Showing it here means the reason always survives.
+                if let reason = appModel.paywallReason {
+                    reasonBanner(reason).padding(.top, 16)
+                }
                 // Only shown once there's something the "KEPT+" pill above doesn't already
                 // say — a plain "You're on Kept+" here would just repeat that pill forever.
                 // A pending cancellation is genuinely new information, so that still shows.
@@ -60,6 +67,9 @@ struct PaywallView: View {
             .padding(.top, 14)
             .padding(.trailing, 18)
         }
+        // Cleared on the way out so the next time the paywall opens for a different (or no)
+        // reason, it doesn't show a stale explanation left over from this visit.
+        .onDisappear { appModel.paywallReason = nil }
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
         .onChange(of: showingManageSubscriptions) { _, isPresented in
             // Canceling (or any other change) made inside that sheet doesn't push a
@@ -102,6 +112,17 @@ struct PaywallView: View {
                 .padding(.horizontal, 8)
         }
         .padding(.top, 20)
+    }
+
+    private func reasonBanner(_ text: String) -> some View {
+        Text(text)
+            .font(KeptFont.body(12, weight: .semibold))
+            .foregroundStyle(.keptOrangeDeep)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(Color.keptOrangeSoft)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var statusBanner: some View {

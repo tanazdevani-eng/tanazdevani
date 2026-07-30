@@ -9,7 +9,7 @@ struct WelcomeView: View {
 
             VStack(spacing: 10) {
                 Text("Kept").keptWordmark(44).foregroundStyle(.keptInk)
-                Text("Some habits you share. Some you keep.")
+                Text("Some habits you keep. Some you keep to yourself.")
                     .font(KeptFont.display(15))
                     .foregroundStyle(.keptInkSoft)
                     .multilineTextAlignment(.center)

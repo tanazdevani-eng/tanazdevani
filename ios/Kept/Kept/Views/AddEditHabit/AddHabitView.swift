@@ -41,7 +41,7 @@ struct AddHabitView: View {
         if added {
             dismiss()
         } else {
-            appModel.showToast("Upgrade to add more than 3 habits")
+            appModel.paywallReason = "Free is limited to 3 habits. Kept+ removes the cap."
             appModel.showingPaywall = true
             dismiss()
         }

@@ -103,8 +103,11 @@ struct GroupDetailView: View {
     private var actionRow: some View {
         HStack(spacing: 10) {
             if isMember {
+                // Keyed to this group's own visibility, not always orange — a private
+                // group's check-in button was using the same orange as "Open" everywhere
+                // else, even though this group is the purple/private kind.
                 Button("Check in") { showingLogSheet = true }
-                    .buttonStyle(.keptAccent)
+                    .buttonStyle(KeptPillButtonStyle(background: group.visibility.accentFill))
 
                 if group.visibility == .privateGroup {
                     ShareLink(item: appModel.groupShareText(group)) {

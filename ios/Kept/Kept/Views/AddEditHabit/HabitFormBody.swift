@@ -69,7 +69,7 @@ struct HabitFormBody: View {
             if appModel.isSubscribed {
                 showingAudiencePicker = true
             } else {
-                appModel.showToast("Kept+ lets you share with just a few people")
+                appModel.paywallReason = "Kept+ lets you share with just a few people instead of your whole circle."
                 appModel.showingPaywall = true
             }
         } label: {

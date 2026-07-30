@@ -4,6 +4,7 @@ struct DurationPicker: View {
     @Binding var selection: HabitDuration
     @State private var customText: String = ""
     @State private var showingCustom: Bool
+    @FocusState private var customFieldFocused: Bool
 
     init(selection: Binding<HabitDuration>) {
         self._selection = selection
@@ -30,10 +31,15 @@ struct DurationPicker: View {
                 }
                 chip(label: "Custom", isSelected: showingCustom) {
                     showingCustom = true
-                    // Without a default, tapping Custom and saving before typing a number
-                    // would silently keep whatever duration was selected before Custom was
-                    // ever tapped — the chip would show Custom highlighted while the saved
-                    // habit quietly got the old value instead.
+                    // Focusing the field immediately (keyboard pops up right away) is what
+                    // actually prevents "tapped Custom, got interrupted, saved a duration I
+                    // never chose" — a fallback default here can't fix that on its own since
+                    // it'd be invisible until you looked closely; the field grabbing focus
+                    // makes it obvious there's something left to type.
+                    customFieldFocused = true
+                    // Still a safety net for the rare case of saving without ever typing —
+                    // better a real 1-day value than silently keeping a stale prior duration
+                    // while the "Custom" chip shows selected.
                     if customText.isEmpty { customText = "1" }
                     if let n = Int(customText), n > 0 {
                         selection = .days(n)
@@ -44,6 +50,7 @@ struct DurationPicker: View {
             if showingCustom {
                 TextField("Number of days", text: $customText)
                     .keyboardType(.numberPad)
+                    .focused($customFieldFocused)
                     .font(KeptFont.body(15))
                     .padding(15)
                     .background(.keptSurface)

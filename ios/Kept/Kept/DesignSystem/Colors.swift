@@ -161,6 +161,17 @@ extension GroupVisibility {
         }
     }
 
+    /// For solid button fills specifically — same reasoning as keptOrangeFill/
+    /// keptPurpleFill: `accent` above is adaptive and meant to *lighten* in dark mode for
+    /// legibility as small text, so using it as a filled button's background would wash
+    /// the button out to pale orange/lavender in dark mode instead of staying a solid fill.
+    var accentFill: Color {
+        switch self {
+        case .publicGroup: return .keptOrangeFill
+        case .privateGroup: return .keptPurpleFill
+        }
+    }
+
     var accentSoft: Color {
         switch self {
         case .publicGroup: return .keptOrangeSoft

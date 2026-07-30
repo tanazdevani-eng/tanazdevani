@@ -65,9 +65,12 @@ struct ManageCircleView: View {
                     .foregroundStyle(.keptInkSoft)
             }
             Spacer()
+            // Danger-red, unlike a pending invite's "Cancel" below — removing an actual
+            // member is a real, confirmed action with a consequence; canceling an invite
+            // that was never accepted isn't, and the two used to look identical.
             Button("Remove") { memberPendingRemoval = member }
                 .font(KeptFont.body(11.5, weight: .bold))
-                .foregroundStyle(.keptInkSoft)
+                .foregroundStyle(.keptDanger)
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
         .background(.keptSurface)

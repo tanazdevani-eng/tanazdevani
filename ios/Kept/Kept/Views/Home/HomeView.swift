@@ -56,18 +56,22 @@ struct HomeView: View {
                 Text("Kept").keptWordmark(28).foregroundStyle(.keptInk)
                 Spacer()
                 HStack(spacing: 8) {
-                    Button { showingStreakInsights = true } label: {
-                        HStack(spacing: 5) {
-                            Text("🔥").font(.system(size: 12))
-                            Text("\(appModel.overallStreak)").font(KeptFont.mono(13, weight: .semibold))
+                    // Nothing to show yet before there's a single habit — "🔥 0" is a flat
+                    // first impression for a brand-new account, not a deflating streak.
+                    if !appModel.habits.isEmpty {
+                        Button { showingStreakInsights = true } label: {
+                            HStack(spacing: 5) {
+                                Text("🔥").font(.system(size: 12))
+                                Text("\(appModel.overallStreak)").font(KeptFont.mono(13, weight: .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .background(Color.keptInkFill)
+                            .clipShape(Capsule())
                         }
-                        .foregroundStyle(.white)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .background(Color.keptInkFill)
-                        .clipShape(Capsule())
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
 
                     Button { appModel.selectedTab = .profile } label: {
                         AvatarView(initial: appModel.profile.initial, seed: 0, size: 34)
