@@ -70,24 +70,32 @@ struct GroupDetailView: View {
         }
     }
 
+    /// Same gradient-card treatment as a Habit card and the Groups list row, keyed off
+    /// this group's own public/private visibility, rather than plain text sitting
+    /// directly on the page background.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text(group.visibility.pillGlyph)
-                Text(group.visibility.label)
-            }
-            .font(KeptFont.mono(11, weight: .semibold))
-            .foregroundStyle(.keptInkSoft)
+        KeptCard(fill: AnyShapeStyle(group.visibility.cardGradient), borderColor: group.visibility.borderColor, cornerRadius: 22) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(group.visibility.pillGlyph) \(group.visibility.label)")
+                    .font(KeptFont.mono(10.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 9)
+                    .background(group.visibility.accent)
+                    .clipShape(Capsule())
 
-            Text(group.locationLabel)
-                .font(KeptFont.body(13, weight: .medium))
-                .foregroundStyle(.keptInkSoft)
-            Text(group.goalSummary)
-                .font(KeptFont.display(19, weight: .semibold))
-                .foregroundStyle(.keptInk)
-            Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
-                .font(KeptFont.mono(11, weight: .semibold))
-                .foregroundStyle(.keptInkSoft)
+                Text(group.locationLabel)
+                    .font(KeptFont.body(13, weight: .medium))
+                    .foregroundStyle(.keptInkSoft)
+                    .padding(.top, 4)
+                Text(group.goalSummary)
+                    .font(KeptFont.display(19, weight: .semibold))
+                    .foregroundStyle(.keptInk)
+                Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
+                    .font(KeptFont.mono(11, weight: .semibold))
+                    .foregroundStyle(.keptInkSoft)
+            }
+            .padding(18)
         }
     }
 

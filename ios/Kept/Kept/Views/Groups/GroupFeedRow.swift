@@ -14,6 +14,10 @@ struct GroupFeedRow: View {
     @State private var commentPhoto: UIImage?
     @State private var showingCommentCamera = false
     @FocusState private var commentFocused: Bool
+    /// Collapsed until tapped, same reasoning as FriendPostCard's comment field — every
+    /// entry showing a permanently open composer at once made the feed read as a stack of
+    /// small forms rather than a feed.
+    @State private var isComposingComment = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -132,33 +136,45 @@ struct GroupFeedRow: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                TextField("Add a comment...", text: $commentText)
-                    .font(KeptFont.body(12.5))
-                    .focused($commentFocused)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.keptChip)
-                    .clipShape(Capsule())
-                    .onSubmit { submitComment() }
-                    // No .toolbar(.keyboard) here on purpose — this row repeats once per
-                    // feed entry in a ForEach, and toolbar content is collected across the
-                    // whole active hierarchy, not scoped per-row, so N of these would
-                    // collide. The return key (onSubmit above) already posts the comment.
+            if isComposingComment || !commentText.isEmpty || commentPhoto != nil {
+                HStack(spacing: 8) {
+                    TextField("Add a comment...", text: $commentText)
+                        .font(KeptFont.body(12.5))
+                        .focused($commentFocused)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.keptChip)
+                        .clipShape(Capsule())
+                        .onSubmit { submitComment() }
+                        // No .toolbar(.keyboard) here on purpose — this row repeats once per
+                        // feed entry in a ForEach, and toolbar content is collected across the
+                        // whole active hierarchy, not scoped per-row, so N of these would
+                        // collide. The return key (onSubmit above) already posts the comment.
 
-                if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button { showingCommentCamera = true } label: {
-                        Image(systemName: "camera")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.keptInkSoft)
+                    if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button { showingCommentCamera = true } label: {
+                            Image(systemName: "camera")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.keptInkSoft)
+                        }
+                    }
+
+                    if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
+                        Button("Post", action: submitComment)
+                            .font(KeptFont.body(12.5, weight: .bold))
+                            .foregroundStyle(.keptOrangeDeep)
                     }
                 }
-
-                if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
-                    Button("Post", action: submitComment)
-                        .font(KeptFont.body(12.5, weight: .bold))
-                        .foregroundStyle(.keptOrangeDeep)
+            } else {
+                Button {
+                    isComposingComment = true
+                    commentFocused = true
+                } label: {
+                    Text("Comment")
+                        .font(KeptFont.body(12.5, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
                 }
+                .buttonStyle(.plain)
             }
         }
         .fullScreenCover(isPresented: $showingCommentCamera) {
@@ -179,6 +195,7 @@ struct GroupFeedRow: View {
         commentText = ""
         commentPhoto = nil
         commentFocused = false
+        isComposingComment = false
         Task {
             await appModel.addGroupComment(entry, text: text, photo: photo)
             onUpdate()

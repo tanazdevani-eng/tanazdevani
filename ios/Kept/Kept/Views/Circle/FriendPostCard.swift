@@ -13,6 +13,11 @@ struct FriendPostCard: View {
     @State private var showingReportReasons = false
     @State private var showingBlockConfirm = false
     @State private var isEditingNote = false
+    /// The comment field used to be permanently expanded on every card at once, whether
+    /// or not anyone was actually using it — the feed read as a stack of small open forms
+    /// rather than posts. Collapsed to a plain link until tapped, like the comment
+    /// affordance on other social feeds.
+    @State private var isComposingComment = false
 
     var body: some View {
         KeptCard(borderColor: item.isMine ? .keptOrange : .keptLine, cornerRadius: 24) {
@@ -28,11 +33,6 @@ struct FriendPostCard: View {
                             .foregroundStyle(.keptInkSoft)
                     }
                     Spacer()
-                    HStack(spacing: 3) {
-                        Text("🔥").font(.system(size: 12))
-                        Text("\(item.streakCount)").font(KeptFont.mono(12.5, weight: .semibold))
-                    }
-                    .foregroundStyle(.keptInk)
 
                     if item.isMine, let habit = appModel.habits.first(where: { $0.id == item.habitId }) {
                         Button {
@@ -80,6 +80,10 @@ struct FriendPostCard: View {
                     noteText("Couldn't get to it today.", emphasized: false)
                 }
 
+                // The only streak display on the card now — a 🔥 chip up in the header used
+                // to show this same number a second time, which just made the header (already
+                // carrying avatar, name, time, and an action button) more crowded for no
+                // extra information.
                 HStack(spacing: 10) {
                     StreakDotsRow(filled: min(item.streakCount, 16), visibility: .open)
                     Text("\(item.streakCount) day\(item.streakCount == 1 ? "" : "s")")
@@ -283,37 +287,49 @@ struct FriendPostCard: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                TextField("Add a comment...", text: $commentText)
-                    .font(KeptFont.body(12.5))
-                    .focused($commentFocused)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.keptChip)
-                    .clipShape(Capsule())
-                    .onSubmit { submitComment() }
-                    // No .toolbar(.keyboard) here on purpose — this field repeats once per
-                    // post in a ForEach, and SwiftUI toolbar content is collected across
-                    // the whole active hierarchy, not scoped per-row, so N of these would
-                    // collide. The return key (onSubmit above) already posts the comment.
+            if isComposingComment || !commentText.isEmpty || commentPhoto != nil {
+                HStack(spacing: 8) {
+                    TextField("Add a comment...", text: $commentText)
+                        .font(KeptFont.body(12.5))
+                        .focused($commentFocused)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.keptChip)
+                        .clipShape(Capsule())
+                        .onSubmit { submitComment() }
+                        // No .toolbar(.keyboard) here on purpose — this field repeats once per
+                        // post in a ForEach, and SwiftUI toolbar content is collected across
+                        // the whole active hierarchy, not scoped per-row, so N of these would
+                        // collide. The return key (onSubmit above) already posts the comment.
 
-                // Camera only, no library import — same reasoning as check-in photos.
-                // A plain glyph rather than the word "Camera" — this is a single
-                // functional button, not a decorative icon grid, so it doesn't conflict
-                // with the app's "no icon library" rule.
-                if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button { showingCommentCamera = true } label: {
-                        Image(systemName: "camera")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.keptInkSoft)
+                    // Camera only, no library import — same reasoning as check-in photos.
+                    // A plain glyph rather than the word "Camera" — this is a single
+                    // functional button, not a decorative icon grid, so it doesn't conflict
+                    // with the app's "no icon library" rule.
+                    if commentPhoto == nil && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button { showingCommentCamera = true } label: {
+                            Image(systemName: "camera")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.keptInkSoft)
+                        }
+                    }
+
+                    if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
+                        Button("Post", action: submitComment)
+                            .font(KeptFont.body(12.5, weight: .bold))
+                            .foregroundStyle(.keptOrangeDeep)
                     }
                 }
-
-                if !commentText.trimmingCharacters(in: .whitespaces).isEmpty || commentPhoto != nil {
-                    Button("Post", action: submitComment)
-                        .font(KeptFont.body(12.5, weight: .bold))
-                        .foregroundStyle(.keptOrangeDeep)
+            } else {
+                Button {
+                    isComposingComment = true
+                    commentFocused = true
+                } label: {
+                    Text("Comment")
+                        .font(KeptFont.body(12.5, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
                 }
+                .buttonStyle(.plain)
             }
         }
         .fullScreenCover(isPresented: $showingCommentCamera) {
@@ -333,5 +349,6 @@ struct FriendPostCard: View {
         commentText = ""
         commentPhoto = nil
         commentFocused = false
+        isComposingComment = false
     }
 }

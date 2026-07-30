@@ -102,43 +102,54 @@ struct GroupsListView: View {
 
     /// NavigationLink(value:), matching the destination declared on this screen's own
     /// body above (this view is a NavigationStack root now, not pushed inside another).
+    /// Same gradient-wash treatment as a Habit card, keyed off the group's own
+    /// public/private visibility — Groups used to be a flat white row regardless of
+    /// visibility, the one screen in the app that didn't carry the orange/purple system.
     private func groupRow(_ group: HabitGroup, showJoin: Bool) -> some View {
-        HStack(spacing: 12) {
-            NavigationLink(value: group) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(group.name)
-                        .font(KeptFont.display(15, weight: .semibold))
-                        .foregroundStyle(.keptInk)
-                    Text("\(group.locationLabel) · \(group.goalSummary)")
-                        .font(KeptFont.body(11.5, weight: .medium))
-                        .foregroundStyle(.keptInkSoft)
-                    Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
-                        .font(KeptFont.mono(10.5, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if showJoin {
-                Button("Join") { Task { await appModel.joinGroup(group) } }
-                    .font(KeptFont.body(12.5, weight: .bold))
-                    .foregroundStyle(.keptOrangeDeep)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 14)
-                    .background(Color.keptOrangeSoft)
-                    .clipShape(Capsule())
-            } else {
+        KeptCard(fill: AnyShapeStyle(group.visibility.cardGradient), borderColor: group.visibility.borderColor, cornerRadius: 18) {
+            HStack(spacing: 12) {
                 NavigationLink(value: group) {
-                    Text("›").foregroundStyle(.keptInkSoft)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(group.name)
+                                .font(KeptFont.display(15, weight: .semibold))
+                                .foregroundStyle(.keptInk)
+                            Text("\(group.visibility.pillGlyph) \(group.visibility.label)")
+                                .font(KeptFont.mono(9.5, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.vertical, 3)
+                                .padding(.horizontal, 7)
+                                .background(group.visibility.accent)
+                                .clipShape(Capsule())
+                        }
+                        Text("\(group.locationLabel) · \(group.goalSummary)")
+                            .font(KeptFont.body(11.5, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                        Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
+                            .font(KeptFont.mono(10.5, weight: .semibold))
+                            .foregroundStyle(.keptInkSoft)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                if showJoin {
+                    Button("Join") { Task { await appModel.joinGroup(group) } }
+                        .font(KeptFont.body(12.5, weight: .bold))
+                        .foregroundStyle(.keptOrangeDeep)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .background(Color.keptOrangeSoft)
+                        .clipShape(Capsule())
+                } else {
+                    NavigationLink(value: group) {
+                        Text("›").foregroundStyle(.keptInkSoft)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(14)
         }
-        .padding(14)
-        .background(.keptSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
     }
 }

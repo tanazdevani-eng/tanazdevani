@@ -148,3 +148,38 @@ extension HabitVisibility {
         }
     }
 }
+
+/// Groups already reuse the exact same orange/public vs. purple/private meaning as
+/// HabitVisibility (see HabitGroup.swift) — giving them the identical gradient-card
+/// treatment, not a separate flat style, is what makes Groups read as a native peer to
+/// Habits/Circle instead of a plain utility screen bolted onto the app.
+extension GroupVisibility {
+    var accent: Color {
+        switch self {
+        case .publicGroup: return .keptOrange
+        case .privateGroup: return .keptPurple
+        }
+    }
+
+    var accentSoft: Color {
+        switch self {
+        case .publicGroup: return .keptOrangeSoft
+        case .privateGroup: return .keptPurpleSoft
+        }
+    }
+
+    var cardGradient: LinearGradient {
+        LinearGradient(
+            colors: [.keptSurface, accentSoft],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var borderColor: Color {
+        switch self {
+        case .publicGroup: return Color(light: 0xFFD1B0, dark: 0x5C3620)
+        case .privateGroup: return Color(light: 0xD9C8EB, dark: 0x4A3866)
+        }
+    }
+}
