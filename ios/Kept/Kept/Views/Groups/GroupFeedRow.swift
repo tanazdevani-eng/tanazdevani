@@ -2,11 +2,10 @@ import SwiftUI
 import UIKit
 
 /// One entry in a group's activity feed — same social loop as a Circle post (reactions,
-/// comments, photos) but for a numeric progress log instead of a binary check-in.
+/// comments, photos), just for a shared check-in instead of a personal one.
 struct GroupFeedRow: View {
     @EnvironmentObject var appModel: AppModel
     let entry: GroupCheckIn
-    let unit: String
     var onUpdate: () -> Void
 
     @State private var isPickingReaction = false
@@ -26,7 +25,7 @@ struct GroupFeedRow: View {
                     .font(KeptFont.body(13, weight: .bold))
                     .foregroundStyle(.keptInk)
                 Spacer()
-                Text("+\(formattedAmount(entry.amount)) \(unit)")
+                Text("Checked in")
                     .font(KeptFont.mono(11.5, weight: .semibold))
                     .foregroundStyle(.keptOrangeDeep)
             }
@@ -202,7 +201,4 @@ struct GroupFeedRow: View {
         }
     }
 
-    private func formattedAmount(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
-    }
 }

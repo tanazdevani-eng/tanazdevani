@@ -250,6 +250,14 @@ actor MockBackendService: BackendService {
         ))
     }
 
+    func fetchTodaysGroupCheckIns(userId: UUID, day: Date) async throws -> Set<UUID> {
+        let calendar = DayCalendar()
+        let targetDay = calendar.logicalDay(for: day)
+        return Set(groupCheckIns
+            .filter { $0.memberId == userId && calendar.logicalDay(for: $0.loggedAt) == targetDay }
+            .map(\.groupId))
+    }
+
     func addGroupComment(groupCheckInId: UUID, userId: UUID, text: String, photoURL: String?) async throws {
         guard let index = groupCheckIns.firstIndex(where: { $0.id == groupCheckInId }) else { return }
         groupCheckIns[index].comments.append(Comment(

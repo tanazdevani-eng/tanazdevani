@@ -74,10 +74,11 @@ struct FriendPostCard: View {
                         .clipShape(Capsule())
                 }
 
+                // Only a real note shows here now, down day or not — the DOWN DAY tag
+                // above already says what happened; a filler line repeating that in
+                // sentence form wasn't adding anything.
                 if let note = item.note, !note.isEmpty {
                     noteText("\u{201C}\(note)\u{201D}", emphasized: true)
-                } else if item.status == .missed {
-                    noteText("Couldn't get to it today.", emphasized: false)
                 }
 
                 // The only streak display on the card now — a 🔥 chip up in the header used

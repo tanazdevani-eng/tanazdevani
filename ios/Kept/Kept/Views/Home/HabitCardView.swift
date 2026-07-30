@@ -12,13 +12,12 @@ struct HabitCardView: View {
     private var isDownDayToday: Bool { appModel.downDayHabitIds.contains(habit.id) }
     private var streak: Int { habit.streakCount(calendar: calendar) }
 
-    /// keptChip used to fill this, but it's a warm cream nearly identical to the Open
-    /// card's own gradient tint — on an Open card the button all but vanished into the
-    /// background instead of reading as a button. keptSurface (near-white/near-black,
-    /// depending on mode) plus a hairline border gives it real edges against any card.
+    /// Both keptChip and keptSurface were tried here for the down-day state and both read
+    /// as an off/washed-out white next to the solid black default and green success fills —
+    /// keptMuted is an actual third color (a warm taupe/plum), not another near-white.
     private var checkInButtonBackground: Color {
         if checkedInToday { return .keptSuccess }
-        if isDownDayToday { return .keptSurface }
+        if isDownDayToday { return .keptMuted }
         return .keptInkFill
     }
 
@@ -97,10 +96,6 @@ struct HabitCardView: View {
                     .padding(.vertical, 11)
                     .background(checkInButtonBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(isDownDayToday && !checkedInToday ? Color.keptLine : .clear, lineWidth: 1)
-                    )
                 }
                 .sensoryFeedback(.success, trigger: checkedInToday) { _, newValue in newValue }
                 .padding(.top, 12)

@@ -49,6 +49,12 @@ extension Color {
     /// background, a step below a full card surface.
     static let keptChip = Color(light: 0xF7F1E9, dark: 0x241F2E)
 
+    /// A visibly distinct third tone for "paused" states (down day) — sits between the
+    /// dark "Check in today" fill and the green "Checked in" fill. keptChip/keptSurface
+    /// were both tried here first and both nearly disappeared against a card's own light
+    /// gradient wash; this is a proper mid-tone taupe/plum, not another near-white.
+    static let keptMuted = Color(light: 0xC9BFAE, dark: 0x4A4456)
+
     init(hex: UInt32, alpha: Double = 1) {
         self.init(
             .sRGB,
@@ -92,6 +98,7 @@ extension ShapeStyle where Self == Color {
     static var keptPurpleFill: Color { .keptPurpleFill }
     static var keptOrangeFill: Color { .keptOrangeFill }
     static var keptChip: Color { .keptChip }
+    static var keptMuted: Color { .keptMuted }
 }
 
 extension HabitVisibility {

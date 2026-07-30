@@ -178,6 +178,11 @@ private struct CameraPreviewLayerView: UIViewRepresentable {
 struct LiveCameraCircle: View {
     var ringColor: Color
     var isDisabled: Bool = false
+    /// Bumped up from the original 130 — there was a lot of empty space above it on the
+    /// check-in screen, and this is the single most important tap target on that screen,
+    /// so it should be the dominant thing on it, not a small circle with room to spare
+    /// around it.
+    var size: CGFloat = 176
     var onCapture: (UIImage) -> Void
 
     @StateObject private var controller = CircleCameraController()
@@ -231,25 +236,25 @@ struct LiveCameraCircle: View {
                     }
                     if justCaptured {
                         Circle().fill(.black.opacity(0.35))
-                        Text("✓").font(.system(size: 44, weight: .bold)).foregroundStyle(.white)
+                        Text("✓").font(.system(size: size * 0.34, weight: .bold)).foregroundStyle(.white)
                     } else if controller.authState == .notDetermined {
                         Text("Tap to enable\ncamera")
-                            .font(KeptFont.body(10, weight: .semibold))
+                            .font(KeptFont.body(11, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
                             .multilineTextAlignment(.center)
                     } else if controller.authState == .denied {
                         Text("Tap to enable\ncamera in Settings")
-                            .font(KeptFont.body(10, weight: .semibold))
+                            .font(KeptFont.body(11, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
                             .multilineTextAlignment(.center)
                     } else if controller.authState == .simulatorUnavailable {
                         Text("Camera preview isn't\navailable in Simulator")
-                            .font(KeptFont.body(10, weight: .semibold))
+                            .font(KeptFont.body(11, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
                             .multilineTextAlignment(.center)
                     }
                 }
-                .frame(width: 130, height: 130)
+                .frame(width: size, height: size)
                 .clipShape(Circle())
                 .overlay(Circle().strokeBorder(ringColor, lineWidth: 3))
                 .opacity(isDisabled && controller.authState == .authorized ? 0.6 : 1)

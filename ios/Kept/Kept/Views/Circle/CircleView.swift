@@ -3,6 +3,10 @@ import SwiftUI
 struct CircleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddToCircle = false
+    /// Shown until dismissed once, then remembered — this is a first-time explainer, not
+    /// something that needs to keep repeating once you already know Kept habits never
+    /// show up in Circle.
+    @AppStorage("hasSeenCirclePrivacyNote") private var hasSeenPrivacyNote = false
 
     var body: some View {
         ScrollView {
@@ -18,6 +22,11 @@ struct CircleView: View {
                         .padding(.horizontal, 22)
                 }
 
+                if !uncheckedGroupsToday.isEmpty {
+                    unfinishedGroupsBanner
+                        .padding(.horizontal, 22)
+                }
+
                 if appModel.circleFeed.isEmpty {
                     emptyState
                         .padding(.horizontal, 22)
@@ -28,9 +37,11 @@ struct CircleView: View {
                     }
                 }
 
-                lockedNote
-                    .padding(.horizontal, 22)
-                    .padding(.top, 4)
+                if !hasSeenPrivacyNote {
+                    lockedNote
+                        .padding(.horizontal, 22)
+                        .padding(.top, 4)
+                }
             }
             .padding(.bottom, 110)
         }
@@ -95,6 +106,39 @@ struct CircleView: View {
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
     }
 
+    /// Same idea as uncheckedHabitsToday, but for groups — a group is a shared daily thing
+    /// just like a habit, so it deserves the same "don't forget" nudge instead of only
+    /// personal habits getting reminded about.
+    private var uncheckedGroupsToday: [HabitGroup] {
+        appModel.myGroups.filter { !appModel.todaysCheckedInGroupIds.contains($0.id) }
+    }
+
+    private var unfinishedGroupsBanner: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(uncheckedGroupsToday.count == 1 ? "1 group waiting on you today" : "\(uncheckedGroupsToday.count) groups waiting on you today")
+                    .font(KeptFont.body(13, weight: .bold))
+                    .foregroundStyle(.keptInk)
+                Text(uncheckedGroupsToday.count == 1 ? uncheckedGroupsToday[0].name : "Check in before the day resets.")
+                    .font(KeptFont.body(11.5, weight: .medium))
+                    .foregroundStyle(.keptInkSoft)
+            }
+            Spacer(minLength: 8)
+            Button("Check in") { appModel.selectedTab = .groups }
+                .font(KeptFont.body(12.5, weight: .bold))
+                .foregroundStyle(.keptOrangeDeep)
+                .padding(.vertical, 9)
+                .padding(.horizontal, 16)
+                .background(Color.keptOrangeSoft)
+                .clipShape(Capsule())
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(.keptSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
+    }
+
     private var emptyState: some View {
         VStack(spacing: 8) {
             Text("Quiet in here")
@@ -114,16 +158,18 @@ struct CircleView: View {
         .padding(.top, 60)
     }
 
-    /// Permanent, not a one-time dismissible tip — this is the core privacy promise the
-    /// whole Kept/Open split rests on, not a piece of onboarding trivia you only need to
-    /// see once. It used to be dismissible forever after a single tap, which meant the one
-    /// reassurance that Kept habits are truly invisible here could vanish for good.
     private var lockedNote: some View {
         HStack(spacing: 10) {
             Text("🔒")
             Text("Your circle can't see anything marked \u{201C}Kept.\u{201D} Not the streak, not the name. Nothing.")
                 .font(KeptFont.body(12, weight: .semibold))
                 .foregroundStyle(.keptPurpleDeep)
+            Spacer(minLength: 0)
+            Button {
+                hasSeenPrivacyNote = true
+            } label: {
+                Text("✕").font(.system(size: 12, weight: .semibold)).foregroundStyle(.keptPurpleDeep)
+            }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)

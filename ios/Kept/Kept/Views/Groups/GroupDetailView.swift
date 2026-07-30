@@ -48,7 +48,7 @@ struct GroupDetailView: View {
                     } else {
                         VStack(spacing: 10) {
                             ForEach(feed) { entry in
-                                GroupFeedRow(entry: entry, unit: group.goalUnit) {
+                                GroupFeedRow(entry: entry) {
                                     Task { await load() }
                                 }
                             }
@@ -143,15 +143,21 @@ struct GroupDetailView: View {
         }
     }
 
+    /// No more target to show a fraction against now that check-ins aren't numeric — the
+    /// bar instead shows how each member stacks up against whoever's checked in the most
+    /// this period, an honest relative comparison rather than a fictitious "X of Y" target.
+    private var maxProgressThisPeriod: Double { max(progress.map(\.amountThisPeriod).max() ?? 1, 1) }
+
     private func progressRow(_ member: GroupMemberProgress) -> some View {
         let isMe = member.memberId == appModel.profile.id
+        let count = Int(member.amountThisPeriod.rounded())
         return VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text(isMe ? "\(member.memberName) (you)" : member.memberName)
                     .font(KeptFont.body(13, weight: .semibold))
                     .foregroundStyle(.keptInk)
                 Spacer()
-                Text("\(formattedAmount(member.amountThisPeriod)) / \(formattedAmount(group.goalAmount)) \(group.goalUnit)")
+                Text("\(count) check-in\(count == 1 ? "" : "s") this \(group.goalPeriod.label)")
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
             }
@@ -160,7 +166,7 @@ struct GroupDetailView: View {
                     Capsule().fill(Color.keptChip)
                     Capsule()
                         .fill(Color.keptOrange)
-                        .frame(width: geo.size.width * min(1, CGFloat(member.amountThisPeriod / max(group.goalAmount, 0.001))))
+                        .frame(width: geo.size.width * min(1, CGFloat(member.amountThisPeriod / maxProgressThisPeriod)))
                 }
             }
             .frame(height: 6)
@@ -171,10 +177,6 @@ struct GroupDetailView: View {
         // Easy to lose track of your own row in a busy leaderboard without this — every
         // other row looked identical regardless of who was you.
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(isMe ? Color.keptOrange : Color.keptLine, lineWidth: isMe ? 1.5 : 1))
-    }
-
-    private func formattedAmount(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
     }
 
     private func load() async {
@@ -193,7 +195,6 @@ private struct LogGroupProgressSheet: View {
     let group: HabitGroup
     var onLogged: () -> Void
 
-    @State private var amountText = ""
     @State private var note = ""
     @State private var isSaving = false
     @State private var capturedPhotos: [UIImage] = []
@@ -208,7 +209,7 @@ private struct LogGroupProgressSheet: View {
                 VStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.name).font(KeptFont.display(21, weight: .semibold)).foregroundStyle(.keptInk)
-                        Text("Adds to this \(group.goalPeriod.label)'s total · the circle is a live camera")
+                        Text("Counts toward this \(group.goalPeriod.label)'s check-ins · tap the circle to capture a photo")
                             .font(KeptFont.body(12, weight: .medium))
                             .foregroundStyle(.keptInkSoft)
                     }
@@ -233,29 +234,6 @@ private struct LogGroupProgressSheet: View {
                         }
                     }
                     .padding(.top, 26)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("AMOUNT ")
-                            .font(KeptFont.mono(11, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                        + Text("(optional, leave blank to count as 1)")
-                            .font(KeptFont.body(10.5, weight: .regular))
-                            .foregroundStyle(.keptInkSoft)
-                        HStack(spacing: 8) {
-                            TextField("1", text: $amountText)
-                                .keyboardType(.decimalPad)
-                                .font(KeptFont.body(15))
-                                .padding(15)
-                                .background(.keptSurface)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                            Text(group.goalUnit)
-                                .font(KeptFont.body(14, weight: .medium))
-                                .foregroundStyle(.keptInkSoft)
-                        }
-                    }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 18)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ADD A NOTE ")
@@ -294,8 +272,8 @@ private struct LogGroupProgressSheet: View {
                         .padding(.horizontal, 22)
                         .padding(.top, 26)
                         .padding(.bottom, 30)
-                        .disabled(effectiveAmount == nil || isSaving)
-                        .opacity(effectiveAmount == nil || isSaving ? 0.5 : 1)
+                        .disabled(isSaving)
+                        .opacity(isSaving ? 0.5 : 1)
                 }
             }
             .background(Color.keptBackground.ignoresSafeArea())
@@ -341,25 +319,17 @@ private struct LogGroupProgressSheet: View {
         }
     }
 
-    /// Typing a number is optional — leaving it blank (e.g. for a "did the workout or not"
-    /// kind of goal) just logs 1, same simplicity as a personal habit check-in. Only an
-    /// actual non-empty, non-numeric entry is treated as invalid.
-    private var effectiveAmount: Double? {
-        let trimmed = amountText.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty { return 1 }
-        return Double(trimmed)
-    }
-
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func save() {
-        guard let amount = effectiveAmount else { return }
         isSaving = true
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         Task {
-            await appModel.logGroupProgress(group, amount: amount, note: trimmedNote.isEmpty ? nil : trimmedNote, photos: capturedPhotos)
+            // Every check-in is worth 1, exactly like a personal habit — there's no
+            // amount to type anymore, so this always logs the same way.
+            await appModel.logGroupProgress(group, amount: 1, note: trimmedNote.isEmpty ? nil : trimmedNote, photos: capturedPhotos)
             isSaving = false
             onLogged()
             dismiss()

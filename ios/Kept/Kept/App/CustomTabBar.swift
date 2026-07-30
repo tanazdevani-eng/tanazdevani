@@ -19,15 +19,15 @@ struct CustomTabBar: View {
         // it, the way a 4-item bar would.
         HStack(spacing: 0) {
             HStack(spacing: 0) {
-                tabItem(.circle, glyph: "◎", label: "Circle")
-                tabItem(.groups, glyph: "⬡", label: "Groups")
+                tabItem(.circle, glyph: "◎")
+                tabItem(.groups, glyph: "⬡")
             }
             .frame(maxWidth: .infinity)
 
             addButton
 
             HStack(spacing: 0) {
-                tabItem(.habits, glyph: "⌂", label: "Habits")
+                tabItem(.habits, glyph: "⌂")
                 profileTabItem
             }
             .frame(maxWidth: .infinity)
@@ -54,17 +54,18 @@ struct CustomTabBar: View {
         }
     }
 
-    private func tabItem(_ tab: RootTab, glyph: String, label: String) -> some View {
+    // No text label under the glyph anymore — the destination screen's own header
+    // already spells out "Circle"/"Groups"/"Habits" in words the instant you land on it,
+    // so the label here was just repeating what you're about to see.
+    private func tabItem(_ tab: RootTab, glyph: String) -> some View {
         let isActive = selection == tab
         return Button {
             select(tab)
         } label: {
-            VStack(spacing: 4) {
-                Text(glyph).font(.system(size: 19))
-                Text(label).font(KeptFont.body(9.5, weight: .bold))
-            }
-            .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
-            .frame(maxWidth: .infinity)
+            Text(glyph)
+                .font(.system(size: 23))
+                .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
+                .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
     }
@@ -79,13 +80,9 @@ struct CustomTabBar: View {
         return Button {
             select(.profile)
         } label: {
-            VStack(spacing: 4) {
-                AvatarView(initial: initial, seed: 0, size: 19, imageURL: avatarURL)
-                    .opacity(isActive ? 1 : 0.55)
-                Text("You").font(KeptFont.body(9.5, weight: .bold))
-            }
-            .foregroundStyle(isActive ? Color.keptInk : Color(light: 0xB7ADC0, dark: 0x5C5568))
-            .frame(maxWidth: .infinity)
+            AvatarView(initial: initial, seed: 0, size: 26, imageURL: avatarURL)
+                .opacity(isActive ? 1 : 0.55)
+                .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
     }

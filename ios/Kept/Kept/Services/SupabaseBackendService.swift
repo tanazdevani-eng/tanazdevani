@@ -807,6 +807,17 @@ final class SupabaseBackendService: BackendService {
             .execute()
     }
 
+    func fetchTodaysGroupCheckIns(userId: UUID, day: Date) async throws -> Set<UUID> {
+        struct Row: Codable { var group_id: UUID }
+        let rows: [Row] = try await client.from("group_check_ins")
+            .select("group_id")
+            .eq("member_id", value: userId)
+            .eq("logical_day", value: day)
+            .execute()
+            .value
+        return Set(rows.map(\.group_id))
+    }
+
     func addGroupComment(groupCheckInId: UUID, userId: UUID, text: String, photoURL: String?) async throws {
         struct Insert: Codable {
             var group_check_in_id: UUID

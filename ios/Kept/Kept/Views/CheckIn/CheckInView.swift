@@ -10,7 +10,11 @@ struct CheckInView: View {
     @Environment(\.dismiss) private var dismiss
     let habit: Habit
 
-    private enum Mode { case done, downDay, notLogged }
+    // A third "not logged" mode used to live here, reached via a "Don't log anything
+    // today" button — but backing out of that decision was always just the system back
+    // gesture (discards without saving, see the header note above), so the button was a
+    // second way to do something you could already do by going back. Removed.
+    private enum Mode { case done, downDay }
 
     @State private var mode: Mode = .done
     @State private var note = ""
@@ -34,34 +38,18 @@ struct CheckInView: View {
                 .padding(.horizontal, 22)
                 .padding(.top, 6)
 
-                // A fixed gap, not an expanding Spacer — the circle still sits a bit lower
-                // than directly under the header for easier one-handed reach, but an
-                // expanding Spacer here (with nothing below it to balance) ballooned into
-                // a huge empty gap on taller screens instead of a modest offset.
-                Spacer().frame(height: 28)
+                // Tightened from 28 now that the circle itself is bigger — there was a lot
+                // of empty space between the header and the circle before.
+                Spacer().frame(height: 14)
 
                 VStack(spacing: 14) {
-                    // The circle itself is the camera in .done/.downDay — tapping it
-                    // captures a photo rather than toggling the mode, since capturing IS
-                    // the check-in moment now. .notLogged has nothing to capture, so it
-                    // falls back to the old plain tappable circle.
-                    if mode == .notLogged {
-                        Button {
-                            mode = .done
-                        } label: {
-                            ZStack {
-                                Circle().strokeBorder(Color.keptLine, lineWidth: 3)
-                                    .background(Circle().fill(Color.keptSurface))
-                            }
-                            .frame(width: 130, height: 130)
-                        }
-                    } else {
-                        LiveCameraCircle(
-                            ringColor: mode == .done ? .keptSuccess : .keptLine,
-                            isDisabled: capturedPhotos.count >= maxPhotos
-                        ) { image in
-                            capturedPhotos.append(image)
-                        }
+                    // The circle itself is the camera — tapping it captures a photo rather
+                    // than toggling state, since capturing IS the check-in moment now.
+                    LiveCameraCircle(
+                        ringColor: mode == .done ? .keptSuccess : .keptLine,
+                        isDisabled: capturedPhotos.count >= maxPhotos
+                    ) { image in
+                        capturedPhotos.append(image)
                     }
 
                     VStack(spacing: 6) {
@@ -75,69 +63,59 @@ struct CheckInView: View {
                     // tap reshoots into the same slot, instead of needing to scroll down to
                     // the thumbnail strip and tap its "✕" (still there too, for removing an
                     // earlier photo specifically rather than just the most recent one).
-                    if !capturedPhotos.isEmpty && mode != .notLogged {
+                    if !capturedPhotos.isEmpty {
                         Button("Retake last photo") { capturedPhotos.removeLast() }
                             .font(KeptFont.body(12, weight: .semibold))
                             .foregroundStyle(.keptOrangeDeep)
                     }
 
-                    // Both options read as plain text links now, same weight — a filled
-                    // chip next to a bare link made one look like the "real" button and the
-                    // other like an afterthought, when they're just two equally valid ways
-                    // to change your mind about today.
-                    if mode != .notLogged {
-                        HStack(spacing: 8) {
-                            if mode == .done {
-                                Button("Log a down day instead") { mode = .downDay }
-                            } else {
-                                Button("Check in instead") { mode = .done }
-                            }
-                            Text("·").foregroundStyle(.keptInkSoft)
-                            Button("Don't log anything today") { mode = .notLogged }
-                        }
-                        .font(KeptFont.body(12.5, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
+                    // A real button now (filled pill), not a bare text link — with the
+                    // "don't log anything" option gone, this is the only secondary action
+                    // left, so there's no mismatched pair to worry about anymore, just one
+                    // clearly tappable control.
+                    Button(mode == .done ? "Log a down day instead" : "Check in instead") {
+                        mode = mode == .done ? .downDay : .done
                     }
+                    .font(KeptFont.body(12.5, weight: .semibold))
+                    .foregroundStyle(mode == .done ? .keptInkSoft : .keptOrangeDeep)
+                    .padding(.vertical, 9)
+                    .padding(.horizontal, 16)
+                    .background(mode == .done ? Color.keptChip : Color.keptOrangeSoft)
+                    .clipShape(Capsule())
                 }
-                .padding(.top, 26)
+                .padding(.top, 18)
 
-                // Note and photos only make sense for done/down-day — .notLogged means
-                // "nothing happened here," so saveCheckIn() calls undoCheckIn(), which
-                // takes neither; showing (and silently discarding) either here would be
-                // misleading.
-                if mode != .notLogged {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(mode == .downDay ? "WHAT GOT IN THE WAY " : "ADD A NOTE ")
-                            .font(KeptFont.mono(11, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
-                        + Text("(optional)")
-                            .font(KeptFont.body(11, weight: .regular))
-                            .foregroundStyle(.keptInkSoft)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(mode == .downDay ? "WHAT GOT IN THE WAY " : "ADD A NOTE ")
+                        .font(KeptFont.mono(11, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
+                    + Text("(optional)")
+                        .font(KeptFont.body(11, weight: .regular))
+                        .foregroundStyle(.keptInkSoft)
 
-                        TextField(mode == .downDay ? "No pressure, say what happened if you want..." : "Say something about today...", text: $note, axis: .vertical)
-                            .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15))
-                            .foregroundStyle(.keptInk)
-                            .focused($noteFocused)
-                            .lineLimit(3...6)
-                            .padding(14)
-                            .background(.keptSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("Done") { noteFocused = false }
-                                }
+                    TextField(mode == .downDay ? "No pressure, say what happened if you want..." : "Say something about today...", text: $note, axis: .vertical)
+                        .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15))
+                        .foregroundStyle(.keptInk)
+                        .focused($noteFocused)
+                        .lineLimit(3...6)
+                        .padding(14)
+                        .background(.keptSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.keptLine))
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") { noteFocused = false }
                             }
-                    }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 18)
+                        }
+                }
+                .padding(.horizontal, 22)
+                .padding(.top, 18)
 
-                    if !capturedPhotos.isEmpty {
-                        photoStrip
-                            .padding(.horizontal, 22)
-                            .padding(.top, 14)
-                    }
+                if !capturedPhotos.isEmpty {
+                    photoStrip
+                        .padding(.horizontal, 22)
+                        .padding(.top, 14)
                 }
 
                 visibilityReminder
@@ -164,7 +142,6 @@ struct CheckInView: View {
             switch mode {
             case .done: return ("CHECKED IN", .keptSuccessSoft, .keptSuccess)
             case .downDay: return ("DOWN DAY", .keptChip, .keptInkSoft)
-            case .notLogged: return ("NOT LOGGED", .keptChip, .keptInkSoft)
             }
         }()
         return Text(label)
@@ -177,18 +154,11 @@ struct CheckInView: View {
     }
 
     private var captureHint: String {
-        switch mode {
-        case .notLogged: return "tap to check in"
-        default: return capturedPhotos.isEmpty ? "tap to capture" : "tap to capture another"
-        }
+        capturedPhotos.isEmpty ? "tap to capture" : "tap to capture another"
     }
 
     private var saveLabel: String {
-        switch mode {
-        case .done: return "Save check-in"
-        case .downDay: return "Post down day"
-        case .notLogged: return "Save"
-        }
+        mode == .done ? "Save check-in" : "Post down day"
     }
 
     private var photoStrip: some View {
@@ -249,8 +219,6 @@ struct CheckInView: View {
             appModel.checkIn(habit, note: trimmedNote, photos: capturedPhotos)
         case .downDay:
             appModel.logDownDay(habit, note: trimmedNote.isEmpty ? nil : trimmedNote, photos: capturedPhotos)
-        case .notLogged:
-            appModel.undoCheckIn(habit)
         }
         dismiss()
     }

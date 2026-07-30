@@ -8,17 +8,14 @@ struct CreateGroupView: View {
     @State private var locationLabel = ""
     @State private var latitude: Double?
     @State private var longitude: Double?
-    @State private var goalAmountText = "4"
-    @State private var goalUnit = "miles"
+    @State private var goalUnit = ""
     @State private var goalPeriod: GroupGoalPeriod = .weekly
     @State private var visibility: GroupVisibility = .publicGroup
     @State private var isSaving = false
 
-    private var goalAmount: Double? { Double(goalAmountText) }
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !locationLabel.trimmingCharacters(in: .whitespaces).isEmpty
-            && (goalAmount ?? 0) > 0
             && !goalUnit.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
@@ -36,23 +33,23 @@ struct CreateGroupView: View {
                 fieldLabel("Location").padding(.top, 16)
                 LocationField(label: $locationLabel, latitude: $latitude, longitude: $longitude)
 
-                fieldLabel("Shared goal").padding(.top, 16)
-                HStack(spacing: 10) {
-                    TextField("Amount", text: $goalAmountText)
-                        .keyboardType(.decimalPad)
-                        .frame(width: 80)
-                    TextField("Unit, e.g. miles", text: $goalUnit)
-                    periodMenu
-                }
-                .font(KeptFont.body(14))
-                .padding(15)
-                .background(.keptSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                Text("Every member logs their own progress toward this same goal. Leave it blank at check-in and it just counts as 1, no typing required if it's not a number thing (like a workout).")
+                // Open text, same as a personal habit's name field — no amount/unit split
+                // to fill in. Every member just checks in, exactly like a habit; there's
+                // nothing to type a number into anymore.
+                fieldLabel("What's the shared goal?").padding(.top, 16)
+                TextField("e.g. Run together, Morning meditation", text: $goalUnit)
+                    .font(KeptFont.body(15))
+                    .padding(15)
+                    .background(.keptSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
+                Text("Every member just checks in, like a habit. The group feed shows who's shown up and how often.")
                     .font(KeptFont.body(11.5, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .padding(.top, 6)
+
+                fieldLabel("How often does the leaderboard reset?").padding(.top, 16)
+                periodPicker
 
                 fieldLabel("Who can find this group?").padding(.top, 16)
                 visibilityPicker
@@ -76,14 +73,27 @@ struct CreateGroupView: View {
         }
     }
 
-    private var periodMenu: some View {
-        Menu {
+    /// Chip row, matching DurationPicker's preset style — a set of named choices, not a
+    /// number field, so it doesn't read as "the numerical part" the way the old
+    /// amount/unit/period row did.
+    private var periodPicker: some View {
+        HStack(spacing: 8) {
             ForEach(GroupGoalPeriod.allCases) { period in
-                Button("per \(period.label)") { goalPeriod = period }
+                let isSelected = goalPeriod == period
+                Button {
+                    goalPeriod = period
+                } label: {
+                    Text(period.adverb.capitalized)
+                        .font(KeptFont.body(12.5, weight: .semibold))
+                        .foregroundStyle(isSelected ? .keptOrangeDeep : .keptInkSoft)
+                        .padding(.vertical, 9)
+                        .padding(.horizontal, 14)
+                        .background(isSelected ? Color.keptOrangeSoft : .keptSurface)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(isSelected ? Color.keptOrange : Color.keptLine, lineWidth: isSelected ? 1.5 : 1))
+                }
+                .buttonStyle(.plain)
             }
-        } label: {
-            Text("/ \(goalPeriod.label)")
-                .foregroundStyle(.keptInkSoft)
         }
     }
 
@@ -127,14 +137,14 @@ struct CreateGroupView: View {
     }
 
     private func save() {
-        guard let amount = goalAmount, canSave else { return }
+        guard canSave else { return }
         isSaving = true
         Task {
             let created = await appModel.createGroup(
                 name: name.trimmingCharacters(in: .whitespaces),
                 locationLabel: locationLabel.trimmingCharacters(in: .whitespaces),
                 latitude: latitude, longitude: longitude,
-                goalAmount: amount, goalUnit: goalUnit.trimmingCharacters(in: .whitespaces),
+                goalUnit: goalUnit.trimmingCharacters(in: .whitespaces),
                 goalPeriod: goalPeriod, visibility: visibility
             )
             isSaving = false

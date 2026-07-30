@@ -19,6 +19,9 @@ final class AppModel: ObservableObject {
     @Published var myGroups: [HabitGroup] = []
     /// Last searchPublicGroups() result, shown in the Discover section of GroupsListView.
     @Published var discoveredGroups: [HabitGroup] = []
+    /// Group IDs with a check-in already logged today — powers Circle's "groups waiting on
+    /// you" reminder without a separate fetch per group.
+    @Published var todaysCheckedInGroupIds: Set<UUID> = []
     @Published var notificationSettings = NotificationSettings()
     @Published var defaultVisibility: HabitVisibility = .open
     @Published var toast: String?
@@ -184,6 +187,8 @@ final class AppModel: ObservableObject {
         async let invitesFetch = backend.fetchPendingInvites(userId: userId)
         async let contactsFetch = backend.fetchContacts(userId: userId)
         async let settingsFetch = backend.fetchNotificationSettings(userId: userId)
+        async let groupsFetch = backend.fetchMyGroups(userId: userId)
+        async let todaysGroupCheckInsFetch = backend.fetchTodaysGroupCheckIns(userId: userId, day: dayCalendar.logicalDay(for: Date()))
 
         profile = try await profileFetch
         habits = try await habitsFetch
@@ -191,6 +196,12 @@ final class AppModel: ObservableObject {
         pendingInvites = try await invitesFetch
         contacts = try await contactsFetch
         notificationSettings = try await settingsFetch
+        // Wasn't fetched at all on initial launch before — myGroups only ever got
+        // populated once you visited the Groups tab or pulled to refresh on Home/Circle,
+        // so a "groups waiting on you" reminder on Circle would show nothing on a fresh
+        // launch even if you were already in groups.
+        myGroups = try await groupsFetch
+        todaysCheckedInGroupIds = try await todaysGroupCheckInsFetch
         reconcilePerHabitReminders()
         scheduler.syncReminders(for: habits, settings: notificationSettings)
         // Re-registers for a remote device token if permission was already granted in an
@@ -214,6 +225,7 @@ final class AppModel: ObservableObject {
         todaysPhotoURLs = [:]
         nudgedAuthorIds = []
         myGroups = []
+        todaysCheckedInGroupIds = []
         discoveredGroups = []
         friendFeedItems = Self.demoFriendFeed()
         selectedTab = .circle
@@ -230,6 +242,7 @@ final class AppModel: ObservableObject {
             async let invitesFetch = backend.fetchPendingInvites(userId: userId)
             async let feedFetch = backend.fetchCircleFeed(userId: userId)
             async let groupsFetch = backend.fetchMyGroups(userId: userId)
+            async let todaysGroupCheckInsFetch = backend.fetchTodaysGroupCheckIns(userId: userId, day: dayCalendar.logicalDay(for: Date()))
 
             habits = try await habitsFetch
             circleMembers = try await membersFetch
@@ -239,6 +252,7 @@ final class AppModel: ObservableObject {
                 friendFeedItems = freshFriendFeed
             }
             myGroups = try await groupsFetch
+            todaysCheckedInGroupIds = try await todaysGroupCheckInsFetch
             reconcilePerHabitReminders()
         } catch {
             showToast("Couldn't refresh. Check your connection")
@@ -565,12 +579,12 @@ final class AppModel: ObservableObject {
     @discardableResult
     func createGroup(
         name: String, locationLabel: String, latitude: Double?, longitude: Double?,
-        goalAmount: Double, goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
+        goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
     ) async -> HabitGroup? {
         guard let userId = session?.userId else { return nil }
         let group = HabitGroup(
             name: name, locationLabel: locationLabel, latitude: latitude, longitude: longitude,
-            goalAmount: goalAmount, goalUnit: goalUnit, goalPeriod: goalPeriod,
+            goalUnit: goalUnit, goalPeriod: goalPeriod,
             visibility: visibility, creatorId: userId
         )
         do {
@@ -646,6 +660,9 @@ final class AppModel: ObservableObject {
         }
         do {
             try await backend.logGroupCheckIn(groupId: group.id, userId: userId, amount: amount, note: note, day: day, photoURLs: urls)
+            // So Circle's "groups waiting on you" reminder clears immediately instead of
+            // waiting for the next refresh to notice.
+            todaysCheckedInGroupIds.insert(group.id)
             showToast("Progress logged")
         } catch {
             showToast("Couldn't log that")
