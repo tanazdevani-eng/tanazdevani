@@ -124,7 +124,7 @@ struct GroupFeedRow: View {
                     Button("Save to Photos") {
                         Task {
                             let saved = await PhotoLibrarySaver.save(commentPhoto)
-                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save. Check Photos permission.")
                         }
                     }
                     .font(KeptFont.body(9.5, weight: .semibold))

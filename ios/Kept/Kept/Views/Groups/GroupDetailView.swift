@@ -224,7 +224,7 @@ private struct LogGroupProgressSheet: View {
                         Text("AMOUNT ")
                             .font(KeptFont.mono(11, weight: .semibold))
                             .foregroundStyle(.keptInkSoft)
-                        + Text("(optional — leave blank to just count as 1)")
+                        + Text("(optional, leave blank to count as 1)")
                             .font(KeptFont.body(10.5, weight: .regular))
                             .foregroundStyle(.keptInkSoft)
                         HStack(spacing: 8) {
@@ -317,7 +317,7 @@ private struct LogGroupProgressSheet: View {
                     Button("Save to Photos") {
                         Task {
                             let saved = await PhotoLibrarySaver.save(image)
-                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save. Check Photos permission.")
                         }
                     }
                     .font(KeptFont.body(9.5, weight: .semibold))

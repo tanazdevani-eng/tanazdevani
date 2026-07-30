@@ -78,8 +78,6 @@ struct FriendPostCard: View {
                     noteText("\u{201C}\(note)\u{201D}", emphasized: true)
                 } else if item.status == .missed {
                     noteText("Couldn't get to it today.", emphasized: false)
-                } else if item.isMine {
-                    noteText("Checked in. No note this time.", emphasized: false)
                 }
 
                 HStack(spacing: 10) {
@@ -277,7 +275,7 @@ struct FriendPostCard: View {
                     Button("Save to Photos") {
                         Task {
                             let saved = await PhotoLibrarySaver.save(commentPhoto)
-                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save. Check Photos permission.")
                         }
                     }
                     .font(KeptFont.body(9.5, weight: .semibold))

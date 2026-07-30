@@ -59,7 +59,7 @@ struct HabitPhotosView: View {
                 .font(KeptFont.display(17, weight: .semibold))
                 .foregroundStyle(.keptInk)
             if !isLoading {
-                Text("Capture one next time you check in — the circle on the check-in screen is a live camera.")
+                Text("Capture one next time you check in. The circle on the check-in screen is a live camera.")
                     .font(KeptFont.body(13, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .multilineTextAlignment(.center)
@@ -106,7 +106,7 @@ private struct HabitPhotoDetailView: View {
                                 return
                             }
                             let saved = await PhotoLibrarySaver.save(image)
-                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                            appModel.showToast(saved ? "Saved to Photos" : "Couldn't save. Check Photos permission.")
                         }
                     }
                     .font(KeptFont.body(13, weight: .semibold))

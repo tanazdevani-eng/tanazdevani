@@ -49,7 +49,7 @@ struct CreateGroupView: View {
                 .background(.keptSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.keptLine))
-                Text("Every member logs their own progress toward this same goal — leave it blank at check-in and it just counts as 1, no typing required if it's not a number thing (like a workout).")
+                Text("Every member logs their own progress toward this same goal. Leave it blank at check-in and it just counts as 1, no typing required if it's not a number thing (like a workout).")
                     .font(KeptFont.body(11.5, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .padding(.top, 6)

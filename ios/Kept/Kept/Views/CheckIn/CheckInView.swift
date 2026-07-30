@@ -26,7 +26,7 @@ struct CheckInView: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name).font(KeptFont.display(21, weight: .semibold)).foregroundStyle(.keptInk)
-                    Text("Day \(day) · the circle is a live camera — tap it to capture")
+                    Text("Day \(day) · tap the circle to capture a photo")
                         .font(KeptFont.body(12, weight: .medium))
                         .foregroundStyle(.keptInkSoft)
                 }
@@ -64,9 +64,12 @@ struct CheckInView: View {
                         }
                     }
 
-                    Text(circleCaption)
-                        .font(KeptFont.mono(12, weight: .semibold))
-                        .foregroundStyle(.keptInkSoft)
+                    VStack(spacing: 6) {
+                        statusChip
+                        Text(captureHint)
+                            .font(KeptFont.mono(10.5, weight: .medium))
+                            .foregroundStyle(.keptInkSoft)
+                    }
 
                     // Quick undo for the shot you just took — pops it so the circle's next
                     // tap reshoots into the same slot, instead of needing to scroll down to
@@ -78,30 +81,22 @@ struct CheckInView: View {
                             .foregroundStyle(.keptOrangeDeep)
                     }
 
+                    // Both options read as plain text links now, same weight — a filled
+                    // chip next to a bare link made one look like the "real" button and the
+                    // other like an afterthought, when they're just two equally valid ways
+                    // to change your mind about today.
                     if mode != .notLogged {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             if mode == .done {
                                 Button("Log a down day instead") { mode = .downDay }
-                                    .font(KeptFont.body(12.5, weight: .semibold))
-                                    .foregroundStyle(.keptInkSoft)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 14)
-                                    .background(Color.keptChip)
-                                    .clipShape(Capsule())
                             } else {
-                                Button("Actually, I did it — check in instead") { mode = .done }
-                                    .font(KeptFont.body(12.5, weight: .semibold))
-                                    .foregroundStyle(.keptOrangeDeep)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 14)
-                                    .background(Color.keptOrangeSoft)
-                                    .clipShape(Capsule())
+                                Button("Check in instead") { mode = .done }
                             }
-
-                            Button("Don't log this") { mode = .notLogged }
-                                .font(KeptFont.body(12.5, weight: .semibold))
-                                .foregroundStyle(.keptInkSoft)
+                            Text("·").foregroundStyle(.keptInkSoft)
+                            Button("Don't log anything today") { mode = .notLogged }
                         }
+                        .font(KeptFont.body(12.5, weight: .semibold))
+                        .foregroundStyle(.keptInkSoft)
                     }
                 }
                 .padding(.top, 26)
@@ -119,7 +114,7 @@ struct CheckInView: View {
                             .font(KeptFont.body(11, weight: .regular))
                             .foregroundStyle(.keptInkSoft)
 
-                        TextField(mode == .downDay ? "No pressure — say what happened, if you want..." : "Say something about today...", text: $note, axis: .vertical)
+                        TextField(mode == .downDay ? "No pressure, say what happened if you want..." : "Say something about today...", text: $note, axis: .vertical)
                             .font(note.isEmpty ? KeptFont.body(13.5) : KeptFont.display(15))
                             .foregroundStyle(.keptInk)
                             .focused($noteFocused)
@@ -161,11 +156,30 @@ struct CheckInView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var circleCaption: String {
+    /// A colored pill for the status itself (matches the visibility pill / DOWN DAY tag
+    /// used elsewhere), with the tap instruction as plain secondary text below it — status
+    /// and instruction used to be one flat grey mono line, easy to read past entirely.
+    private var statusChip: some View {
+        let (label, background, foreground): (String, Color, Color) = {
+            switch mode {
+            case .done: return ("CHECKED IN", .keptSuccessSoft, .keptSuccess)
+            case .downDay: return ("DOWN DAY", .keptChip, .keptInkSoft)
+            case .notLogged: return ("NOT LOGGED", .keptChip, .keptInkSoft)
+            }
+        }()
+        return Text(label)
+            .font(KeptFont.mono(11, weight: .semibold))
+            .foregroundStyle(foreground)
+            .padding(.vertical, 5)
+            .padding(.horizontal, 11)
+            .background(background)
+            .clipShape(Capsule())
+    }
+
+    private var captureHint: String {
         switch mode {
-        case .done: return capturedPhotos.isEmpty ? "CHECKED IN · tap to capture" : "CHECKED IN · tap to capture another"
-        case .downDay: return capturedPhotos.isEmpty ? "DOWN DAY · tap to capture" : "DOWN DAY · tap to capture another"
-        case .notLogged: return "NOT LOGGED · tap to check in"
+        case .notLogged: return "tap to check in"
+        default: return capturedPhotos.isEmpty ? "tap to capture" : "tap to capture another"
         }
     }
 
@@ -205,7 +219,7 @@ struct CheckInView: View {
             Button("Save to Photos") {
                 Task {
                     let saved = await PhotoLibrarySaver.save(image)
-                    appModel.showToast(saved ? "Saved to Photos" : "Couldn't save — check Photos permission")
+                    appModel.showToast(saved ? "Saved to Photos" : "Couldn't save. Check Photos permission.")
                 }
             }
             .font(KeptFont.body(9.5, weight: .semibold))

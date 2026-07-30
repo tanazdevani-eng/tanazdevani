@@ -35,7 +35,7 @@ struct GroupsListView: View {
                         }
 
                     if appModel.discoveredGroups.isEmpty && !isSearching {
-                        Text(searchText.isEmpty ? "No public groups yet — be the first to create one." : "No matches.")
+                        Text(searchText.isEmpty ? "No public groups yet. Be the first to create one." : "No matches.")
                             .font(KeptFont.body(12.5, weight: .medium))
                             .foregroundStyle(.keptInkSoft)
                             .padding(.top, 8)

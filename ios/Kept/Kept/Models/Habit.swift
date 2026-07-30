@@ -120,12 +120,10 @@ struct Habit: Identifiable, Codable, Equatable, Hashable {
         return longest
     }
 
-    /// Subtitle line: only present when there's something to say, never restates Open/Kept.
+    /// Subtitle line: only present when there's something to say, never restates Open/Kept
+    /// or today's check-in status — the button below already shows that in color.
     func subtitle(now: Date = Date(), calendar: DayCalendar = DayCalendar()) -> String? {
         var parts: [String] = []
-        if isCheckedIn(on: now, calendar: calendar) {
-            parts.append("checked in today")
-        }
         if let goal = goalDurationDays {
             parts.append("Day \(min(daysSinceStart(now: now, calendar: calendar), goal)) of \(goal)")
         }

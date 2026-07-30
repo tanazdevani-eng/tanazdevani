@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var checkInHabit: Habit?
     @State private var editHabit: Habit?
     @State private var photosHabit: Habit?
+    @State private var showingStreakInsights = false
 
     /// Locale-aware instead of a hardcoded US-style "EEEE, MMMM d" template — weekday/month
     /// names, and their order, both vary by language and region.
@@ -44,6 +45,9 @@ struct HomeView: View {
         .navigationDestination(item: $photosHabit) { habit in
             HabitPhotosView(habit: habit)
         }
+        .navigationDestination(isPresented: $showingStreakInsights) {
+            StreakInsightsView()
+        }
     }
 
     private var header: some View {
@@ -52,15 +56,18 @@ struct HomeView: View {
                 Text("Kept").keptWordmark(28).foregroundStyle(.keptInk)
                 Spacer()
                 HStack(spacing: 8) {
-                    HStack(spacing: 5) {
-                        Text("🔥").font(.system(size: 12))
-                        Text("\(appModel.overallStreak)").font(KeptFont.mono(13, weight: .semibold))
+                    Button { showingStreakInsights = true } label: {
+                        HStack(spacing: 5) {
+                            Text("🔥").font(.system(size: 12))
+                            Text("\(appModel.overallStreak)").font(KeptFont.mono(13, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.keptInkFill)
+                        .clipShape(Capsule())
                     }
-                    .foregroundStyle(.white)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 12)
-                    .background(Color.keptInkFill)
-                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
 
                     Button { appModel.selectedTab = .profile } label: {
                         AvatarView(initial: appModel.profile.initial, seed: 0, size: 34)
