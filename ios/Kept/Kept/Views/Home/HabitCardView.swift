@@ -15,7 +15,8 @@ struct HabitCardView: View {
 
     /// Both keptChip and keptSurface were tried here for the down-day state and both read
     /// as an off/washed-out white next to the solid black default and green success fills —
-    /// keptMuted is an actual third color (a warm taupe/plum), not another near-white.
+    /// keptMuted is a real amber/gold now, an actual third color in the same language as
+    /// green "Checked in," not another near-neutral.
     private var checkInButtonBackground: Color {
         if checkedInToday { return .keptSuccess }
         if isDownDayToday { return .keptMuted }

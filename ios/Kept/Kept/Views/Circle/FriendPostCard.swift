@@ -128,7 +128,7 @@ struct FriendPostCard: View {
                     if item.status == .missed {
                         Text("DOWN DAY")
                             .font(KeptFont.mono(8.5, weight: .semibold))
-                            .foregroundStyle(.keptInkSoft)
+                            .foregroundStyle(.keptInk)
                             .padding(.vertical, 2)
                             .padding(.horizontal, 6)
                             .background(Color.keptMuted)
