@@ -8,12 +8,20 @@ struct GroupDetailView: View {
     @State private var members: [GroupMemberInfo] = []
     @State private var feed: [GroupCheckIn] = []
     @State private var showingLogSheet = false
+    @State private var showingEdit = false
     @State private var isLoading = true
 
     private var isMember: Bool { appModel.myGroups.contains { $0.id == group.id } }
+    private var isCreator: Bool { group.creatorId == appModel.profile.id }
+
+    /// Re-derived from appModel.myGroups rather than trusting `group` directly — `group` is
+    /// a value captured at push time from the list row, so it goes stale the moment an edit
+    /// saves (this screen never gets popped in between, just the Edit sheet dismissing back
+    /// onto it). Falls back to `group` itself before the initial fetch populates myGroups.
+    private var currentGroup: HabitGroup { appModel.myGroups.first(where: { $0.id == group.id }) ?? group }
 
     private var progress: [GroupMemberProgress] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -group.goalPeriod.days, to: Date()) ?? .distantPast
+        let cutoff = Calendar.current.date(byAdding: .day, value: -currentGroup.goalPeriod.days, to: Date()) ?? .distantPast
         var totals: [UUID: Double] = [:]
         for entry in feed where entry.loggedAt >= cutoff {
             totals[entry.memberId, default: 0] += entry.amount
@@ -31,7 +39,7 @@ struct GroupDetailView: View {
                 actionRow
 
                 if !progress.isEmpty {
-                    section("This \(group.goalPeriod.label)'s progress") {
+                    section("This \(currentGroup.goalPeriod.label)'s progress") {
                         VStack(spacing: 10) {
                             ForEach(progress) { member in
                                 progressRow(member)
@@ -60,13 +68,25 @@ struct GroupDetailView: View {
             .padding(.bottom, 90)
         }
         .background(Color.keptBackground.ignoresSafeArea())
-        .navigationTitle(group.name)
+        .navigationTitle(currentGroup.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isCreator {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { showingEdit = true }
+                        .font(KeptFont.body(13, weight: .semibold))
+                        .foregroundStyle(.keptInk)
+                }
+            }
+        }
         .task { await load() }
         .sheet(isPresented: $showingLogSheet) {
-            LogGroupProgressSheet(group: group) {
+            LogGroupProgressSheet(group: currentGroup) {
                 Task { await load() }
             }
+        }
+        .sheet(isPresented: $showingEdit) {
+            NavigationStack { EditGroupView(group: currentGroup) }
         }
     }
 
@@ -74,30 +94,30 @@ struct GroupDetailView: View {
     /// this group's own public/private visibility, rather than plain text sitting
     /// directly on the page background.
     private var header: some View {
-        KeptCard(fill: AnyShapeStyle(group.visibility.cardGradient), borderColor: group.visibility.borderColor, cornerRadius: 22) {
+        KeptCard(fill: AnyShapeStyle(currentGroup.visibility.cardGradient), borderColor: currentGroup.visibility.borderColor, cornerRadius: 22) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("\(group.visibility.pillGlyph) \(group.visibility.label)")
+                Text("\(currentGroup.visibility.pillGlyph) \(currentGroup.visibility.label)")
                     .font(KeptFont.mono(10.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 9)
-                    .background(group.visibility.accent)
+                    .background(currentGroup.visibility.accent)
                     .clipShape(Capsule())
 
-                Text(group.locationLabel)
+                Text(currentGroup.locationLabel)
                     .font(KeptFont.body(13, weight: .medium))
                     .foregroundStyle(.keptInkSoft)
                     .padding(.top, 4)
                 // Two different weights on one line, not one uniform-size string — the
                 // activity is the headline, the cadence is a footnote next to it, not a
                 // second half of the same sentence.
-                Text(group.goalUnit)
+                Text(currentGroup.goalUnit)
                     .font(KeptFont.display(19, weight: .semibold))
                     .foregroundStyle(.keptInk)
-                + Text("  ·  resets \(group.goalPeriod.adverb)")
+                + Text("  ·  resets \(currentGroup.goalPeriod.adverb)")
                     .font(KeptFont.mono(11.5, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
-                Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
+                Text("\(currentGroup.memberCount) member\(currentGroup.memberCount == 1 ? "" : "s")")
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
             }
@@ -113,10 +133,10 @@ struct GroupDetailView: View {
                 // group's check-in button was using the same orange as "Open" everywhere
                 // else, even though this group is the purple/private kind.
                 Button("Check in") { showingLogSheet = true }
-                    .buttonStyle(KeptPillButtonStyle(background: group.visibility.accentFill))
+                    .buttonStyle(KeptPillButtonStyle(background: currentGroup.visibility.accentFill))
 
-                if group.visibility == .privateGroup {
-                    ShareLink(item: appModel.groupShareText(group)) {
+                if currentGroup.visibility == .privateGroup {
+                    ShareLink(item: appModel.groupShareText(currentGroup)) {
                         Text("Share invite")
                             .font(KeptFont.body(13, weight: .bold))
                             .foregroundStyle(.keptInk)
@@ -128,13 +148,13 @@ struct GroupDetailView: View {
                     }
                 }
             } else {
-                Button("Join group") { Task { await appModel.joinGroup(group) } }
+                Button("Join group") { Task { await appModel.joinGroup(currentGroup) } }
                     .buttonStyle(.keptPrimary)
             }
         }
 
-        if isMember && group.creatorId != appModel.profile.id {
-            Button("Leave group") { Task { await appModel.leaveGroup(group) } }
+        if isMember && !isCreator {
+            Button("Leave group") { Task { await appModel.leaveGroup(currentGroup) } }
                 .font(KeptFont.body(12, weight: .semibold))
                 .foregroundStyle(.keptOrangeDeep)
         }
@@ -163,7 +183,7 @@ struct GroupDetailView: View {
                     .font(KeptFont.body(13, weight: .semibold))
                     .foregroundStyle(.keptInk)
                 Spacer()
-                Text("\(count) check-in\(count == 1 ? "" : "s") this \(group.goalPeriod.label)")
+                Text("\(count) check-in\(count == 1 ? "" : "s") this \(currentGroup.goalPeriod.label)")
                     .font(KeptFont.mono(11, weight: .semibold))
                     .foregroundStyle(.keptInkSoft)
             }
@@ -187,8 +207,8 @@ struct GroupDetailView: View {
 
     private func load() async {
         isLoading = true
-        async let membersFetch = appModel.fetchGroupMembers(group)
-        async let feedFetch = appModel.fetchGroupFeed(group)
+        async let membersFetch = appModel.fetchGroupMembers(currentGroup)
+        async let feedFetch = appModel.fetchGroupFeed(currentGroup)
         members = await membersFetch
         feed = await feedFetch
         isLoading = false

@@ -598,6 +598,31 @@ final class AppModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func updateGroup(
+        _ group: HabitGroup, name: String, locationLabel: String, latitude: Double?, longitude: Double?,
+        goalUnit: String, goalPeriod: GroupGoalPeriod, visibility: GroupVisibility
+    ) async -> Bool {
+        guard let index = myGroups.firstIndex(where: { $0.id == group.id }) else { return false }
+        var updated = myGroups[index]
+        updated.name = name
+        updated.locationLabel = locationLabel
+        updated.latitude = latitude
+        updated.longitude = longitude
+        updated.goalUnit = goalUnit
+        updated.goalPeriod = goalPeriod
+        updated.visibility = visibility
+        do {
+            try await backend.updateGroup(updated)
+            myGroups[index] = updated
+            showToast("Group updated")
+            return true
+        } catch {
+            showToast("Couldn't update the group")
+            return false
+        }
+    }
+
     func joinGroup(_ group: HabitGroup) async {
         guard let userId = session?.userId, !myGroups.contains(where: { $0.id == group.id }) else { return }
         do {

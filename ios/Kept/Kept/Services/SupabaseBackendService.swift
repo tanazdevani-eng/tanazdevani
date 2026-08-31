@@ -685,6 +685,27 @@ final class SupabaseBackendService: BackendService {
         try await joinGroup(groupId: group.id, userId: group.creatorId)
     }
 
+    /// Field-level patch, not a full row replace — mirrors updateHabit, and keeps
+    /// server-managed columns (creator_id, invite_token, created_at) untouched.
+    func updateGroup(_ group: HabitGroup) async throws {
+        struct Patch: Codable {
+            var name: String
+            var location_label: String
+            var latitude: Double?
+            var longitude: Double?
+            var goal_unit: String
+            var goal_period: String
+            var visibility: String
+        }
+        let patch = Patch(
+            name: group.name, location_label: group.locationLabel,
+            latitude: group.latitude, longitude: group.longitude,
+            goal_unit: group.goalUnit, goal_period: group.goalPeriod.rawValue,
+            visibility: group.visibility.rawValue
+        )
+        try await client.from("groups").update(patch).eq("id", value: group.id).execute()
+    }
+
     func joinGroup(groupId: UUID, userId: UUID) async throws {
         struct Upsert: Codable { var group_id: UUID; var member_id: UUID }
         try await client.from("group_members")

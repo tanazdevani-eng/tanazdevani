@@ -213,6 +213,11 @@ actor MockBackendService: BackendService {
         groupMemberIds[group.id, default: []].append(group.creatorId)
     }
 
+    func updateGroup(_ group: HabitGroup) async throws {
+        guard let index = groups.firstIndex(where: { $0.id == group.id }) else { return }
+        groups[index] = group
+    }
+
     func joinGroup(groupId: UUID, userId: UUID) async throws {
         guard var ids = groupMemberIds[groupId] else { return }
         guard !ids.contains(userId) else { return }

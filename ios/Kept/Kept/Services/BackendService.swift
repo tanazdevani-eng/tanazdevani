@@ -65,6 +65,7 @@ protocol BackendService {
     func searchPublicGroups(query: String) async throws -> [HabitGroup]
     func fetchGroup(byInviteToken token: String) async throws -> HabitGroup?
     func createGroup(_ group: HabitGroup) async throws
+    func updateGroup(_ group: HabitGroup) async throws
     func joinGroup(groupId: UUID, userId: UUID) async throws
     func leaveGroup(groupId: UUID, userId: UUID) async throws
     func fetchGroupMembers(groupId: UUID) async throws -> [GroupMemberInfo]
