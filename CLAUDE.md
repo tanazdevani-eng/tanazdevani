@@ -63,5 +63,5 @@ Supabase (Postgres + Auth + Realtime + Storage), chosen as the first implementat
 ## Brand quick reference
 
 - Name: **Kept**
-- Tagline energy: "some habits you keep, some you keep to yourself"
+- Tagline energy: "some habits you share, and some you keep"
 - Tone: warm, confident, a little editorial, never cutesy or overly gamified. Avoid exclamation points and hype language in UI copy.

@@ -2,7 +2,7 @@
   "project": {
     "name": "Kept",
     "oneLiner": "An iOS habit tracker where every habit has a visibility setting: Open (visible to a small friend Circle who can react and nudge) or Kept (fully private). Hinge for habits, same card-stack editorial aesthetic, visibility toggle instead of a match mechanic.",
-    "tagline": "Some habits you keep. Some you keep to yourself.",
+    "tagline": "Some habits you share. And some you keep.",
     "platform": "Native iOS, SwiftUI recommended (single-platform app, standard list/form/tab/modal UI patterns, no cross-platform need)",
     "buildRequirements": [
       "A Mac (Xcode is macOS-only)",
